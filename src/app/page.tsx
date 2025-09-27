@@ -15,6 +15,7 @@ interface Recipe {
 }
 
 export default function Home() {
+  const [mainFood, setMainFood] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [filters, setFilters] = useState({
     cookingTime: '',
@@ -29,8 +30,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerateRecipes = async () => {
-    if (!ingredients.trim()) {
-      alert('Please enter some ingredients!');
+    if (!mainFood.trim()) {
+      alert('Please select a main food item!');
       return;
     }
 
@@ -40,7 +41,8 @@ export default function Home() {
     
     try {
       const requestData = {
-        ingredients: ingredients.split(',').map(ing => ing.trim()),
+        mainFood: mainFood.trim(),
+        ingredients: ingredients.split(',').map(ing => ing.trim()).filter(ing => ing.length > 0),
         filters
       };
       
@@ -87,16 +89,19 @@ export default function Home() {
   };
 
   const handleSurpriseMe = () => {
-    const surpriseIngredients = [
-      'chicken, rice, vegetables',
-      'pasta, tomatoes, cheese',
-      'eggs, bread, milk',
-      'beef, potatoes, onions',
-      'salmon, quinoa, spinach',
-      'prawns, garlic, butter'
+    const surpriseCombinations = [
+      { main: 'chicken', ingredients: 'rice, vegetables, garlic' },
+      { main: 'pasta', ingredients: 'tomatoes, cheese, basil' },
+      { main: 'eggs', ingredients: 'bread, milk, cheese' },
+      { main: 'beef', ingredients: 'potatoes, onions, carrots' },
+      { main: 'salmon', ingredients: 'quinoa, spinach, lemon' },
+      { main: 'prawns', ingredients: 'garlic, butter, wine' },
+      { main: 'tofu', ingredients: 'vegetables, soy sauce, ginger' },
+      { main: 'vegetables', ingredients: 'quinoa, olive oil, herbs' }
     ];
-    const randomIngredients = surpriseIngredients[Math.floor(Math.random() * surpriseIngredients.length)];
-    setIngredients(randomIngredients);
+    const random = surpriseCombinations[Math.floor(Math.random() * surpriseCombinations.length)];
+    setMainFood(random.main);
+    setIngredients(random.ingredients);
   };
 
   const handleRefreshRecipes = () => {
@@ -120,15 +125,45 @@ export default function Home() {
               <span className="text-[#FF914D]"> Amazing Recipes</span>
             </h1>
             <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-              Simply enter the ingredients you have, and we'll generate personalized recipes just for you.
+              Select your main food item and add supporting ingredients to get perfectly matched recipes.
             </p>
 
-            {/* Ingredients Input */}
+            {/* Main Food Item Selection */}
             <div className="mb-8">
+              <label className="block text-lg font-semibold text-gray-700 mb-4">
+                🍽️ What's your main food item?
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+                {['chicken', 'beef', 'pork', 'fish', 'salmon', 'prawns', 'shrimp', 'eggs', 'tofu', 'vegetables', 'pasta', 'rice', 'quinoa', 'bread', 'potatoes', 'mushrooms'].map((food) => (
+                  <button
+                    key={food}
+                    onClick={() => setMainFood(food)}
+                    className={`p-3 rounded-lg font-medium transition-colors ${
+                      mainFood === food
+                        ? 'bg-[#FF914D] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {food.charAt(0).toUpperCase() + food.slice(1)}
+                  </button>
+                ))}
+              </div>
+              {mainFood && (
+                <div className="mt-4 p-3 bg-[#FF914D] text-white rounded-lg inline-block">
+                  <span className="font-semibold">Selected: {mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Supporting Ingredients Input */}
+            <div className="mb-8">
+              <label className="block text-lg font-semibold text-gray-700 mb-4">
+                🥕 What other ingredients do you have?
+              </label>
               <textarea
                 value={ingredients}
                 onChange={(e) => setIngredients(e.target.value)}
-                placeholder="Enter your ingredients (comma separated)... e.g., chicken, rice, vegetables, garlic"
+                placeholder="Enter supporting ingredients (comma separated)... e.g., garlic, onions, tomatoes, cheese, herbs"
                 className="w-full max-w-2xl mx-auto p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-[#FF914D] focus:outline-none resize-none text-black"
                 rows={3}
               />
@@ -207,7 +242,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
                 onClick={handleGenerateRecipes}
-                disabled={loading}
+                disabled={loading || !mainFood.trim()}
                 className="bg-[#FF914D] text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-[#e67e3a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {loading ? 'Generating...' : 'Generate Recipes'}
@@ -246,7 +281,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold text-black">
-              Your Personalized Recipes ({recipes.length})
+              Recipes with {mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} ({recipes.length})
             </h2>
             <button
               onClick={handleRefreshRecipes}
