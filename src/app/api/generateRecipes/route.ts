@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Extended recipe database with 10 recipes
+    // Extended recipe database with ingredient matching
     const allRecipes = [
       {
         id: '1',
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 25,
         cuisine: 'italian',
         mealType: 'dinner',
-        dietaryStyle: 'none'
+        dietaryStyle: 'none',
+        matchingIngredients: ['chicken', 'pasta', 'garlic', 'cream', 'cheese', 'butter']
       },
       {
         id: '2',
@@ -32,7 +33,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 20,
         cuisine: 'mediterranean',
         mealType: 'lunch',
-        dietaryStyle: 'vegetarian'
+        dietaryStyle: 'vegetarian',
+        matchingIngredients: ['quinoa', 'cucumber', 'tomatoes', 'onion', 'olives', 'cheese', 'olive oil', 'lemon']
       },
       {
         id: '3',
@@ -44,7 +46,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 15,
         cuisine: 'asian',
         mealType: 'dinner',
-        dietaryStyle: 'none'
+        dietaryStyle: 'none',
+        matchingIngredients: ['chicken', 'pork', 'basil', 'garlic', 'chilies', 'bell pepper', 'rice']
       },
       {
         id: '4',
@@ -56,7 +59,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 45,
         cuisine: 'american',
         mealType: 'breakfast',
-        dietaryStyle: 'vegetarian'
+        dietaryStyle: 'vegetarian',
+        matchingIngredients: ['eggs', 'vegetables', 'zucchini', 'bell peppers', 'onions', 'milk', 'cheese', 'olive oil', 'garlic']
       },
       {
         id: '5',
@@ -68,7 +72,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 35,
         cuisine: 'italian',
         mealType: 'dinner',
-        dietaryStyle: 'vegetarian'
+        dietaryStyle: 'vegetarian',
+        matchingIngredients: ['rice', 'mushrooms', 'onion', 'broth', 'wine', 'cheese', 'butter', 'olive oil', 'garlic']
       },
       {
         id: '6',
@@ -80,7 +85,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 20,
         cuisine: 'american',
         mealType: 'dinner',
-        dietaryStyle: 'none'
+        dietaryStyle: 'none',
+        matchingIngredients: ['salmon', 'honey', 'soy sauce', 'lemon', 'garlic', 'ginger', 'olive oil']
       },
       {
         id: '7',
@@ -92,7 +98,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 40,
         cuisine: 'american',
         mealType: 'lunch',
-        dietaryStyle: 'vegan'
+        dietaryStyle: 'vegan',
+        matchingIngredients: ['rice', 'quinoa', 'sweet potatoes', 'broccoli', 'chickpeas', 'avocado', 'pumpkin seeds', 'tahini', 'lemon', 'olive oil']
       },
       {
         id: '8',
@@ -104,7 +111,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 15,
         cuisine: 'asian',
         mealType: 'dinner',
-        dietaryStyle: 'none'
+        dietaryStyle: 'none',
+        matchingIngredients: ['beef', 'bell peppers', 'onion', 'broccoli', 'garlic', 'ginger', 'soy sauce', 'oil']
       },
       {
         id: '9',
@@ -116,7 +124,8 @@ export async function POST(request: NextRequest) {
         cookingTime: 45,
         cuisine: 'italian',
         mealType: 'lunch',
-        dietaryStyle: 'vegetarian'
+        dietaryStyle: 'vegetarian',
+        matchingIngredients: ['tomatoes', 'onion', 'garlic', 'broth', 'cream', 'basil', 'olive oil', 'cheese']
       },
       {
         id: '10',
@@ -128,42 +137,112 @@ export async function POST(request: NextRequest) {
         cookingTime: 90,
         cuisine: 'american',
         mealType: 'dinner',
-        dietaryStyle: 'none'
+        dietaryStyle: 'none',
+        matchingIngredients: ['chicken', 'lemons', 'garlic', 'rosemary', 'thyme', 'olive oil', 'onion', 'carrots', 'potatoes']
+      },
+      {
+        id: '11',
+        title: 'Garlic Butter Prawns',
+        image: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
+        description: 'Succulent prawns cooked in a rich garlic butter sauce, perfect as an appetizer or main course.',
+        ingredients: ['1 lb large prawns, peeled and deveined', '4 cloves garlic, minced', '4 tbsp butter', '2 tbsp olive oil', '1/4 cup white wine', '2 tbsp lemon juice', '1 tbsp fresh parsley, chopped', 'Salt and pepper to taste', 'Red pepper flakes (optional)'],
+        steps: ['Heat butter and olive oil in a large skillet over medium-high heat.', 'Add minced garlic and cook for 30 seconds until fragrant.', 'Add prawns and cook for 2-3 minutes per side until pink and opaque.', 'Add white wine and lemon juice, simmer for 2 minutes.', 'Season with salt, pepper, and red pepper flakes if desired.', 'Garnish with fresh parsley and serve immediately.'],
+        cookingTime: 15,
+        cuisine: 'mediterranean',
+        mealType: 'dinner',
+        dietaryStyle: 'none',
+        matchingIngredients: ['prawns', 'shrimp', 'garlic', 'butter', 'olive oil', 'wine', 'lemon', 'parsley']
+      },
+      {
+        id: '12',
+        title: 'Spicy Prawn Curry',
+        image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&h=300&fit=crop',
+        description: 'Aromatic and spicy prawn curry with coconut milk and aromatic spices.',
+        ingredients: ['1 lb prawns, peeled and deveined', '1 can coconut milk', '2 onions, diced', '3 cloves garlic, minced', '1 inch ginger, grated', '2 tomatoes, chopped', '2 tbsp curry powder', '1 tsp turmeric', '1 tsp cumin', '2 tbsp vegetable oil', 'Fresh cilantro for garnish'],
+        steps: ['Heat oil in a large pan over medium heat.', 'Add onions and cook until golden brown.', 'Add garlic, ginger, and spices, cook for 1 minute until fragrant.', 'Add tomatoes and cook until softened.', 'Pour in coconut milk and bring to a simmer.', 'Add prawns and cook for 3-4 minutes until pink and cooked through.', 'Season with salt and garnish with fresh cilantro.', 'Serve hot with rice or naan bread.'],
+        cookingTime: 25,
+        cuisine: 'indian',
+        mealType: 'dinner',
+        dietaryStyle: 'none',
+        matchingIngredients: ['prawns', 'shrimp', 'coconut milk', 'onions', 'garlic', 'ginger', 'tomatoes', 'curry', 'cilantro']
+      },
+      {
+        id: '13',
+        title: 'Prawn Fried Rice',
+        image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+        description: 'Classic fried rice with succulent prawns, vegetables, and aromatic seasonings.',
+        ingredients: ['3 cups cooked rice (day-old preferred)', '1 lb prawns, peeled and deveined', '2 eggs, beaten', '1 cup mixed vegetables (peas, carrots, corn)', '3 cloves garlic, minced', '2 tbsp soy sauce', '1 tbsp oyster sauce', '2 tbsp vegetable oil', '2 green onions, sliced', 'Sesame oil for drizzling'],
+        steps: ['Heat oil in a large wok or pan over high heat.', 'Add prawns and cook for 2-3 minutes until pink, then remove.', 'Add beaten eggs and scramble until set, then remove.', 'Add garlic and vegetables, stir-fry for 2-3 minutes.', 'Add rice and break up any clumps, stir-fry for 3-4 minutes.', 'Add soy sauce and oyster sauce, mix well.', 'Return prawns and eggs to the pan, toss everything together.', 'Garnish with green onions and drizzle with sesame oil.', 'Serve immediately.'],
+        cookingTime: 20,
+        cuisine: 'asian',
+        mealType: 'dinner',
+        dietaryStyle: 'none',
+        matchingIngredients: ['prawns', 'shrimp', 'rice', 'eggs', 'vegetables', 'garlic', 'soy sauce', 'onions']
       }
     ];
 
-    // Filter recipes based on criteria
-    let filteredRecipes = [...allRecipes];
+    // Function to calculate ingredient match score
+    const calculateMatchScore = (recipe, userIngredients) => {
+      let score = 0;
+      const userIngredientsLower = userIngredients.map(ing => ing.toLowerCase().trim());
+      
+      recipe.matchingIngredients.forEach(ingredient => {
+        const ingredientLower = ingredient.toLowerCase();
+        userIngredientsLower.forEach(userIngredient => {
+          if (ingredientLower.includes(userIngredient) || userIngredient.includes(ingredientLower)) {
+            score += 1;
+          }
+        });
+      });
+      
+      return score;
+    };
 
-    // Apply cooking time filter
+    // Filter recipes based on ingredient matching
+    const userIngredients = ingredients.split(',').map(ing => ing.trim());
+    let matchedRecipes = allRecipes.map(recipe => ({
+      ...recipe,
+      matchScore: calculateMatchScore(recipe, userIngredients)
+    })).filter(recipe => recipe.matchScore > 0);
+
+    // If no matches found, return recipes with any common ingredients
+    if (matchedRecipes.length === 0) {
+      matchedRecipes = allRecipes.map(recipe => ({
+        ...recipe,
+        matchScore: 1
+      }));
+    }
+
+    // Sort by match score (highest first)
+    matchedRecipes.sort((a, b) => b.matchScore - a.matchScore);
+
+    // Apply additional filters
+    let filteredRecipes = matchedRecipes;
+
     if (filters.cookingTime) {
       const maxTime = parseInt(filters.cookingTime);
       filteredRecipes = filteredRecipes.filter(recipe => recipe.cookingTime <= maxTime);
     }
 
-    // Apply cuisine filter
     if (filters.cuisine) {
       filteredRecipes = filteredRecipes.filter(recipe => recipe.cuisine === filters.cuisine);
     }
 
-    // Apply meal type filter
     if (filters.mealType) {
       filteredRecipes = filteredRecipes.filter(recipe => recipe.mealType === filters.mealType);
     }
 
-    // Apply dietary style filter
     if (filters.dietaryStyle) {
       filteredRecipes = filteredRecipes.filter(recipe => recipe.dietaryStyle === filters.dietaryStyle);
     }
 
-    // If no filters match, return all recipes
+    // If filters are too restrictive, fall back to matched recipes
     if (filteredRecipes.length === 0) {
-      filteredRecipes = allRecipes;
+      filteredRecipes = matchedRecipes;
     }
 
-    // Shuffle and return up to 10 recipes
-    const shuffled = filteredRecipes.sort(() => 0.5 - Math.random());
-    const selectedRecipes = shuffled.slice(0, 10);
+    // Return up to 10 recipes
+    const selectedRecipes = filteredRecipes.slice(0, 10);
 
     return NextResponse.json({
       success: true,
