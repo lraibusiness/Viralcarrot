@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('API: Starting recipe generation');
+    
     const body = await request.json();
     const { ingredients, filters } = body;
 
-    console.log('Received request:', { ingredients, filters });
+    console.log('API: Received request:', { ingredients, filters });
+
+    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+      console.log('API: Invalid ingredients provided');
+      return NextResponse.json(
+        { success: false, error: 'Please provide valid ingredients' },
+        { status: 400 }
+      );
+    }
 
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -144,6 +154,8 @@ export async function POST(request: NextRequest) {
       }
     ];
 
+    console.log('API: Processing ingredients:', ingredients);
+
     // Function to calculate ingredient match score
     const calculateMatchScore = (recipe, userIngredients) => {
       let score = 0;
@@ -162,14 +174,16 @@ export async function POST(request: NextRequest) {
     };
 
     // Filter recipes based on ingredient matching
-    const userIngredients = ingredients.split(',').map(ing => ing.trim());
     let matchedRecipes = allRecipes.map(recipe => ({
       ...recipe,
-      matchScore: calculateMatchScore(recipe, userIngredients)
+      matchScore: calculateMatchScore(recipe, ingredients)
     })).filter(recipe => recipe.matchScore > 0);
+
+    console.log('API: Matched recipes count:', matchedRecipes.length);
 
     // If no matches found, return recipes with any common ingredients
     if (matchedRecipes.length === 0) {
+      console.log('API: No matches found, returning all recipes');
       matchedRecipes = allRecipes.map(recipe => ({
         ...recipe,
         matchScore: 1
@@ -182,32 +196,33 @@ export async function POST(request: NextRequest) {
     // Apply additional filters
     let filteredRecipes = matchedRecipes;
 
-    if (filters.cookingTime) {
+    if (filters && filters.cookingTime) {
       const maxTime = parseInt(filters.cookingTime);
       filteredRecipes = filteredRecipes.filter(recipe => recipe.cookingTime <= maxTime);
     }
 
-    if (filters.cuisine) {
+    if (filters && filters.cuisine) {
       filteredRecipes = filteredRecipes.filter(recipe => recipe.cuisine === filters.cuisine);
     }
 
-    if (filters.mealType) {
+    if (filters && filters.mealType) {
       filteredRecipes = filteredRecipes.filter(recipe => recipe.mealType === filters.mealType);
     }
 
-    if (filters.dietaryStyle) {
+    if (filters && filters.dietaryStyle) {
       filteredRecipes = filteredRecipes.filter(recipe => recipe.dietaryStyle === filters.dietaryStyle);
     }
 
     // If filters are too restrictive, fall back to matched recipes
     if (filteredRecipes.length === 0) {
+      console.log('API: Filters too restrictive, using matched recipes');
       filteredRecipes = matchedRecipes;
     }
 
     // Return up to 10 recipes
     const selectedRecipes = filteredRecipes.slice(0, 10);
 
-    console.log('Returning recipes:', selectedRecipes.length);
+    console.log('API: Returning recipes:', selectedRecipes.length);
 
     return NextResponse.json({
       success: true,
@@ -216,9 +231,17 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error generating recipes:', error);
+    console.error('API: Error generating recipes:', error);
+    console.error('API: Error type:', typeof error);
+    console.error('API: Error message:', error?.message);
+    console.error('API: Error stack:', error?.stack);
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to generate recipes' },
+      { 
+        success: false, 
+        error: error?.message || 'Failed to generate recipes',
+        details: error?.toString() || 'Unknown error'
+      },
       { status: 500 }
     );
   }

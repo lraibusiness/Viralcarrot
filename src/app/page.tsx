@@ -39,39 +39,45 @@ export default function Home() {
     setError(null);
     
     try {
-      console.log('Sending request with:', { ingredients, filters });
+      const requestData = {
+        ingredients: ingredients.split(',').map(ing => ing.trim()),
+        filters
+      };
+      
+      console.log('Frontend: Sending request with:', requestData);
       
       const response = await fetch('/api/generateRecipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ingredients: ingredients.split(',').map(ing => ing.trim()),
-          filters
-        }),
+        body: JSON.stringify(requestData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
+      console.log('Frontend: Response status:', response.status);
+      console.log('Frontend: Response ok:', response.ok);
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API Error:', errorData);
+        console.error('Frontend: API Error Response:', errorData);
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Received data:', data);
+      console.log('Frontend: Received data:', data);
 
       if (data.success && data.recipes) {
         setRecipes(data.recipes);
         setError(null);
+        console.log('Frontend: Successfully set recipes:', data.recipes.length);
       } else {
         throw new Error(data.error || 'Invalid response format');
       }
     } catch (error) {
-      console.error('Error generating recipes:', error);
+      console.error('Frontend: Error generating recipes:', error);
+      console.error('Frontend: Error type:', typeof error);
+      console.error('Frontend: Error message:', error?.message);
+      
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipes. Please try again.';
       setError(errorMessage);
       alert(`Error: ${errorMessage}`);
