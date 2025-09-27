@@ -96,6 +96,10 @@ async function searchExternalRecipes(mainFood: string, ingredients: string[], fi
       recipes.push(...relatedRecipes);
     }
     
+    // Web scraping for additional recipes
+    const scrapedRecipes = await scrapeRecipeSites(mainFood, ingredients);
+    recipes.push(...scrapedRecipes);
+    
   } catch (error) {
     console.error('Error searching external recipes:', error);
   }
@@ -213,6 +217,100 @@ async function searchRelatedFoods(mainFood: string): Promise<ExternalRecipe[]> {
   return recipes;
 }
 
+async function scrapeRecipeSites(mainFood: string, ingredients: string[]): Promise<ExternalRecipe[]> {
+  const recipes: ExternalRecipe[] = [];
+  
+  try {
+    // Search AllRecipes
+    const allRecipesData = await scrapeAllRecipes(mainFood);
+    recipes.push(...allRecipesData);
+    
+    // Search Food.com
+    const foodComData = await scrapeFoodCom(mainFood);
+    recipes.push(...foodComData);
+    
+  } catch (error) {
+    console.error('Web scraping error:', error);
+  }
+  
+  return recipes;
+}
+
+async function scrapeAllRecipes(mainFood: string): Promise<ExternalRecipe[]> {
+  try {
+    const searchUrl = `https://www.allrecipes.com/search?q=${encodeURIComponent(mainFood)}`;
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    const $ = cheerio.load(response.data);
+    const recipes: ExternalRecipe[] = [];
+    
+    $('.card--no-image').slice(0, 3).each((_, element) => {
+      const title = $(element).find('.card__title').text().trim();
+      const link = $(element).find('a').attr('href');
+      
+      if (title && link) {
+        recipes.push({
+          title,
+          ingredients: [], // Would need to scrape individual recipe pages
+          steps: [],
+          cookingTime: 30,
+          cuisine: 'International',
+          mealType: 'dinner',
+          dietaryStyle: 'none',
+          image: '',
+          source: 'AllRecipes'
+        });
+      }
+    });
+    
+    return recipes;
+  } catch (error) {
+    console.error('AllRecipes scraping error:', error);
+    return [];
+  }
+}
+
+async function scrapeFoodCom(mainFood: string): Promise<ExternalRecipe[]> {
+  try {
+    const searchUrl = `https://www.food.com/search?q=${encodeURIComponent(mainFood)}`;
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    const $ = cheerio.load(response.data);
+    const recipes: ExternalRecipe[] = [];
+    
+    $('.recipe-card').slice(0, 2).each((_, element) => {
+      const title = $(element).find('.recipe-card__title').text().trim();
+      
+      if (title) {
+        recipes.push({
+          title,
+          ingredients: [],
+          steps: [],
+          cookingTime: 30,
+          cuisine: 'International',
+          mealType: 'dinner',
+          dietaryStyle: 'none',
+          image: '',
+          source: 'Food.com'
+        });
+      }
+    });
+    
+    return recipes;
+  } catch (error) {
+    console.error('Food.com scraping error:', error);
+    return [];
+  }
+}
+
 async function synthesizeRecipesWithMatching(externalRecipes: ExternalRecipe[], mainFood: string, ingredients: string[], filters: any): Promise<SynthesizedRecipe[]> {
   const synthesized: SynthesizedRecipe[] = [];
   
@@ -286,8 +384,8 @@ async function createSynthesizedRecipe(
   // Calculate match score
   const matchScore = calculateMatchScore(mainFood, ingredients, highPriority);
   
-  // Get appropriate image
-  const image = getSmartImage(mainFood, ingredients, highPriority);
+  // Get appropriate image - UNIQUE for each recipe
+  const image = getUniqueRecipeImage(mainFood, ingredients, index, highPriority);
   
   return {
     id: `viralcarrot-${Date.now()}-${index}`,
@@ -417,35 +515,154 @@ function calculateMatchScore(mainFood: string, ingredients: string[], highPriori
   return score;
 }
 
-function getSmartImage(mainFood: string, ingredients: string[], highPriority: boolean): string {
-  // Smart image selection based on main food and ingredients
-  const imageMap: { [key: string]: string } = {
-    'chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-    'beef': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-    'pork': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-    'lamb': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-    'duck': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-    'turkey': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-    'fish': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-    'salmon': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-    'tuna': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-    'cod': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-    'prawns': 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-    'shrimp': 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-    'crab': 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-    'lobster': 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-    'vegetables': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
-    'tofu': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-    'eggs': 'https://images.unsplash.com/photo-1572441713132-51c75654db73?w=500&h=300&fit=crop',
-    'pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop',
-    'rice': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&h=300&fit=crop',
-    'quinoa': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&h=300&fit=crop',
-    'bread': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&h=300&fit=crop',
-    'potatoes': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&h=300&fit=crop',
-    'mushrooms': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop'
+function getUniqueRecipeImage(mainFood: string, ingredients: string[], index: number, highPriority: boolean): string {
+  // Create unique images for each recipe based on main food and cooking method
+  const imageMap: { [key: string]: string[] } = {
+    'chicken': [
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'beef': [
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'pork': [
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'lamb': [
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'duck': [
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'fish': [
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'salmon': [
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'prawns': [
+      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'shrimp': [
+      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'octopus': [
+      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'vegetables': [
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'tofu': [
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'eggs': [
+      'https://images.unsplash.com/photo-1572441713132-51c75654db73?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'pasta': [
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop'
+    ],
+    'rice': [
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'quinoa': [
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'bread': [
+      'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'potatoes': [
+      'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ],
+    'mushrooms': [
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+    ]
   };
   
-  return imageMap[mainFood.toLowerCase()] || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=300&fit=crop';
+  const foodImages = imageMap[mainFood.toLowerCase()] || [
+    'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+  ];
+  
+  // Return unique image based on recipe index
+  return foodImages[index % foodImages.length];
 }
 
 function generateUniqueDescription(mainFood: string, filters: any): string {
