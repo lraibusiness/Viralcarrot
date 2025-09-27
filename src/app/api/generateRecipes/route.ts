@@ -1,8 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+
+interface ExternalRecipe {
+  title: string;
+  ingredients: string[];
+  steps: string[];
+  cookingTime: number;
+  cuisine?: string;
+  mealType?: string;
+  dietaryStyle?: string;
+  image?: string;
+  source: string;
+}
+
+interface SynthesizedRecipe {
+  id: string;
+  title: string;
+  image: string;
+  description: string;
+  ingredients: string[];
+  steps: string[];
+  cookingTime: number;
+  cuisine?: string;
+  mealType?: string;
+  dietaryStyle?: string;
+  tags: string[];
+  createdBy: string;
+}
+
+// Free recipe sources to scrape
+const RECIPE_SOURCES = [
+  'https://www.allrecipes.com',
+  'https://www.food.com',
+  'https://www.epicurious.com',
+  'https://www.bbcgoodfood.com'
+];
+
+// TheMealDB free API endpoints
+const MEALDB_BASE = 'https://www.themealdb.com/api/json/v1/1';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('API: Starting recipe generation');
+    console.log('API: Starting smart recipe synthesis');
     
     const body = await request.json();
     const { mainFood, ingredients, filters } = body;
@@ -10,7 +50,6 @@ export async function POST(request: NextRequest) {
     console.log('API: Received request:', { mainFood, ingredients, filters });
 
     if (!mainFood || !mainFood.trim()) {
-      console.log('API: No main food provided');
       return NextResponse.json(
         { success: false, error: 'Please enter a main food item' },
         { status: 400 }
@@ -20,298 +59,342 @@ export async function POST(request: NextRequest) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Recipe database with flexible matching
-    const allRecipes = [
-      {
-        id: '1',
-        title: 'Creamy Garlic Chicken Pasta',
-        image: 'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop',
-        description: 'A rich and creamy pasta dish with tender chicken and aromatic garlic.',
-        ingredients: ['2 chicken breasts, diced', '8 oz pasta', '4 cloves garlic, minced', '1 cup heavy cream', '1/2 cup parmesan cheese', '2 tbsp butter', 'Salt and pepper to taste'],
-        steps: ['Cook pasta according to package directions.', 'Season chicken and cook until golden brown.', 'Add garlic and cook for 1 minute.', 'Pour in heavy cream and bring to a simmer.', 'Add pasta and cheese, toss to combine.', 'Garnish with parsley and serve.'],
-        cookingTime: 25,
-        cuisine: 'italian',
-        mealType: 'dinner',
-        dietaryStyle: 'none',
-        mainFoods: ['chicken', 'poultry'],
-        matchingIngredients: ['pasta', 'garlic', 'cream', 'cheese', 'butter', 'onions', 'herbs']
-      },
-      {
-        id: '2',
-        title: 'Lemon Herb Roasted Chicken',
-        image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-        description: 'A juicy and flavorful roasted chicken with lemon and fresh herbs.',
-        ingredients: ['1 whole chicken (3-4 lbs)', '2 lemons, halved', '4 cloves garlic, minced', '2 tbsp fresh rosemary, chopped', '2 tbsp fresh thyme, chopped', '1/4 cup olive oil', 'Salt and pepper to taste', '1 onion, quartered', '2 carrots, chopped', '2 potatoes, chopped'],
-        steps: ['Preheat oven to 425°F.', 'Mix garlic, herbs, olive oil, salt, and pepper in a bowl.', 'Rub herb mixture all over the chicken.', 'Stuff chicken cavity with lemon halves and onion.', 'Place chicken on a roasting pan with vegetables.', 'Roast for 1 hour 15 minutes until golden and cooked through.', 'Let rest for 10 minutes before carving.', 'Serve with roasted vegetables.'],
-        cookingTime: 90,
-        cuisine: 'american',
-        mealType: 'dinner',
-        dietaryStyle: 'none',
-        mainFoods: ['chicken', 'poultry'],
-        matchingIngredients: ['lemons', 'garlic', 'rosemary', 'thyme', 'olive oil', 'onion', 'carrots', 'potatoes', 'herbs']
-      },
-      {
-        id: '3',
-        title: 'Garlic Butter Prawns',
-        image: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-        description: 'Succulent prawns cooked in a rich garlic butter sauce.',
-        ingredients: ['1 lb large prawns, peeled and deveined', '4 cloves garlic, minced', '4 tbsp butter', '2 tbsp olive oil', '1/4 cup white wine', '2 tbsp lemon juice', '1 tbsp fresh parsley, chopped', 'Salt and pepper to taste'],
-        steps: ['Heat butter and olive oil in a large skillet.', 'Add garlic and cook for 30 seconds.', 'Add prawns and cook for 2-3 minutes per side.', 'Add wine and lemon juice, simmer for 2 minutes.', 'Season with salt and pepper.', 'Garnish with parsley and serve.'],
-        cookingTime: 15,
-        cuisine: 'mediterranean',
-        mealType: 'dinner',
-        dietaryStyle: 'none',
-        mainFoods: ['prawns', 'shrimp', 'seafood'],
-        matchingIngredients: ['garlic', 'butter', 'olive oil', 'wine', 'lemon', 'parsley', 'herbs']
-      },
-      {
-        id: '4',
-        title: 'Spicy Prawn Curry',
-        image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&h=300&fit=crop',
-        description: 'Aromatic and spicy prawn curry with coconut milk.',
-        ingredients: ['1 lb prawns, peeled and deveined', '1 can coconut milk', '2 onions, diced', '3 cloves garlic, minced', '1 inch ginger, grated', '2 tomatoes, chopped', '2 tbsp curry powder', '1 tsp turmeric', '2 tbsp vegetable oil'],
-        steps: ['Heat oil in a large pan.', 'Add onions and cook until golden.', 'Add garlic, ginger, and spices.', 'Add tomatoes and cook until softened.', 'Pour in coconut milk and bring to a simmer.', 'Add prawns and cook for 3-4 minutes.', 'Season and garnish with cilantro.', 'Serve hot with rice.'],
-        cookingTime: 25,
-        cuisine: 'indian',
-        mealType: 'dinner',
-        dietaryStyle: 'none',
-        mainFoods: ['prawns', 'shrimp', 'seafood'],
-        matchingIngredients: ['coconut milk', 'onions', 'garlic', 'ginger', 'tomatoes', 'curry', 'rice', 'spices']
-      },
-      {
-        id: '5',
-        title: 'Honey Glazed Salmon',
-        image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-        description: 'Perfectly cooked salmon with a sweet and tangy honey glaze.',
-        ingredients: ['4 salmon fillets (6 oz each)', '1/4 cup honey', '2 tbsp soy sauce', '2 tbsp lemon juice', '2 cloves garlic, minced', '1 tsp ginger, grated', '2 tbsp olive oil', 'Salt and pepper to taste'],
-        steps: ['Preheat oven to 400°F.', 'Mix honey, soy sauce, lemon juice, garlic, and ginger.', 'Season salmon with salt and pepper.', 'Heat oil in an oven-safe skillet.', 'Sear salmon for 2-3 minutes per side.', 'Brush with honey glaze and transfer to oven.', 'Bake for 8-10 minutes until cooked through.', 'Garnish and serve immediately.'],
-        cookingTime: 20,
-        cuisine: 'american',
-        mealType: 'dinner',
-        dietaryStyle: 'none',
-        mainFoods: ['salmon', 'fish', 'seafood'],
-        matchingIngredients: ['honey', 'soy sauce', 'lemon', 'garlic', 'ginger', 'olive oil', 'herbs']
-      },
-      {
-        id: '6',
-        title: 'Classic Beef Stir-Fry',
-        image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-        description: 'A quick and flavorful stir-fry with tender beef and crisp vegetables.',
-        ingredients: ['1 lb beef sirloin, sliced thin', '2 bell peppers, sliced', '1 onion, sliced', '2 cups broccoli florets', '3 cloves garlic, minced', '1 tbsp ginger, grated', '3 tbsp soy sauce', '2 tbsp oyster sauce', '2 tbsp vegetable oil'],
-        steps: ['Mix soy sauce and oyster sauce in a small bowl.', 'Heat oil in a large wok or pan over high heat.', 'Add beef and stir-fry for 2-3 minutes until browned.', 'Add garlic and ginger, stir-fry for 30 seconds.', 'Add vegetables and stir-fry for 3-4 minutes.', 'Pour sauce over everything and stir-fry for 1 minute.', 'Garnish with sesame seeds and serve over rice.'],
-        cookingTime: 15,
-        cuisine: 'asian',
-        mealType: 'dinner',
-        dietaryStyle: 'none',
-        mainFoods: ['beef', 'meat'],
-        matchingIngredients: ['bell peppers', 'onion', 'broccoli', 'garlic', 'ginger', 'soy sauce', 'oil', 'rice']
-      },
-      {
-        id: '7',
-        title: 'Roasted Vegetable Frittata',
-        image: 'https://images.unsplash.com/photo-1572441713132-51c75654db73?w=500&h=300&fit=crop',
-        description: 'A hearty and nutritious frittata loaded with roasted vegetables.',
-        ingredients: ['8 large eggs', '2 cups mixed vegetables (zucchini, bell peppers, onions)', '1/2 cup milk', '1/2 cup cheese (cheddar or feta)', '2 tbsp olive oil', '2 cloves garlic, minced', 'Fresh herbs (thyme, rosemary)', 'Salt and pepper to taste'],
-        steps: ['Preheat oven to 400°F.', 'Cut vegetables and toss with olive oil, salt, and pepper.', 'Roast vegetables for 20-25 minutes until tender.', 'Whisk eggs with milk, cheese, garlic, and herbs.', 'Heat an oven-safe skillet and add roasted vegetables.', 'Pour egg mixture over vegetables and cook on stovetop.', 'Transfer to oven and bake for 15-20 minutes.', 'Let cool slightly before slicing and serving.'],
-        cookingTime: 45,
-        cuisine: 'american',
-        mealType: 'breakfast',
-        dietaryStyle: 'vegetarian',
-        mainFoods: ['eggs', 'vegetables'],
-        matchingIngredients: ['vegetables', 'zucchini', 'bell peppers', 'onions', 'milk', 'cheese', 'olive oil', 'garlic', 'herbs']
-      },
-      {
-        id: '8',
-        title: 'Crispy Tofu Stir-Fry',
-        image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-        description: 'Crispy tofu with vegetables in a savory sauce.',
-        ingredients: ['1 block firm tofu, cubed', '2 bell peppers, sliced', '1 onion, sliced', '2 cups broccoli florets', '3 cloves garlic, minced', '1 tbsp ginger, grated', '3 tbsp soy sauce', '2 tbsp sesame oil', '2 tbsp vegetable oil'],
-        steps: ['Press tofu to remove excess water.', 'Heat oil in a large wok or pan.', 'Add tofu and cook until golden and crispy.', 'Add garlic and ginger, stir-fry for 30 seconds.', 'Add vegetables and stir-fry for 3-4 minutes.', 'Add soy sauce and sesame oil, toss to combine.', 'Garnish with sesame seeds and serve over rice.'],
-        cookingTime: 20,
-        cuisine: 'asian',
-        mealType: 'dinner',
-        dietaryStyle: 'vegan',
-        mainFoods: ['tofu', 'vegetables'],
-        matchingIngredients: ['bell peppers', 'onion', 'broccoli', 'garlic', 'ginger', 'soy sauce', 'oil', 'rice', 'sesame']
-      },
-      {
-        id: '9',
-        title: 'Mediterranean Quinoa Bowl',
-        image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=300&fit=crop',
-        description: 'A healthy and colorful bowl packed with Mediterranean flavors.',
-        ingredients: ['1 cup quinoa', '1 cucumber, diced', '2 tomatoes, chopped', '1/2 red onion, sliced', '1/2 cup kalamata olives', '4 oz feta cheese, crumbled', '2 tbsp olive oil', '1 tbsp lemon juice'],
-        steps: ['Cook quinoa according to package directions.', 'Prepare all vegetables and cut into pieces.', 'Combine quinoa with vegetables.', 'Add olives and feta cheese.', 'Drizzle with olive oil and lemon juice.', 'Season and serve.'],
-        cookingTime: 20,
-        cuisine: 'mediterranean',
-        mealType: 'lunch',
-        dietaryStyle: 'vegetarian',
-        mainFoods: ['quinoa', 'rice', 'vegetables'],
-        matchingIngredients: ['quinoa', 'cucumber', 'tomatoes', 'onion', 'olives', 'cheese', 'olive oil', 'lemon']
-      },
-      {
-        id: '10',
-        title: 'Roasted Vegetable Medley',
-        image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
-        description: 'A nutritious and colorful mix of roasted vegetables.',
-        ingredients: ['2 sweet potatoes, cubed', '1 head broccoli, cut into florets', '2 bell peppers, sliced', '1 red onion, sliced', '2 tbsp olive oil', '2 cloves garlic, minced', 'Fresh herbs (thyme, rosemary)', 'Salt and pepper to taste'],
-        steps: ['Preheat oven to 425°F.', 'Cut all vegetables into bite-sized pieces.', 'Toss vegetables with olive oil, garlic, herbs, salt, and pepper.', 'Spread on a baking sheet in a single layer.', 'Roast for 25-30 minutes until tender and golden.', 'Serve hot as a side dish or main course.'],
-        cookingTime: 35,
-        cuisine: 'american',
-        mealType: 'lunch',
-        dietaryStyle: 'vegan',
-        mainFoods: ['vegetables'],
-        matchingIngredients: ['sweet potatoes', 'broccoli', 'bell peppers', 'onion', 'olive oil', 'garlic', 'herbs']
-      },
-      {
-        id: '11',
-        title: 'Creamy Mushroom Risotto',
-        image: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=500&h=300&fit=crop',
-        description: 'A luxurious and creamy risotto with earthy mushrooms.',
-        ingredients: ['1 1/2 cups arborio rice', '8 oz mixed mushrooms, sliced', '1 onion, finely diced', '4 cups warm chicken or vegetable broth', '1/2 cup white wine', '1/2 cup parmesan cheese, grated', '3 tbsp butter', '2 tbsp olive oil', '2 cloves garlic, minced'],
-        steps: ['Heat broth in a saucepan and keep warm.', 'Sauté mushrooms until golden brown, then set aside.', 'Add onion and garlic to the same pan, cook until softened.', 'Add rice and stir for 2 minutes until lightly toasted.', 'Add wine and stir until absorbed.', 'Add warm broth one ladle at a time, stirring constantly.', 'Continue adding broth and stirring for 18-20 minutes.', 'Stir in mushrooms, butter, and parmesan cheese.', 'Season and serve immediately.'],
-        cookingTime: 35,
-        cuisine: 'italian',
-        mealType: 'dinner',
-        dietaryStyle: 'vegetarian',
-        mainFoods: ['rice', 'mushrooms', 'pasta'],
-        matchingIngredients: ['rice', 'mushrooms', 'onion', 'broth', 'wine', 'cheese', 'butter', 'olive oil', 'garlic']
-      },
-      {
-        id: '12',
-        title: 'Creamy Tomato Basil Soup',
-        image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500&h=300&fit=crop',
-        description: 'A comforting and creamy tomato soup with fresh basil.',
-        ingredients: ['2 lbs tomatoes, chopped', '1 onion, diced', '4 cloves garlic, minced', '2 cups vegetable broth', '1/2 cup heavy cream', '1/4 cup fresh basil, chopped', '2 tbsp olive oil', '1 tsp sugar', 'Salt and pepper to taste'],
-        steps: ['Heat olive oil in a large pot over medium heat.', 'Add onion and garlic, cook until softened.', 'Add tomatoes and cook for 10 minutes until broken down.', 'Add broth and bring to a boil, then simmer for 20 minutes.', 'Use an immersion blender to puree the soup.', 'Stir in cream, basil, sugar, salt, and pepper.', 'Simmer for 5 more minutes.', 'Serve hot with grated parmesan cheese.'],
-        cookingTime: 45,
-        cuisine: 'italian',
-        mealType: 'lunch',
-        dietaryStyle: 'vegetarian',
-        mainFoods: ['tomatoes', 'vegetables'],
-        matchingIngredients: ['tomatoes', 'onion', 'garlic', 'broth', 'cream', 'basil', 'olive oil', 'cheese']
-      }
-    ];
+    console.log('API: Starting recipe search and synthesis');
 
-    console.log('API: Processing main food:', mainFood);
+    // Step 1: Search for existing recipes from multiple sources
+    const externalRecipes = await searchExternalRecipes(mainFood, ingredients, filters);
+    console.log('API: Found external recipes:', externalRecipes.length);
 
-    // Function to check if a recipe matches the main food
-    const matchesMainFood = (recipe, userMainFood) => {
-      const userMainFoodLower = userMainFood.toLowerCase().trim();
-      return recipe.mainFoods.some(food => 
-        food.toLowerCase().includes(userMainFoodLower) || 
-        userMainFoodLower.includes(food.toLowerCase())
-      );
-    };
-
-    // Filter recipes that match the main food
-    let matchedRecipes = allRecipes.filter(recipe => matchesMainFood(recipe, mainFood));
-
-    console.log('API: Found recipes for', mainFood, ':', matchedRecipes.length);
-
-    // If no exact matches, try fuzzy matching
-    if (matchedRecipes.length === 0) {
-      const fuzzyMatches = allRecipes.filter(recipe => 
-        recipe.mainFoods.some(food => 
-          food.toLowerCase().includes(mainFood.toLowerCase()) || 
-          mainFood.toLowerCase().includes(food.toLowerCase())
-        )
-      );
-      
-      if (fuzzyMatches.length > 0) {
-        matchedRecipes = fuzzyMatches;
-        console.log('API: Using fuzzy matches:', matchedRecipes.length);
-      }
-    }
-
-    // If still no matches, return a message
-    if (matchedRecipes.length === 0) {
-      console.log('API: No recipes found for', mainFood);
-      return NextResponse.json({
-        success: true,
-        recipes: [],
-        total: 0,
-        message: `No recipes found for "${mainFood}". Try a different main food item like chicken, beef, fish, vegetables, etc.`
-      });
-    }
-
-    // Function to calculate ingredient match score
-    const calculateMatchScore = (recipe, userIngredients) => {
-      let score = 0;
-      const userIngredientsLower = userIngredients.map(ing => ing.toLowerCase().trim());
-      
-      recipe.matchingIngredients.forEach(ingredient => {
-        const ingredientLower = ingredient.toLowerCase();
-        userIngredientsLower.forEach(userIngredient => {
-          if (ingredientLower.includes(userIngredient) || userIngredient.includes(ingredientLower)) {
-            score += 1;
-          }
-        });
-      });
-      
-      return score;
-    };
-
-    // Calculate match scores for each recipe
-    const scoredRecipes = matchedRecipes.map(recipe => ({
-      ...recipe,
-      matchScore: calculateMatchScore(recipe, ingredients || [])
-    }));
-
-    // Sort by match score (highest first)
-    scoredRecipes.sort((a, b) => b.matchScore - a.matchScore);
-
-    console.log('API: Scored recipes:', scoredRecipes.map(r => ({ title: r.title, score: r.matchScore })));
-
-    // Apply additional filters
-    let filteredRecipes = scoredRecipes;
-
-    if (filters && filters.cookingTime) {
-      const maxTime = parseInt(filters.cookingTime);
-      filteredRecipes = filteredRecipes.filter(recipe => recipe.cookingTime <= maxTime);
-    }
-
-    if (filters && filters.cuisine) {
-      filteredRecipes = filteredRecipes.filter(recipe => recipe.cuisine === filters.cuisine);
-    }
-
-    if (filters && filters.mealType) {
-      filteredRecipes = filteredRecipes.filter(recipe => recipe.mealType === filters.mealType);
-    }
-
-    if (filters && filters.dietaryStyle) {
-      filteredRecipes = filteredRecipes.filter(recipe => recipe.dietaryStyle === filters.dietaryStyle);
-    }
-
-    // If filters are too restrictive, fall back to scored recipes
-    if (filteredRecipes.length === 0) {
-      console.log('API: Filters too restrictive, using scored recipes');
-      filteredRecipes = scoredRecipes;
-    }
-
-    // Return up to 10 recipes
-    const selectedRecipes = filteredRecipes.slice(0, 10);
-
-    console.log('API: Returning recipes:', selectedRecipes.length);
+    // Step 2: Synthesize unique ViralCarrot recipes
+    const synthesizedRecipes = await synthesizeRecipes(externalRecipes, mainFood, ingredients, filters);
+    console.log('API: Synthesized recipes:', synthesizedRecipes.length);
 
     return NextResponse.json({
       success: true,
-      recipes: selectedRecipes,
-      total: selectedRecipes.length
+      recipes: synthesizedRecipes,
+      total: synthesizedRecipes.length,
+      message: `Created ${synthesizedRecipes.length} unique recipes by ViralCarrot`
     });
 
   } catch (error) {
-    console.error('API: Error generating recipes:', error);
-    console.error('API: Error type:', typeof error);
-    console.error('API: Error message:', error?.message);
-    console.error('API: Error stack:', error?.stack);
-    
+    console.error('API: Error in recipe synthesis:', error);
     return NextResponse.json(
       { 
         success: false, 
-        error: error?.message || 'Failed to generate recipes',
+        error: 'Failed to synthesize recipes',
         details: error?.toString() || 'Unknown error'
       },
       { status: 500 }
     );
   }
+}
+
+async function searchExternalRecipes(mainFood: string, ingredients: string[], filters: any): Promise<ExternalRecipe[]> {
+  const recipes: ExternalRecipe[] = [];
+  
+  try {
+    // Search TheMealDB free API
+    const mealDbRecipes = await searchTheMealDB(mainFood);
+    recipes.push(...mealDbRecipes);
+    
+    // Search Edamam free tier (if available)
+    const edamamRecipes = await searchEdamam(mainFood, ingredients, filters);
+    recipes.push(...edamamRecipes);
+    
+    // Web scraping from free recipe sites
+    const scrapedRecipes = await scrapeRecipeSites(mainFood, ingredients);
+    recipes.push(...scrapedRecipes);
+    
+  } catch (error) {
+    console.error('Error searching external recipes:', error);
+  }
+  
+  return recipes;
+}
+
+async function searchTheMealDB(mainFood: string): Promise<ExternalRecipe[]> {
+  try {
+    const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
+    const data = response.data;
+    
+    if (!data.meals) return [];
+    
+    return data.meals.slice(0, 5).map((meal: any) => ({
+      title: meal.strMeal,
+      ingredients: extractIngredients(meal),
+      steps: meal.strInstructions ? meal.strInstructions.split('\r\n').filter((step: string) => step.trim()) : [],
+      cookingTime: 30, // Default
+      cuisine: 'International',
+      mealType: 'dinner',
+      dietaryStyle: 'none',
+      image: meal.strMealThumb,
+      source: 'TheMealDB'
+    }));
+  } catch (error) {
+    console.error('TheMealDB search error:', error);
+    return [];
+  }
+}
+
+function extractIngredients(meal: any): string[] {
+  const ingredients: string[] = [];
+  for (let i = 1; i <= 20; i++) {
+    const ingredient = meal[`strIngredient${i}`];
+    const measure = meal[`strMeasure${i}`];
+    if (ingredient && ingredient.trim()) {
+      ingredients.push(`${measure ? measure.trim() + ' ' : ''}${ingredient.trim()}`);
+    }
+  }
+  return ingredients;
+}
+
+async function searchEdamam(mainFood: string, ingredients: string[], filters: any): Promise<ExternalRecipe[]> {
+  // Note: Edamam requires API key, so we'll simulate with mock data
+  // In production, you would use the free tier with proper API key
+  return [];
+}
+
+async function scrapeRecipeSites(mainFood: string, ingredients: string[]): Promise<ExternalRecipe[]> {
+  const recipes: ExternalRecipe[] = [];
+  
+  try {
+    // Search AllRecipes
+    const allRecipesData = await scrapeAllRecipes(mainFood);
+    recipes.push(...allRecipesData);
+    
+  } catch (error) {
+    console.error('Web scraping error:', error);
+  }
+  
+  return recipes;
+}
+
+async function scrapeAllRecipes(mainFood: string): Promise<ExternalRecipe[]> {
+  try {
+    const searchUrl = `https://www.allrecipes.com/search?q=${encodeURIComponent(mainFood)}`;
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    const $ = cheerio.load(response.data);
+    const recipes: ExternalRecipe[] = [];
+    
+    $('.card--no-image').slice(0, 3).each((_, element) => {
+      const title = $(element).find('.card__title').text().trim();
+      const link = $(element).find('a').attr('href');
+      
+      if (title && link) {
+        recipes.push({
+          title,
+          ingredients: [], // Would need to scrape individual recipe pages
+          steps: [],
+          cookingTime: 30,
+          cuisine: 'International',
+          mealType: 'dinner',
+          dietaryStyle: 'none',
+          image: '',
+          source: 'AllRecipes'
+        });
+      }
+    });
+    
+    return recipes;
+  } catch (error) {
+    console.error('AllRecipes scraping error:', error);
+    return [];
+  }
+}
+
+async function synthesizeRecipes(externalRecipes: ExternalRecipe[], mainFood: string, ingredients: string[], filters: any): Promise<SynthesizedRecipe[]> {
+  const synthesized: SynthesizedRecipe[] = [];
+  
+  // If we have external recipes, synthesize from them
+  if (externalRecipes.length > 0) {
+    for (let i = 0; i < Math.min(10, externalRecipes.length); i++) {
+      const external = externalRecipes[i];
+      const synthesizedRecipe = await createSynthesizedRecipe(external, mainFood, ingredients, filters, i + 1);
+      synthesized.push(synthesizedRecipe);
+    }
+  }
+  
+  // If we don't have enough external recipes, create some from our knowledge base
+  if (synthesized.length < 10) {
+    const knowledgeBaseRecipes = getKnowledgeBaseRecipes(mainFood, ingredients, filters);
+    for (let i = synthesized.length; i < 10 && i < synthesized.length + knowledgeBaseRecipes.length; i++) {
+      const baseRecipe = knowledgeBaseRecipes[i - synthesized.length];
+      const synthesizedRecipe = await createSynthesizedRecipe(baseRecipe, mainFood, ingredients, filters, i + 1);
+      synthesized.push(synthesizedRecipe);
+    }
+  }
+  
+  return synthesized;
+}
+
+async function createSynthesizedRecipe(baseRecipe: ExternalRecipe, mainFood: string, ingredients: string[], filters: any, index: number): Promise<SynthesizedRecipe> {
+  // Create unique title
+  const title = generateUniqueTitle(baseRecipe.title, mainFood, index);
+  
+  // Create unique description
+  const description = generateUniqueDescription(mainFood, filters);
+  
+  // Synthesize ingredients
+  const synthesizedIngredients = synthesizeIngredients(baseRecipe.ingredients, mainFood, ingredients);
+  
+  // Synthesize steps
+  const synthesizedSteps = synthesizeSteps(baseRecipe.steps, mainFood, ingredients);
+  
+  // Generate tags
+  const tags = generateTags(filters, mainFood);
+  
+  return {
+    id: `viralcarrot-${Date.now()}-${index}`,
+    title,
+    image: baseRecipe.image || getDefaultImage(mainFood),
+    description,
+    ingredients: synthesizedIngredients,
+    steps: synthesizedSteps,
+    cookingTime: baseRecipe.cookingTime || 30,
+    cuisine: filters.cuisine || baseRecipe.cuisine || 'International',
+    mealType: filters.mealType || baseRecipe.mealType || 'dinner',
+    dietaryStyle: filters.dietaryStyle || baseRecipe.dietaryStyle || 'none',
+    tags,
+    createdBy: 'ViralCarrot'
+  };
+}
+
+function generateUniqueTitle(originalTitle: string, mainFood: string, index: number): string {
+  const titleVariations = [
+    `ViralCarrot's ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Delight`,
+    `Ultimate ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Experience`,
+    `Chef's Special ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`,
+    `Gourmet ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Creation`,
+    `Signature ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
+    `Fusion ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Magic`,
+    `Premium ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Blend`,
+    `Artisan ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Style`,
+    `Master ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Technique`,
+    `Elite ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Formula`
+  ];
+  
+  return titleVariations[index % titleVariations.length];
+}
+
+function generateUniqueDescription(mainFood: string, filters: any): string {
+  const descriptions = [
+    `A delightful fusion of flavors featuring ${mainFood} as the star ingredient. This recipe combines traditional techniques with modern culinary innovation.`,
+    `Experience the perfect harmony of ${mainFood} with carefully selected ingredients that create a memorable dining experience.`,
+    `This unique ${mainFood} recipe brings together the best of culinary traditions, creating something truly special for your table.`,
+    `Discover the art of cooking with ${mainFood} in this carefully crafted recipe that balances taste, texture, and nutrition.`,
+    `A creative take on ${mainFood} that showcases the ingredient's versatility and natural flavors.`
+  ];
+  
+  return descriptions[Math.floor(Math.random() * descriptions.length)];
+}
+
+function synthesizeIngredients(originalIngredients: string[], mainFood: string, userIngredients: string[]): string[] {
+  const synthesized: string[] = [];
+  
+  // Always include the main food
+  synthesized.push(`1 lb ${mainFood}`);
+  
+  // Add user ingredients that make sense
+  userIngredients.forEach(ingredient => {
+    if (ingredient.trim()) {
+      synthesized.push(`2 tbsp ${ingredient.trim()}`);
+    }
+  });
+  
+  // Add common cooking ingredients
+  const commonIngredients = [
+    '2 cloves garlic, minced',
+    '1 onion, diced',
+    '2 tbsp olive oil',
+    'Salt and pepper to taste',
+    '1 tsp herbs de provence',
+    '1/2 cup vegetable broth'
+  ];
+  
+  commonIngredients.forEach(ingredient => {
+    if (!synthesized.some(ing => ing.toLowerCase().includes(ingredient.split(',')[0].toLowerCase()))) {
+      synthesized.push(ingredient);
+    }
+  });
+  
+  return synthesized.slice(0, 8); // Limit to 8 ingredients
+}
+
+function synthesizeSteps(originalSteps: string[], mainFood: string, userIngredients: string[]): string[] {
+  const steps = [
+    `Prepare your ${mainFood} by cleaning and cutting into appropriate pieces.`,
+    `Heat a large pan over medium-high heat and add olive oil.`,
+    `Season the ${mainFood} with salt, pepper, and your favorite herbs.`,
+    `Cook the ${mainFood} until golden brown and cooked through.`,
+    `Add your additional ingredients and stir to combine.`,
+    `Let the flavors meld together for a few minutes.`,
+    `Taste and adjust seasoning as needed.`,
+    `Serve hot and enjoy your delicious creation!`
+  ];
+  
+  return steps;
+}
+
+function generateTags(filters: any, mainFood: string): string[] {
+  const tags = [mainFood];
+  
+  if (filters.cuisine) tags.push(filters.cuisine);
+  if (filters.mealType) tags.push(filters.mealType);
+  if (filters.dietaryStyle) tags.push(filters.dietaryStyle);
+  
+  return tags;
+}
+
+function getDefaultImage(mainFood: string): string {
+  const imageMap: { [key: string]: string } = {
+    'chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
+    'beef': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+    'fish': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
+    'salmon': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
+    'prawns': 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
+    'vegetables': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
+    'tofu': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
+    'eggs': 'https://images.unsplash.com/photo-1572441713132-51c75654db73?w=500&h=300&fit=crop'
+  };
+  
+  return imageMap[mainFood.toLowerCase()] || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=300&fit=crop';
+}
+
+function getKnowledgeBaseRecipes(mainFood: string, ingredients: string[], filters: any): ExternalRecipe[] {
+  // Fallback knowledge base recipes
+  const knowledgeBase: { [key: string]: ExternalRecipe[] } = {
+    'chicken': [
+      {
+        title: 'Classic Chicken Recipe',
+        ingredients: ['chicken breast', 'garlic', 'onion', 'herbs'],
+        steps: ['Season chicken', 'Cook until done', 'Serve hot'],
+        cookingTime: 25,
+        cuisine: 'International',
+        mealType: 'dinner',
+        dietaryStyle: 'none',
+        image: '',
+        source: 'Knowledge Base'
+      }
+    ],
+    'beef': [
+      {
+        title: 'Traditional Beef Dish',
+        ingredients: ['beef', 'garlic', 'onion', 'spices'],
+        steps: ['Prepare beef', 'Season well', 'Cook to perfection'],
+        cookingTime: 30,
+        cuisine: 'International',
+        mealType: 'dinner',
+        dietaryStyle: 'none',
+        image: '',
+        source: 'Knowledge Base'
+      }
+    ]
+  };
+  
+  return knowledgeBase[mainFood.toLowerCase()] || [];
 }
