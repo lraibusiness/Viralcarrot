@@ -26,6 +26,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerateRecipes = async () => {
     if (!ingredients.trim()) {
@@ -35,8 +36,11 @@ export default function Home() {
 
     setLoading(true);
     setHasSearched(true);
+    setError(null);
     
     try {
+      console.log('Sending request with:', { ingredients, filters });
+      
       const response = await fetch('/api/generateRecipes', {
         method: 'POST',
         headers: {
@@ -48,15 +52,29 @@ export default function Home() {
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error('Failed to generate recipes');
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      setRecipes(data.recipes);
+      console.log('Received data:', data);
+
+      if (data.success && data.recipes) {
+        setRecipes(data.recipes);
+        setError(null);
+      } else {
+        throw new Error(data.error || 'Invalid response format');
+      }
     } catch (error) {
       console.error('Error generating recipes:', error);
-      alert('Failed to generate recipes. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipes. Please try again.';
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -68,7 +86,8 @@ export default function Home() {
       'pasta, tomatoes, cheese',
       'eggs, bread, milk',
       'beef, potatoes, onions',
-      'salmon, quinoa, spinach'
+      'salmon, quinoa, spinach',
+      'prawns, garlic, butter'
     ];
     const randomIngredients = surpriseIngredients[Math.floor(Math.random() * surpriseIngredients.length)];
     setIngredients(randomIngredients);
@@ -81,6 +100,7 @@ export default function Home() {
   const clearResults = () => {
     setRecipes([]);
     setHasSearched(false);
+    setError(null);
   };
 
   return (
@@ -203,6 +223,14 @@ export default function Home() {
                 </button>
               )}
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <p className="font-semibold">Error:</p>
+                <p>{error}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
