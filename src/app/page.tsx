@@ -28,10 +28,18 @@ export default function Home() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Popular food suggestions
+  const foodSuggestions = [
+    'chicken', 'beef', 'pork', 'fish', 'salmon', 'prawns', 'shrimp', 'crab',
+    'eggs', 'tofu', 'vegetables', 'pasta', 'rice', 'quinoa', 'bread', 'potatoes',
+    'mushrooms', 'lamb', 'duck', 'turkey', 'seafood', 'beans', 'lentils', 'cheese'
+  ];
 
   const handleGenerateRecipes = async () => {
     if (!mainFood.trim()) {
-      alert('Please select a main food item!');
+      alert('Please enter a main food item!');
       return;
     }
 
@@ -114,6 +122,20 @@ export default function Home() {
     setError(null);
   };
 
+  const handleMainFoodChange = (value: string) => {
+    setMainFood(value);
+    setShowSuggestions(value.length > 0);
+  };
+
+  const selectSuggestion = (suggestion: string) => {
+    setMainFood(suggestion);
+    setShowSuggestions(false);
+  };
+
+  const filteredSuggestions = foodSuggestions.filter(suggestion =>
+    suggestion.toLowerCase().includes(mainFood.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -125,29 +147,40 @@ export default function Home() {
               <span className="text-[#FF914D]"> Amazing Recipes</span>
             </h1>
             <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-              Select your main food item and add supporting ingredients to get perfectly matched recipes.
+              Enter your main food item and supporting ingredients to get perfectly matched recipes.
             </p>
 
-            {/* Main Food Item Selection */}
-            <div className="mb-8">
+            {/* Main Food Item Input with Autocomplete */}
+            <div className="mb-8 relative">
               <label className="block text-lg font-semibold text-gray-700 mb-4">
                 🍽️ What's your main food item?
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
-                {['chicken', 'beef', 'pork', 'fish', 'salmon', 'prawns', 'shrimp', 'eggs', 'tofu', 'vegetables', 'pasta', 'rice', 'quinoa', 'bread', 'potatoes', 'mushrooms'].map((food) => (
-                  <button
-                    key={food}
-                    onClick={() => setMainFood(food)}
-                    className={`p-3 rounded-lg font-medium transition-colors ${
-                      mainFood === food
-                        ? 'bg-[#FF914D] text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {food.charAt(0).toUpperCase() + food.slice(1)}
-                  </button>
-                ))}
+              <div className="relative max-w-2xl mx-auto">
+                <input
+                  type="text"
+                  value={mainFood}
+                  onChange={(e) => handleMainFoodChange(e.target.value)}
+                  onFocus={() => setShowSuggestions(mainFood.length > 0)}
+                  placeholder="Enter main food item (e.g., chicken, salmon, tofu, vegetables...)"
+                  className="w-full p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-[#FF914D] focus:outline-none text-black"
+                />
+                
+                {/* Suggestions Dropdown */}
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {filteredSuggestions.slice(0, 8).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => selectSuggestion(suggestion)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-b-0"
+                      >
+                        <span className="font-medium">{suggestion.charAt(0).toUpperCase() + suggestion.slice(1)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+              
               {mainFood && (
                 <div className="mt-4 p-3 bg-[#FF914D] text-white rounded-lg inline-block">
                   <span className="font-semibold">Selected: {mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}</span>
