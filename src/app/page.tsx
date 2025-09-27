@@ -25,6 +25,7 @@ export default function Home() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleGenerateRecipes = async () => {
     if (!ingredients.trim()) {
@@ -33,6 +34,8 @@ export default function Home() {
     }
 
     setLoading(true);
+    setHasSearched(true);
+    
     try {
       const response = await fetch('/api/generateRecipes', {
         method: 'POST',
@@ -71,13 +74,22 @@ export default function Home() {
     setIngredients(randomIngredients);
   };
 
+  const handleRefreshRecipes = () => {
+    handleGenerateRecipes();
+  };
+
+  const clearResults = () => {
+    setRecipes([]);
+    setHasSearched(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <div className="bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold text-black mb-6">
               Turn Your Ingredients Into
               <span className="text-[#FF914D]"> Amazing Recipes</span>
             </h1>
@@ -91,66 +103,78 @@ export default function Home() {
                 value={ingredients}
                 onChange={(e) => setIngredients(e.target.value)}
                 placeholder="Enter your ingredients (comma separated)... e.g., chicken, rice, vegetables, garlic"
-                className="w-full max-w-2xl mx-auto p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-[#FF914D] focus:outline-none resize-none"
+                className="w-full max-w-2xl mx-auto p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-[#FF914D] focus:outline-none resize-none text-black"
                 rows={3}
               />
             </div>
 
-            {/* Filters */}
+            {/* Enhanced Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
-              <select
-                value={filters.cookingTime}
-                onChange={(e) => setFilters({...filters, cookingTime: e.target.value})}
-                className="p-3 border border-gray-200 rounded-lg focus:border-[#FF914D] focus:outline-none"
-              >
-                <option value="">Cooking Time</option>
-                <option value="15">Under 15 min</option>
-                <option value="30">15-30 min</option>
-                <option value="60">30-60 min</option>
-                <option value="120">1-2 hours</option>
-                <option value="240">2+ hours</option>
-              </select>
+              <div className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-[#FF914D] transition-colors">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">⏱️ Cooking Time</label>
+                <select
+                  value={filters.cookingTime}
+                  onChange={(e) => setFilters({...filters, cookingTime: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:border-[#FF914D] focus:outline-none text-black"
+                >
+                  <option value="">Any Time</option>
+                  <option value="15">Under 15 min</option>
+                  <option value="30">15-30 min</option>
+                  <option value="60">30-60 min</option>
+                  <option value="120">1-2 hours</option>
+                  <option value="240">2+ hours</option>
+                </select>
+              </div>
 
-              <select
-                value={filters.cuisine}
-                onChange={(e) => setFilters({...filters, cuisine: e.target.value})}
-                className="p-3 border border-gray-200 rounded-lg focus:border-[#FF914D] focus:outline-none"
-              >
-                <option value="">Cuisine</option>
-                <option value="italian">Italian</option>
-                <option value="mexican">Mexican</option>
-                <option value="asian">Asian</option>
-                <option value="indian">Indian</option>
-                <option value="mediterranean">Mediterranean</option>
-                <option value="american">American</option>
-              </select>
+              <div className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-[#FF914D] transition-colors">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">🌍 Cuisine</label>
+                <select
+                  value={filters.cuisine}
+                  onChange={(e) => setFilters({...filters, cuisine: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:border-[#FF914D] focus:outline-none text-black"
+                >
+                  <option value="">Any Cuisine</option>
+                  <option value="italian">Italian</option>
+                  <option value="mexican">Mexican</option>
+                  <option value="asian">Asian</option>
+                  <option value="indian">Indian</option>
+                  <option value="mediterranean">Mediterranean</option>
+                  <option value="american">American</option>
+                </select>
+              </div>
 
-              <select
-                value={filters.mealType}
-                onChange={(e) => setFilters({...filters, mealType: e.target.value})}
-                className="p-3 border border-gray-200 rounded-lg focus:border-[#FF914D] focus:outline-none"
-              >
-                <option value="">Meal Type</option>
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinner">Dinner</option>
-                <option value="snack">Snack</option>
-                <option value="dessert">Dessert</option>
-              </select>
+              <div className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-[#FF914D] transition-colors">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">🍽️ Meal Type</label>
+                <select
+                  value={filters.mealType}
+                  onChange={(e) => setFilters({...filters, mealType: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:border-[#FF914D] focus:outline-none text-black"
+                >
+                  <option value="">Any Meal</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="snack">Snack</option>
+                  <option value="dessert">Dessert</option>
+                </select>
+              </div>
 
-              <select
-                value={filters.dietaryStyle}
-                onChange={(e) => setFilters({...filters, dietaryStyle: e.target.value})}
-                className="p-3 border border-gray-200 rounded-lg focus:border-[#FF914D] focus:outline-none"
-              >
-                <option value="">Dietary Style</option>
-                <option value="vegetarian">Vegetarian</option>
-                <option value="vegan">Vegan</option>
-                <option value="keto">Keto</option>
-                <option value="paleo">Paleo</option>
-                <option value="gluten-free">Gluten-Free</option>
-                <option value="dairy-free">Dairy-Free</option>
-              </select>
+              <div className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-[#FF914D] transition-colors">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">🥗 Dietary Style</label>
+                <select
+                  value={filters.dietaryStyle}
+                  onChange={(e) => setFilters({...filters, dietaryStyle: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:border-[#FF914D] focus:outline-none text-black"
+                >
+                  <option value="">Any Diet</option>
+                  <option value="vegetarian">Vegetarian</option>
+                  <option value="vegan">Vegan</option>
+                  <option value="keto">Keto</option>
+                  <option value="paleo">Paleo</option>
+                  <option value="gluten-free">Gluten-Free</option>
+                  <option value="dairy-free">Dairy-Free</option>
+                </select>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -169,6 +193,15 @@ export default function Home() {
               >
                 🎲 Surprise Me
               </button>
+
+              {hasSearched && (
+                <button
+                  onClick={clearResults}
+                  className="bg-gray-500 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-gray-600 transition-colors"
+                >
+                  🔄 Clear Results
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -177,9 +210,17 @@ export default function Home() {
       {/* Results Section */}
       {recipes.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            Your Personalized Recipes
-          </h2>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold text-black">
+              Your Personalized Recipes ({recipes.length})
+            </h2>
+            <button
+              onClick={handleRefreshRecipes}
+              className="bg-[#FF914D] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#e67e3a] transition-colors"
+            >
+              🔄 Get More Recipes
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {recipes.map((recipe) => (
               <RecipeCard
