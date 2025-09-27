@@ -34,7 +34,6 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [synthesisStep, setSynthesisStep] = useState('');
 
   // Popular food suggestions
   const foodSuggestions = [
@@ -52,7 +51,6 @@ export default function Home() {
     setLoading(true);
     setHasSearched(true);
     setError(null);
-    setSynthesisStep('Searching for existing recipes...');
     
     try {
       const requestData = {
@@ -62,11 +60,6 @@ export default function Home() {
       };
       
       console.log('Frontend: Sending request with:', requestData);
-      
-      // Simulate synthesis steps
-      setTimeout(() => setSynthesisStep('Analyzing recipe patterns...'), 2000);
-      setTimeout(() => setSynthesisStep('Synthesizing unique recipes...'), 4000);
-      setTimeout(() => setSynthesisStep('Finalizing ViralCarrot creations...'), 6000);
       
       const response = await fetch('/api/generateRecipes', {
         method: 'POST',
@@ -91,7 +84,6 @@ export default function Home() {
       if (data.success && data.recipes) {
         setRecipes(data.recipes);
         setError(null);
-        setSynthesisStep('');
         console.log('Frontend: Successfully set recipes:', data.recipes.length);
       } else {
         throw new Error(data.error || 'Invalid response format');
@@ -103,7 +95,6 @@ export default function Home() {
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipes. Please try again.';
       setError(errorMessage);
-      setSynthesisStep('');
       alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -134,7 +125,6 @@ export default function Home() {
     setRecipes([]);
     setHasSearched(false);
     setError(null);
-    setSynthesisStep('');
   };
 
   const handleMainFoodChange = (value: string) => {
@@ -158,11 +148,11 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-black mb-6">
-              Smart Recipe
-              <span className="text-[#FF914D]"> Synthesizer</span>
+              Create Your Own Recipe with
+              <span className="text-[#FF914D]"> Viral Carrot</span>
             </h1>
             <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-              Enter your ingredients and let ViralCarrot search the web, analyze existing recipes, and create unique recipes just for you.
+              Discover amazing recipes based on the ingredients you have. Generate personalized cooking ideas with Viral Carrot.
             </p>
 
             {/* Main Food Item Input with Autocomplete */}
@@ -293,7 +283,7 @@ export default function Home() {
                 disabled={loading || !mainFood.trim()}
                 className="bg-[#FF914D] text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-[#e67e3a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
-                {loading ? 'Synthesizing...' : '🧠 Synthesize Recipes'}
+                {loading ? 'Generating...' : 'Generate Recipes'}
               </button>
               
               <button
@@ -313,16 +303,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Synthesis Progress */}
-            {synthesisStep && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FF914D] mr-3"></div>
-                  <span className="text-blue-700 font-medium">{synthesisStep}</span>
-                </div>
-              </div>
-            )}
-
             {/* Error Display */}
             {error && (
               <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -340,17 +320,17 @@ export default function Home() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-3xl font-bold text-black">
-                🧠 Synthesized Recipes ({recipes.length})
+                Recipes with {mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} ({recipes.length})
               </h2>
               <p className="text-gray-600 mt-2">
-                Unique recipes created by ViralCarrot based on web research and analysis
+                Personalized recipes created just for you
               </p>
             </div>
             <button
               onClick={handleRefreshRecipes}
               className="bg-[#FF914D] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#e67e3a] transition-colors"
             >
-              🔄 Synthesize More
+              🔄 Get More Recipes
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

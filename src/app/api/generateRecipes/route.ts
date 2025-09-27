@@ -233,8 +233,8 @@ async function synthesizeRecipes(externalRecipes: ExternalRecipe[], mainFood: st
 }
 
 async function createSynthesizedRecipe(baseRecipe: ExternalRecipe, mainFood: string, ingredients: string[], filters: any, index: number): Promise<SynthesizedRecipe> {
-  // Create unique title
-  const title = generateUniqueTitle(baseRecipe.title, mainFood, index);
+  // Create proper recipe title
+  const title = generateProperRecipeTitle(mainFood, ingredients, filters, index);
   
   // Create unique description
   const description = generateUniqueDescription(mainFood, filters);
@@ -264,21 +264,123 @@ async function createSynthesizedRecipe(baseRecipe: ExternalRecipe, mainFood: str
   };
 }
 
-function generateUniqueTitle(originalTitle: string, mainFood: string, index: number): string {
-  const titleVariations = [
-    `ViralCarrot's ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Delight`,
-    `Ultimate ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Experience`,
-    `Chef's Special ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`,
-    `Gourmet ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Creation`,
-    `Signature ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
-    `Fusion ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Magic`,
-    `Premium ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Blend`,
-    `Artisan ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Style`,
-    `Master ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Technique`,
-    `Elite ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Formula`
+function generateProperRecipeTitle(mainFood: string, ingredients: string[], filters: any, index: number): string {
+  const mainFoodCapitalized = mainFood.charAt(0).toUpperCase() + mainFood.slice(1);
+  
+  // Create proper recipe names based on main food and ingredients
+  const recipeTemplates = {
+    'chicken': [
+      'Creamy Chicken Pasta',
+      'Garlic Chicken Stir-Fry',
+      'Herb-Roasted Chicken',
+      'Chicken and Rice Bowl',
+      'Spicy Chicken Tacos',
+      'Chicken Noodle Soup',
+      'Grilled Chicken Salad',
+      'Chicken Curry',
+      'Chicken Parmesan',
+      'Chicken Fried Rice'
+    ],
+    'beef': [
+      'Beef Stew',
+      'Beef Stir-Fry',
+      'Grilled Beef Steak',
+      'Beef Tacos',
+      'Beef and Broccoli',
+      'Beef Noodle Soup',
+      'Beef Curry',
+      'Beef Fried Rice',
+      'Beef Burgers',
+      'Beef Stroganoff'
+    ],
+    'prawns': [
+      'Garlic Prawns',
+      'Spicy Prawn Curry',
+      'Prawn Stir-Fry',
+      'Prawn Tacos',
+      'Prawn Fried Rice',
+      'Prawn Noodle Soup',
+      'Prawn Pasta',
+      'Prawn Salad',
+      'Prawn Skewers',
+      'Prawn Risotto'
+    ],
+    'salmon': [
+      'Grilled Salmon',
+      'Salmon Teriyaki',
+      'Salmon Pasta',
+      'Salmon Salad',
+      'Baked Salmon',
+      'Salmon Curry',
+      'Salmon Tacos',
+      'Salmon Fried Rice',
+      'Salmon Soup',
+      'Salmon Skewers'
+    ],
+    'tofu': [
+      'Tofu Stir-Fry',
+      'Tofu Curry',
+      'Tofu Tacos',
+      'Tofu Salad',
+      'Tofu Soup',
+      'Tofu Fried Rice',
+      'Tofu Pasta',
+      'Tofu Skewers',
+      'Tofu Burgers',
+      'Tofu Noodle Bowl'
+    ],
+    'vegetables': [
+      'Roasted Vegetables',
+      'Vegetable Stir-Fry',
+      'Vegetable Curry',
+      'Vegetable Soup',
+      'Vegetable Pasta',
+      'Vegetable Tacos',
+      'Vegetable Salad',
+      'Vegetable Fried Rice',
+      'Vegetable Skewers',
+      'Vegetable Noodle Bowl'
+    ],
+    'eggs': [
+      'Scrambled Eggs',
+      'Fried Rice with Eggs',
+      'Egg Curry',
+      'Egg Salad',
+      'Egg Fried Rice',
+      'Egg Noodle Soup',
+      'Egg Tacos',
+      'Egg Pasta',
+      'Egg Skewers',
+      'Egg Noodle Bowl'
+    ],
+    'pasta': [
+      'Creamy Pasta',
+      'Pasta Salad',
+      'Pasta Soup',
+      'Pasta Tacos',
+      'Pasta Fried Rice',
+      'Pasta Skewers',
+      'Pasta Burgers',
+      'Pasta Noodle Bowl',
+      'Pasta Curry',
+      'Pasta Stir-Fry'
+    ]
+  };
+  
+  const templates = recipeTemplates[mainFood.toLowerCase()] || [
+    `${mainFoodCapitalized} Stir-Fry`,
+    `${mainFoodCapitalized} Curry`,
+    `${mainFoodCapitalized} Tacos`,
+    `${mainFoodCapitalized} Salad`,
+    `${mainFoodCapitalized} Soup`,
+    `${mainFoodCapitalized} Fried Rice`,
+    `${mainFoodCapitalized} Pasta`,
+    `${mainFoodCapitalized} Skewers`,
+    `${mainFoodCapitalized} Burgers`,
+    `${mainFoodCapitalized} Noodle Bowl`
   ];
   
-  return titleVariations[index % titleVariations.length];
+  return templates[index % templates.length];
 }
 
 function generateUniqueDescription(mainFood: string, filters: any): string {
