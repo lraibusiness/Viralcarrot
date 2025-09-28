@@ -334,11 +334,14 @@ export async function POST(request: NextRequest) {
     // Generate nutrition data
     const nutritionData = generateNutritionData(mainFood);
 
-    // Fetch user-submitted recipes that match the search
+    // Fetch user-submitted recipes that match the search (FIXED: Only approved recipes)
     let userRecipes: SynthesizedRecipe[] = [];
     try {
       const userSubmittedRecipes = await AuthService.searchRecipesByIngredients([mainFood, ...ingredients]);
-      userRecipes = userSubmittedRecipes.map(recipe => ({
+      // Filter to only include approved recipes
+      const approvedRecipes = userSubmittedRecipes.filter(recipe => recipe.isApproved);
+      
+      userRecipes = approvedRecipes.map(recipe => ({
         id: recipe.id,
         title: recipe.title,
         image: recipe.image,
@@ -366,7 +369,7 @@ export async function POST(request: NextRequest) {
         isExternal: false,
         sourceUrl: recipe.sourceUrl
       }));
-      console.log(`👥 User Recipes: Found ${userRecipes.length} community recipes`);
+      console.log(`👥 User Recipes: Found ${userRecipes.length} approved community recipes`);
     } catch (error) {
       console.warn('⚠️ User recipes fetch failed:', error);
     }
