@@ -9,6 +9,7 @@ const cache = new NodeCache({ stdTTL: 1800 });
 const imageCache = new NodeCache({ stdTTL: 3600 }); // 1 hour TTL
 
 interface ExternalRecipe {
+  id?: string;
   title: string;
   ingredients: string[];
   steps: string[];
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { mainFood, ingredients = [], filters = {}, includeExternal = true } = body;
 
-    console.log('�� API: Received request:', { mainFood, ingredients, filters, includeExternal });
+    console.log('📝 API: Received request:', { mainFood, ingredients, filters, includeExternal });
 
     if (!mainFood || !mainFood.trim()) {
       return NextResponse.json(
@@ -288,7 +289,12 @@ async function processExternalRecipes(externalRecipes: ExternalRecipe[], _mainFo
     cuisine: recipe.cuisine,
     mealType: recipe.mealType,
     dietaryStyle: recipe.dietaryStyle,
-    tags: [recipe.cuisine?.toLowerCase(), recipe.mealType?.toLowerCase(), 'external', 'popular'],
+    tags: [
+      recipe.cuisine?.toLowerCase() || 'international',
+      recipe.mealType?.toLowerCase() || 'dinner',
+      'external',
+      'popular'
+    ].filter(Boolean) as string[],
     createdBy: recipe.source,
     matchScore: 0.8,
     rating: recipe.rating,
