@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import NodeCache from 'node-cache';
+import { getUnsplashFetcher } from '@/utils/unsplash';
 
 // Initialize cache with 30 minute TTL
 const cache = new NodeCache({ stdTTL: 1800 });
-
-// Image cache to track used images and ensure uniqueness
-const imageCache = new NodeCache({ stdTTL: 3600 }); // 1 hour TTL
 
 interface ExternalRecipe {
   id?: string;
@@ -310,7 +308,7 @@ const CUISINE_MODIFIERS = {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🍳 Recipe Generator API: Starting enhanced recipe generation');
+    console.log('🍳 Recipe Generator API: Starting enhanced recipe generation with Unsplash');
     
     const body = await request.json();
     const { mainFood, ingredients = [], filters = {}, includeExternal = true, page = 1 } = body;
@@ -357,7 +355,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate ViralCarrot recipes
+    // Generate ViralCarrot recipes with enhanced Unsplash images
     const viralCarrotRecipes = await generateViralCarrotRecipes(mainFood, ingredients, filters, nutritionData, 6);
 
     // Combine and rank recipes
@@ -396,7 +394,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Generate ViralCarrot recipes with enhanced titles
+// Generate ViralCarrot recipes with enhanced Unsplash images
 async function generateViralCarrotRecipes(
   mainFood: string, 
   ingredients: string[], 
@@ -407,6 +405,14 @@ async function generateViralCarrotRecipes(
   const recipes: SynthesizedRecipe[] = [];
   const sessionKey = `session_${Date.now()}`;
 
+  // Initialize Unsplash fetcher
+  let unsplashFetcher;
+  try {
+    unsplashFetcher = getUnsplashFetcher(sessionKey);
+  } catch (error) {
+    console.warn('⚠️ Unsplash not configured, using fallback images');
+  }
+
   for (let i = 0; i < count; i++) {
     const recipe = await generateEnhancedRecipe(
       [], // No external recipes for ViralCarrot originals
@@ -415,7 +421,8 @@ async function generateViralCarrotRecipes(
       filters,
       nutritionData,
       i,
-      sessionKey
+      sessionKey,
+      unsplashFetcher
     );
     recipes.push(recipe);
   }
@@ -423,7 +430,7 @@ async function generateViralCarrotRecipes(
   return recipes;
 }
 
-// Generate enhanced recipe with proper titles
+// Generate enhanced recipe with proper titles and Unsplash images
 async function generateEnhancedRecipe(
   relevantRecipes: ExternalRecipe[],
   mainFood: string,
@@ -431,7 +438,8 @@ async function generateEnhancedRecipe(
   filters: RecipeFilters,
   nutritionData: NutritionData,
   index: number,
-  sessionKey: string
+  sessionKey: string,
+  unsplashFetcher?: any
 ): Promise<SynthesizedRecipe> {
   // Generate proper recipe title
   const title = generateProperRecipeTitle(mainFood, filters, index);
@@ -446,8 +454,19 @@ async function generateEnhancedRecipe(
   const cuisine = determineCuisine(filters);
   const mealType = determineMealType(filters);
   
-  // Get appropriate unique image
-  const image = await getEnhancedRecipeImage(title, mainFood, cuisine, mealType, index, sessionKey);
+  // Get enhanced Unsplash image
+  let image: string;
+  if (unsplashFetcher) {
+    try {
+      image = await unsplashFetcher.getRecipeImage(title, mainFood, cuisine, mealType, index);
+      console.log(`🖼️ Unsplash: Got image for "${title}"`);
+    } catch (error) {
+      console.warn('⚠️ Unsplash fetch failed, using fallback:', error);
+      image = getFallbackImage(mainFood, index);
+    }
+  } else {
+    image = getFallbackImage(mainFood, index);
+  }
   
   // Generate description
   const description = generateRecipeDescription(title, mainFood, cuisine, mealType);
@@ -748,116 +767,67 @@ function generateNutritionData(mainFood: string): NutritionData {
   return baseNutrition[foodKey] || { calories: 150, protein: 10, carbs: 20, fat: 5 };
 }
 
-// Enhanced image generation with better uniqueness
-async function getEnhancedRecipeImage(title: string, mainFood: string, cuisine: string, mealType: string, index: number, sessionKey: string): Promise<string> {
-  const usedImages = imageCache.get(sessionKey) as string[] || [];
+// Get fallback image
+function getFallbackImage(mainFood: string, index: number): string {
+  const fallbackImages = {
+    chicken: [
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800',
+      'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800'
+    ],
+    beef: [
+      'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800',
+      'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=800'
+    ],
+    salmon: [
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ],
+    pasta: [
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800',
+      'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800'
+    ],
+    rice: [
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800',
+      'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800',
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800'
+    ],
+    vegetables: [
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800'
+    ],
+    fish: [
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ],
+    shrimp: [
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ],
+    octopus: [
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ]
+  };
   
-  try {
-    // Try multiple search strategies
-    const searchQueries = [
-      `${mainFood} ${cuisine} recipe`,
-      `${title.toLowerCase()}`,
-      `${mainFood} ${mealType.toLowerCase()}`,
-      `${mainFood} food photography`,
-      `${mainFood} cooking`
-    ];
-    
-    for (const query of searchQueries) {
-      if (usedImages.length > 0) {
-        // Skip if we've already used this query
-        continue;
-      }
-      
-      const response = await axios.get(`https://api.unsplash.com/search/photos`, {
-        params: {
-          query: query,
-          per_page: 10,
-          orientation: 'landscape'
-        },
-        headers: {
-          'Authorization': `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`
-        }
-      });
-      
-      if (response.data.results && response.data.results.length > 0) {
-        const availableImages = response.data.results
-          .map((img: any) => img.urls.regular)
-          .filter((url: string) => !usedImages.includes(url));
-        
-        if (availableImages.length > 0) {
-          const selectedImage = availableImages[index % availableImages.length];
-          usedImages.push(selectedImage);
-          imageCache.set(sessionKey, usedImages);
-          return selectedImage;
-        }
-      }
-    }
-    
-    // Fallback to food-specific images
-    const fallbackImages = {
-      chicken: [
-        'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800',
-        'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800',
-        'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800'
-      ],
-      beef: [
-        'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800',
-        'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800',
-        'https://images.unsplash.com/photo-1574484284002-952d92456975?w=800'
-      ],
-      salmon: [
-        'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
-      ],
-      pasta: [
-        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800',
-        'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800',
-        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800'
-      ],
-      rice: [
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800',
-        'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800'
-      ],
-      vegetables: [
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
-        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800'
-      ],
-      fish: [
-        'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
-      ],
-      shrimp: [
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
-      ],
-      octopus: [
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
-      ]
-    };
-    
-    const foodKey = Object.keys(fallbackImages).find(key => 
-      mainFood.toLowerCase().includes(key) || key.includes(mainFood.toLowerCase())
-    ) as keyof typeof fallbackImages;
-    
-    if (foodKey && fallbackImages[foodKey]) {
-      const images = fallbackImages[foodKey];
-      return images[index % images.length];
-    }
-    
-    // Ultimate fallback
-    return 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800';
-    
-  } catch (error) {
-    console.error('❌ Image fetch error:', error);
-    return 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800';
+  const foodKey = Object.keys(fallbackImages).find(key => 
+    mainFood.toLowerCase().includes(key) || key.includes(mainFood.toLowerCase())
+  ) as keyof typeof fallbackImages;
+  
+  if (foodKey && fallbackImages[foodKey]) {
+    const images = fallbackImages[foodKey];
+    return images[index % images.length];
   }
+  
+  // Ultimate fallback
+  return 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800';
 }
 
 // Rank recipes by relevance
