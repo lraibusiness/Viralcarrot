@@ -19,6 +19,12 @@ interface Recipe {
   servings?: number;
   matchScore?: number;
   seoDescription?: string;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
 }
 
 interface RecipeModalProps {
