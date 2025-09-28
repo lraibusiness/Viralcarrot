@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import NodeCache from 'node-cache';
 import { getUnsplashFetcher } from '@/utils/unsplash';
+import { AuthService } from '@/lib/auth';
 
 // Initialize cache with 30 minute TTL
 const cache = new NodeCache({ stdTTL: 1800 });
@@ -333,11 +334,48 @@ export async function POST(request: NextRequest) {
     // Generate nutrition data
     const nutritionData = generateNutritionData(mainFood);
 
+    // Fetch user-submitted recipes that match the search
+    let userRecipes: SynthesizedRecipe[] = [];
+    try {
+      const userSubmittedRecipes = await AuthService.searchRecipesByIngredients([mainFood, ...ingredients]);
+      userRecipes = userSubmittedRecipes.map(recipe => ({
+        id: recipe.id,
+        title: recipe.title,
+        image: recipe.image,
+        description: recipe.description,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        cookingTime: recipe.cookingTime,
+        cuisine: recipe.cuisine,
+        mealType: recipe.mealType,
+        dietaryStyle: recipe.dietaryStyle,
+        tags: [recipe.cuisine, recipe.mealType, recipe.dietaryStyle].filter(Boolean) as string[],
+        createdBy: 'Community Member',
+        matchScore: calculateMatchScore(recipe.ingredients, ingredients),
+        rating: 4.5 + (Math.random() * 0.5),
+        difficulty: 'Medium',
+        servings: 4,
+        nutrition: {
+          calories: 200 + Math.floor(Math.random() * 300),
+          protein: 15 + Math.floor(Math.random() * 20),
+          carbs: 20 + Math.floor(Math.random() * 30),
+          fat: 5 + Math.floor(Math.random() * 15)
+        },
+        seoDescription: `${recipe.title} - A community-submitted recipe featuring ${mainFood}.`,
+        ingredientMatch: calculateIngredientMatch(recipe.ingredients, ingredients, mainFood),
+        isExternal: false,
+        sourceUrl: recipe.sourceUrl
+      }));
+      console.log(`👥 User Recipes: Found ${userRecipes.length} community recipes`);
+    } catch (error) {
+      console.warn('⚠️ User recipes fetch failed:', error);
+    }
+
     // Fetch external recipes if requested
     let externalRecipes: ExternalRecipe[] = [];
     if (includeExternal) {
       try {
-        const externalResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/externalRecipes`, {
+        const externalResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/externalRecipes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mainFood, ingredients, filters })
@@ -358,8 +396,8 @@ export async function POST(request: NextRequest) {
     // Generate ViralCarrot recipes with optimized image loading
     const viralCarrotRecipes = await generateViralCarrotRecipes(mainFood, ingredients, filters, nutritionData, 6);
 
-    // Combine and rank recipes
-    const allRecipes = [...viralCarrotRecipes, ...externalRecipes];
+    // Combine and rank recipes (User recipes first, then ViralCarrot, then external)
+    const allRecipes = [...userRecipes, ...viralCarrotRecipes, ...externalRecipes];
     const rankedRecipes = rankRecipesByRelevance(allRecipes, mainFood, ingredients);
 
     // Paginate results
@@ -374,6 +412,7 @@ export async function POST(request: NextRequest) {
       page,
       hasMore: endIndex < rankedRecipes.length,
       sources: {
+        userSubmitted: userRecipes.length,
         viralCarrot: viralCarrotRecipes.length,
         external: externalRecipes.length
       }
@@ -381,7 +420,7 @@ export async function POST(request: NextRequest) {
 
     // Cache the result
     cache.set(cacheKey, result);
-    console.log(`✅ Recipe API: Generated ${paginatedRecipes.length} recipes (${viralCarrotRecipes.length} ViralCarrot + ${externalRecipes.length} external)`);
+    console.log(`✅ Recipe API: Generated ${paginatedRecipes.length} recipes (${userRecipes.length} user + ${viralCarrotRecipes.length} ViralCarrot + ${externalRecipes.length} external)`);
 
     return NextResponse.json(result);
 
@@ -880,9 +919,13 @@ function getFallbackImage(mainFood: string, index: number): string {
 // Rank recipes by relevance
 function rankRecipesByRelevance(recipes: SynthesizedRecipe[], mainFood: string, ingredients: string[]): SynthesizedRecipe[] {
   return recipes.sort((a, b) => {
-    // ViralCarrot recipes first
-    if (a.isExternal === false && b.isExternal === true) return -1;
-    if (a.isExternal === true && b.isExternal === false) return 1;
+    // User-submitted recipes first
+    if (a.createdBy === 'Community Member' && b.createdBy !== 'Community Member') return -1;
+    if (a.createdBy !== 'Community Member' && b.createdBy === 'Community Member') return 1;
+    
+    // ViralCarrot recipes second
+    if (a.createdBy === 'ViralCarrot Chef' && b.createdBy !== 'ViralCarrot Chef') return -1;
+    if (a.createdBy !== 'ViralCarrot Chef' && b.createdBy === 'ViralCarrot Chef') return 1;
     
     // Then by match score
     return b.matchScore - a.matchScore;
