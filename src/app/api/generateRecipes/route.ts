@@ -906,7 +906,7 @@ function calculateCookingTime(baseRecipes: ExternalRecipe[], filters: RecipeFilt
 function determineDifficulty(baseRecipes: ExternalRecipe[]): string {
   if (baseRecipes.length === 0) return 'Medium';
   
-  const difficulties = baseRecipes.map(recipe => recipe.difficulty).filter(Boolean);
+  const difficulties = baseRecipes.map(recipe => recipe.difficulty).filter(Boolean) as string[];
   if (difficulties.length > 0) {
     return difficulties[0];
   }
