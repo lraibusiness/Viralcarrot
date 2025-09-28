@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
 async function searchExternalRecipesParallel(
   mainFood: string, 
   ingredients: string[], 
-  filters: RecipeFilters, _filters
+  _filters: RecipeFilters
 ): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
@@ -483,7 +483,7 @@ async function synthesizeRecipesWithAdvancedMatching(
   externalRecipes: ExternalRecipe[],
   mainFood: string,
   ingredients: string[],
-  filters: RecipeFilters, _filters,
+  _filters: RecipeFilters,
   nutritionData: NutritionData
 ): Promise<SynthesizedRecipe[]> {
   const synthesizedRecipes: SynthesizedRecipe[] = [];
