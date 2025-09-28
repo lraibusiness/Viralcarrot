@@ -763,7 +763,7 @@ async function getEnhancedRecipeImage(title: string, mainFood: string, cuisine: 
   // Fallback to curated images
   const foodType = getFoodType(mainFood);
   const fallbackImages = (FALLBACK_IMAGES as Record<string, string[]>)[foodType] || FALLBACK_IMAGES.general;
-  const availableImages = fallbackImages.filter(img => !(usedImages as Set<string>).has(img));
+  const availableImages = fallbackImages.filter(img => !usedImages.has(img));
   
   if (availableImages.length > 0) {
     const selectedImage = availableImages[index % availableImages.length];
