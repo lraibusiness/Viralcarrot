@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 import NodeCache from 'node-cache';
 
-// Initialize cache with 1 hour TTL for external recipes
-const cache = new NodeCache({ stdTTL: 3600 });
+// Initialize cache with 30 minute TTL
+const cache = new NodeCache({ stdTTL: 1800 });
 
 interface ExternalRecipe {
   id: string;
   title: string;
-  image: string;
-  description: string;
   ingredients: string[];
   steps: string[];
   cookingTime: number;
   cuisine?: string;
   mealType?: string;
   dietaryStyle?: string;
+  image?: string;
   source: string;
-  sourceUrl: string;
+  sourceUrl?: string;
   rating?: number;
   difficulty?: string;
   servings?: number;
@@ -26,6 +27,7 @@ interface ExternalRecipe {
     carbs?: number;
     fat?: number;
   };
+  description?: string;
   ingredientMatch?: {
     availableIngredients: string[];
     missingIngredients: string[];
@@ -39,6 +41,226 @@ interface RecipeFilters {
   mealType?: string;
   dietaryStyle?: string;
 }
+
+// Enhanced recipe title templates for external sources
+const EXTERNAL_TITLE_TEMPLATES = {
+  chicken: [
+    "Crispy Garlic Butter Chicken",
+    "Honey Glazed Chicken Thighs", 
+    "Lemon Herb Roasted Chicken",
+    "Spicy Buffalo Chicken Wings",
+    "Creamy Chicken Alfredo",
+    "Teriyaki Chicken Stir-Fry",
+    "Mediterranean Chicken Skewers",
+    "BBQ Chicken Breast",
+    "Chicken Tikka Masala",
+    "Parmesan Crusted Chicken"
+  ],
+  beef: [
+    "Classic Beef Stroganoff",
+    "Juicy Beef Burgers",
+    "Beef and Broccoli Stir-Fry", 
+    "Slow-Cooked Beef Stew",
+    "Beef Tacos with Guacamole",
+    "Beef Wellington",
+    "Korean Beef Bulgogi",
+    "Beef and Mushroom Risotto",
+    "Beef Fajitas",
+    "Beef Bourguignon"
+  ],
+  salmon: [
+    "Pan-Seared Salmon with Dill",
+    "Honey Glazed Salmon",
+    "Cedar Plank Salmon",
+    "Salmon Teriyaki Bowl",
+    "Lemon Garlic Salmon",
+    "Salmon Poke Bowl",
+    "Grilled Salmon with Herbs",
+    "Salmon Caesar Salad",
+    "Salmon Sushi Rolls",
+    "Baked Salmon with Vegetables"
+  ],
+  pasta: [
+    "Creamy Carbonara Pasta",
+    "Spaghetti Aglio e Olio",
+    "Pasta Primavera",
+    "Chicken Pesto Pasta",
+    "Spicy Arrabbiata Pasta",
+    "Pasta alla Vodka",
+    "Lobster Ravioli",
+    "Pasta with Marinara Sauce",
+    "Cacio e Pepe",
+    "Pasta with Meatballs"
+  ],
+  rice: [
+    "Spanish Paella",
+    "Chicken Fried Rice",
+    "Risotto Milanese",
+    "Jambalaya Rice",
+    "Biryani Rice Bowl",
+    "Sushi Rice Rolls",
+    "Coconut Rice Pudding",
+    "Wild Rice Pilaf",
+    "Rice and Beans",
+    "Sticky Rice with Mango"
+  ],
+  vegetables: [
+    "Roasted Vegetable Medley",
+    "Stuffed Bell Peppers",
+    "Ratatouille",
+    "Vegetable Stir-Fry",
+    "Grilled Vegetable Skewers",
+    "Vegetable Curry",
+    "Stuffed Zucchini",
+    "Roasted Brussels Sprouts",
+    "Vegetable Lasagna",
+    "Caprese Salad"
+  ],
+  fish: [
+    "Fish and Chips",
+    "Pan-Fried Fish with Lemon",
+    "Fish Tacos",
+    "Baked Fish with Herbs",
+    "Fish Curry",
+    "Grilled Fish Steaks",
+    "Fish Ceviche",
+    "Fish Chowder",
+    "Fish Tempura",
+    "Mediterranean Fish Stew"
+  ],
+  shrimp: [
+    "Garlic Butter Shrimp",
+    "Shrimp Scampi",
+    "Coconut Shrimp",
+    "Shrimp Fried Rice",
+    "Shrimp Tacos",
+    "Shrimp and Grits",
+    "Shrimp Pad Thai",
+    "Shrimp Cocktail",
+    "Shrimp Stir-Fry",
+    "Shrimp Etouffee"
+  ],
+  octopus: [
+    "Grilled Octopus with Chimichurri",
+    "Octopus Carpaccio",
+    "Spanish Octopus Tapas",
+    "Octopus Ceviche",
+    "Braised Octopus Stew",
+    "Octopus Salad",
+    "Octopus Pasta",
+    "Mediterranean Octopus",
+    "Octopus with Potatoes",
+    "Octopus Rice Bowl"
+  ],
+  lamb: [
+    "Rack of Lamb with Herbs",
+    "Lamb Chops with Mint",
+    "Lamb Curry",
+    "Lamb Gyros",
+    "Braised Lamb Shanks",
+    "Lamb Kebabs",
+    "Lamb Stew",
+    "Lamb Biryani",
+    "Lamb Tagine",
+    "Lamb Burgers"
+  ],
+  pork: [
+    "Pork Tenderloin with Apples",
+    "Pulled Pork Sandwich",
+    "Pork Chops with Sage",
+    "Pork Belly Bao Buns",
+    "Pork Stir-Fry",
+    "Pork Carnitas",
+    "Pork Schnitzel",
+    "Pork and Beans",
+    "Pork Dumplings",
+    "Pork Loin Roast"
+  ],
+  tofu: [
+    "Crispy Tofu Stir-Fry",
+    "Tofu Scramble",
+    "Mapo Tofu",
+    "Tofu Buddha Bowl",
+    "Tofu Curry",
+    "Tofu Tacos",
+    "Tofu Pad Thai",
+    "Tofu Scramble",
+    "Tofu Soup",
+    "Tofu Teriyaki"
+  ],
+  eggs: [
+    "Perfect Scrambled Eggs",
+    "Eggs Benedict",
+    "Shakshuka",
+    "French Omelette",
+    "Eggs Florentine",
+    "Egg Fried Rice",
+    "Egg Salad Sandwich",
+    "Quiche Lorraine",
+    "Egg Drop Soup",
+    "Deviled Eggs"
+  ],
+  cheese: [
+    "Three Cheese Mac and Cheese",
+    "Cheese Fondue",
+    "Grilled Cheese Sandwich",
+    "Cheese Platter",
+    "Cheese Soufflé",
+    "Cheese Quesadillas",
+    "Cheese Pizza",
+    "Cheese and Crackers",
+    "Cheese Stuffed Mushrooms",
+    "Cheese Board"
+  ],
+  mushroom: [
+    "Creamy Mushroom Risotto",
+    "Stuffed Mushrooms",
+    "Mushroom Stroganoff",
+    "Mushroom Soup",
+    "Grilled Portobello Mushrooms",
+    "Mushroom Pasta",
+    "Mushroom Stir-Fry",
+    "Mushroom Pizza",
+    "Mushroom Gravy",
+    "Mushroom Tacos"
+  ],
+  potato: [
+    "Crispy Roasted Potatoes",
+    "Loaded Baked Potatoes",
+    "Potato Gnocchi",
+    "Mashed Potatoes",
+    "Potato Salad",
+    "French Fries",
+    "Potato Soup",
+    "Scalloped Potatoes",
+    "Potato Pancakes",
+    "Sweet Potato Fries"
+  ],
+  bread: [
+    "Artisan Sourdough Bread",
+    "Garlic Bread",
+    "Banana Bread",
+    "Focaccia Bread",
+    "Brioche French Toast",
+    "Bread Pudding",
+    "Garlic Naan",
+    "Cornbread",
+    "Breadsticks",
+    "Cinnamon Rolls"
+  ]
+};
+
+// Cooking method variations
+const COOKING_METHODS = [
+  "Pan-Seared", "Grilled", "Roasted", "Braised", "Sautéed", "Baked", 
+  "Fried", "Steamed", "Poached", "Smoked", "Slow-Cooked", "Quick-Fried"
+];
+
+// Flavor profile enhancers
+const FLAVOR_ENHANCERS = [
+  "Garlic Butter", "Lemon Herb", "Spicy", "Creamy", "Honey Glazed", 
+  "Teriyaki", "Mediterranean", "Asian-Inspired", "Smoky", "Tangy"
+];
 
 // External recipe sources
 const EXTERNAL_SOURCES = [
@@ -69,7 +291,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { mainFood, ingredients = [], filters = {} } = body;
 
-    console.log('📝 External API: Received request:', { mainFood, ingredients, filters });
+    console.log('�� External API: Received request:', { mainFood, ingredients, filters });
 
     if (!mainFood || !mainFood.trim()) {
       return NextResponse.json(
@@ -99,42 +321,35 @@ export async function POST(request: NextRequest) {
       success: true,
       recipes: externalRecipes,
       total: externalRecipes.length,
-      message: `Found ${externalRecipes.length} popular recipes from the web`,
-      sources: [...new Set(externalRecipes.map(r => r.source))],
-      searchMetadata: {
-        mainFood,
-        searchQuery,
-        ingredientCount: ingredients.length,
-        filtersApplied: Object.keys(filters).length,
-        externalRecipesFound: externalRecipes.length
+      sources: {
+        allrecipes: externalRecipes.filter(r => r.source === 'AllRecipes').length,
+        foodnetwork: externalRecipes.filter(r => r.source === 'FoodNetwork').length,
+        bbcgoodfood: externalRecipes.filter(r => r.source === 'BBCGoodFood').length
       }
     };
 
     // Cache the result
     cache.set(cacheKey, result);
+    console.log(`✅ External API: Generated ${externalRecipes.length} external recipes`);
 
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('❌ External API: Error fetching external recipes:', error);
+    console.error('❌ External API Error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch external recipes',
-        details: process.env.NODE_ENV === 'development' ? (error as Error)?.toString() : 'Internal server error'
-      },
+      { success: false, error: 'Failed to fetch external recipes' },
       { status: 500 }
     );
   }
 }
 
-// Build search query for external sources
+// Build comprehensive search query using all selected fields
 function buildSearchQuery(mainFood: string, ingredients: string[], filters: RecipeFilters): string {
   let query = mainFood;
   
-  // Add supporting ingredients
-  if (ingredients && ingredients.length > 0) {
-    query += ` ${ingredients.join(' ')}`;
+  // Add ingredients to search query
+  if (ingredients.length > 0) {
+    query += ` ${ingredients.slice(0, 3).join(' ')}`;
   }
   
   // Add cuisine filter
@@ -151,7 +366,7 @@ function buildSearchQuery(mainFood: string, ingredients: string[], filters: Reci
   if (filters.dietaryStyle) {
     query += ` ${filters.dietaryStyle}`;
   }
-  
+
   return query.trim();
 }
 
@@ -192,26 +407,18 @@ async function fetchExternalRecipes(searchQuery: string, mainFood: string, userI
 // Fetch recipes from a specific source
 async function fetchFromSource(source: { name: string; baseUrl: string; searchUrl: string; apiUrl: string }, searchQuery: string, mainFood: string, userIngredients: string[]): Promise<ExternalRecipe[]> {
   try {
-    console.log(`🔍 Fetching from ${source.name}: ${searchQuery}`);
-    
-    // For now, we'll generate mock external recipes based on the search query
-    // In a real implementation, you would make actual API calls to these sources
-    const mockRecipes = generateMockExternalRecipes(source.name, searchQuery, mainFood, userIngredients);
-    
-    return mockRecipes;
-
+    // For now, generate mock external recipes with proper titles
+    return generateMockExternalRecipes(source.name, searchQuery, mainFood, userIngredients);
   } catch (error) {
     console.error(`❌ Error fetching from ${source.name}:`, error);
     return [];
   }
 }
 
-// Generate mock external recipes (replace with real API calls)
+// Generate mock external recipes with proper titles
 function generateMockExternalRecipes(sourceName: string, searchQuery: string, mainFood: string, userIngredients: string[]): ExternalRecipe[] {
   const recipes: ExternalRecipe[] = [];
-  
-  // Generate 2-3 mock recipes per source
-  const recipeCount = Math.floor(Math.random() * 2) + 2;
+  const recipeCount = Math.min(3, 3); // Generate 3 recipes per source
   
   for (let i = 0; i < recipeCount; i++) {
     const recipe = generateMockRecipe(sourceName, searchQuery, mainFood, userIngredients, i);
@@ -221,17 +428,11 @@ function generateMockExternalRecipes(sourceName: string, searchQuery: string, ma
   return recipes;
 }
 
-// Generate a single mock external recipe
+// Generate a single mock external recipe with proper title
 function generateMockRecipe(sourceName: string, searchQuery: string, mainFood: string, userIngredients: string[], index: number): ExternalRecipe {
-  const titles = [
-    `Best ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
-    `Easy ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} from ${sourceName}`,
-    `Popular ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Dish`,
-    `Classic ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
-    `Award-Winning ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`
-  ];
+  // Generate proper recipe title based on main food
+  const title = generateProperExternalTitle(mainFood, sourceName, index);
   
-  const title = titles[index % titles.length];
   const ingredients = generateMockIngredients(mainFood, userIngredients);
   const ingredientMatch = calculateIngredientMatch(ingredients, userIngredients);
   
@@ -260,69 +461,96 @@ function generateMockRecipe(sourceName: string, searchQuery: string, mainFood: s
   };
 }
 
-// Generate mock ingredients
-function generateMockIngredients(mainFood: string, userIngredients: string[]): string[] {
-  const ingredients = [mainFood];
+// Generate proper external recipe titles
+function generateProperExternalTitle(mainFood: string, sourceName: string, index: number): string {
+  const normalizedFood = mainFood.toLowerCase().trim();
   
-  // Add user ingredients
-  userIngredients.forEach(ingredient => {
-    if (ingredient.trim()) {
-      ingredients.push(ingredient.trim());
-    }
-  });
+  // Get base templates for the main food
+  const baseTemplates = EXTERNAL_TITLE_TEMPLATES[normalizedFood as keyof typeof EXTERNAL_TITLE_TEMPLATES] || 
+    EXTERNAL_TITLE_TEMPLATES[Object.keys(EXTERNAL_TITLE_TEMPLATES).find(key => 
+      normalizedFood.includes(key) || key.includes(normalizedFood)
+    ) as keyof typeof EXTERNAL_TITLE_TEMPLATES] || 
+    [
+      `Best ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
+      `Easy ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} from ${sourceName}`,
+      `Popular ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Dish`,
+      `Classic ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
+      `Award-Winning ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`
+    ];
+
+  // Select a base template
+  const baseTemplate = baseTemplates[index % baseTemplates.length];
   
-  // Add common ingredients
-  const commonIngredients = [
-    'salt', 'black pepper', 'olive oil', 'garlic', 'onions',
-    'herbs', 'spices', 'lemon', 'butter', 'flour'
+  // Add cooking method variation
+  const cookingMethod = COOKING_METHODS[index % COOKING_METHODS.length];
+  
+  // Add flavor enhancer
+  const flavorEnhancer = FLAVOR_ENHANCERS[index % FLAVOR_ENHANCERS.length];
+  
+  // Create variations for external sources
+  const titleVariations = [
+    baseTemplate,
+    `${cookingMethod} ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`,
+    `${flavorEnhancer} ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`,
+    `${baseTemplate} from ${sourceName}`,
+    `${sourceName}'s ${baseTemplate}`,
+    `${cookingMethod} ${baseTemplate}`,
+    `${flavorEnhancer} ${baseTemplate}`
   ];
   
-  // Add 3-5 random common ingredients
-  const numCommon = 3 + Math.floor(Math.random() * 3);
-  const shuffled = commonIngredients.sort(() => 0.5 - Math.random());
-  ingredients.push(...shuffled.slice(0, numCommon));
+  return titleVariations[index % titleVariations.length];
+}
+
+// Generate mock ingredients
+function generateMockIngredients(mainFood: string, userIngredients: string[]): string[] {
+  const baseIngredients = [mainFood];
+  const commonIngredients = [
+    'salt', 'black pepper', 'olive oil', 'garlic', 'onion', 'butter',
+    'lemon', 'herbs', 'spices', 'vegetables'
+  ];
   
-  return ingredients;
+  const allIngredients = [...baseIngredients, ...commonIngredients, ...userIngredients];
+  return [...new Set(allIngredients)].slice(0, 10);
 }
 
 // Generate mock cooking steps
 function generateMockSteps(mainFood: string): string[] {
   return [
-    `Prepare the ${mainFood} by cleaning and cutting as needed.`,
-    `Season with salt, pepper, and your favorite herbs.`,
-    `Heat oil in a large pan over medium heat.`,
-    `Cook the ${mainFood} until golden and tender.`,
-    `Add additional seasonings and cook for 2-3 more minutes.`,
-    `Taste and adjust seasoning as needed.`,
-    `Serve hot and enjoy!`
+    `Prepare the ${mainFood} by washing and cutting as needed.`,
+    `Season with salt and pepper to taste.`,
+    `Heat oil in a pan over medium heat.`,
+    `Cook the ${mainFood} until golden brown and cooked through.`,
+    `Serve hot with your favorite sides.`
   ];
 }
 
 // Calculate ingredient match percentage
-function calculateIngredientMatch(recipeIngredients: string[], userIngredients: string[]): { availableIngredients: string[], missingIngredients: string[], matchPercentage: number } {
+function calculateIngredientMatch(recipeIngredients: string[], userIngredients: string[]): {
+  availableIngredients: string[];
+  missingIngredients: string[];
+  matchPercentage: number;
+} {
   if (userIngredients.length === 0) {
     return {
       availableIngredients: [],
       missingIngredients: [],
-      matchPercentage: 100
+      matchPercentage: 85
     };
   }
   
-  const availableIngredients: string[] = [];
-  const missingIngredients: string[] = [];
+  const availableIngredients = userIngredients.filter(userIng => 
+    recipeIngredients.some(recipeIng => 
+      recipeIng.toLowerCase().includes(userIng.toLowerCase()) ||
+      userIng.toLowerCase().includes(recipeIng.toLowerCase())
+    )
+  );
   
-  userIngredients.forEach(ingredient => {
-    const found = recipeIngredients.some(recipeIngredient => 
-      recipeIngredient.toLowerCase().includes(ingredient.toLowerCase()) ||
-      ingredient.toLowerCase().includes(recipeIngredient.toLowerCase())
-    );
-    
-    if (found) {
-      availableIngredients.push(ingredient);
-    } else {
-      missingIngredients.push(ingredient);
-    }
-  });
+  const missingIngredients = userIngredients.filter(userIng => 
+    !recipeIngredients.some(recipeIng => 
+      recipeIng.toLowerCase().includes(userIng.toLowerCase()) ||
+      userIng.toLowerCase().includes(recipeIng.toLowerCase())
+    )
+  );
   
   const matchPercentage = Math.round((availableIngredients.length / userIngredients.length) * 100);
   
@@ -333,27 +561,65 @@ function calculateIngredientMatch(recipeIngredients: string[], userIngredients: 
   };
 }
 
-// Get mock image based on main food
+// Get mock image URL
 function getMockImage(mainFood: string, index: number): string {
-  const foodType = mainFood.toLowerCase();
+  const foodImages = {
+    chicken: [
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800',
+      'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800'
+    ],
+    beef: [
+      'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800',
+      'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800',
+      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=800'
+    ],
+    salmon: [
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ],
+    pasta: [
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800',
+      'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800',
+      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800'
+    ],
+    rice: [
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800',
+      'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800',
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800'
+    ],
+    vegetables: [
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800'
+    ],
+    fish: [
+      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ],
+    shrimp: [
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ],
+    octopus: [
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
+      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+    ]
+  };
   
-  if (foodType.includes('chicken')) {
-    const images = [
-      'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=600&h=400&fit=crop'
-    ];
-    return images[index % images.length];
-  } else if (foodType.includes('octopus') || foodType.includes('seafood')) {
-    const images = [
-      'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1535399831218-d5bd36d1a6b3?w=600&h=400&fit=crop'
-    ];
-    return images[index % images.length];
-  } else {
-    const images = [
-      'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=600&h=400&fit=crop'
-    ];
+  const foodKey = Object.keys(foodImages).find(key => 
+    mainFood.toLowerCase().includes(key) || key.includes(mainFood.toLowerCase())
+  ) as keyof typeof foodImages;
+  
+  if (foodKey && foodImages[foodKey]) {
+    const images = foodImages[foodKey];
     return images[index % images.length];
   }
+  
+  // Fallback
+  return 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800';
 }
