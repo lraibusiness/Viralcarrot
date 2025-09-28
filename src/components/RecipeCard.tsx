@@ -68,116 +68,113 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
 
   return (
     <div 
-      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-orange-200 group transform hover:-translate-y-2"
+      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden border border-slate-100 hover:border-amber-200 group transform hover:-translate-y-2"
       onClick={onClick}
     >
-      {/* Enhanced Image Section */}
-      <div className="relative h-56 w-full overflow-hidden">
+      {/* Elegant Image Section */}
+      <div className="relative h-64 w-full overflow-hidden">
         <Image
           src={imageError ? getFallbackImage() : recipe.image || getFallbackImage()}
           alt={recipe.title}
           fill
-          className="object-cover group-hover:scale-110 transition-transform duration-700"
+          className="object-cover group-hover:scale-105 transition-transform duration-700"
           onError={handleImageError}
         />
         
-        {/* Enhanced Badges */}
+        {/* Minimalist Badges */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           {recipe.createdBy && (
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
+            <div className="bg-white/90 backdrop-blur-sm text-slate-800 px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
               {recipe.createdBy}
             </div>
           )}
           {recipe.matchScore && recipe.matchScore > 8 && (
-            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
-              ⭐ Top Match
+            <div className="bg-amber-500/90 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+              Top Match
             </div>
           )}
         </div>
         
         {/* Time and Rating Overlay */}
         <div className="absolute top-4 right-4 flex flex-col gap-2">
-          <div className="bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-            ⏱️ {formatTime(recipe.cookingTime)}
+          <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+            {formatTime(recipe.cookingTime)}
           </div>
           {recipe.rating && (
-            <div className="bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+            <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
               {getRatingStars(recipe.rating)} {recipe.rating.toFixed(1)}
             </div>
           )}
         </div>
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Subtle Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
-      {/* Enhanced Content Section */}
-      <div className="p-6">
+      {/* Elegant Content Section */}
+      <div className="p-8">
         {/* Title and Description */}
-        <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-orange-600 transition-colors duration-300">
+        <h3 className="text-xl font-light text-slate-900 mb-4 line-clamp-2 group-hover:text-amber-600 transition-colors duration-300">
           {recipe.title}
         </h3>
         
-        <p className="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">
+        <p className="text-slate-600 text-sm mb-6 line-clamp-3 leading-relaxed font-light">
           {recipe.description}
         </p>
         
-        {/* Enhanced Metadata */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+        {/* Refined Metadata */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
             {recipe.cuisine && (
-              <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
-                <span className="mr-1.5">🌍</span>
-                <span className="font-medium">{recipe.cuisine}</span>
+              <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full font-medium">
+                {recipe.cuisine}
               </div>
             )}
             {recipe.mealType && (
-              <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
-                <span className="mr-1.5">🍽️</span>
-                <span className="font-medium">{recipe.mealType}</span>
+              <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full font-medium">
+                {recipe.mealType}
               </div>
             )}
           </div>
           
           {recipe.difficulty && (
-            <div className={`px-4 py-1.5 rounded-full text-xs font-bold border-2 ${getDifficultyColor(recipe.difficulty)}`}>
+            <div className={`px-3 py-1.5 rounded-full text-xs font-medium border ${getDifficultyColor(recipe.difficulty)}`}>
               {recipe.difficulty}
             </div>
           )}
         </div>
         
-        {/* Enhanced Tags */}
+        {/* Refined Tags */}
         {recipe.tags && recipe.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
-            {recipe.tags.slice(0, 4).map((tag, index) => (
+            {recipe.tags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
-                className="bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 px-3 py-1.5 rounded-full text-xs font-semibold hover:from-orange-200 hover:to-orange-300 transition-all duration-300 cursor-pointer"
+                className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-medium hover:bg-amber-100 transition-colors duration-300"
               >
                 {tag}
               </span>
             ))}
-            {recipe.tags.length > 4 && (
-              <span className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-xs font-semibold">
-                +{recipe.tags.length - 4} more
+            {recipe.tags.length > 3 && (
+              <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-medium">
+                +{recipe.tags.length - 3} more
               </span>
             )}
           </div>
         )}
         
-        {/* Modern Action Button */}
-        <button className="w-full bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 text-white py-4 px-6 rounded-xl font-bold text-sm hover:from-orange-600 hover:via-orange-700 hover:to-orange-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group">
+        {/* Elegant Action Button */}
+        <button className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 px-6 rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group">
           <span className="relative z-10 flex items-center justify-center gap-2">
-            <span className="text-lg">👨‍🍳</span>
             <span>View Recipe</span>
             <span className="transform group-hover:translate-x-1 transition-transform duration-300">→</span>
           </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-700 to-orange-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </button>
         
-        {/* Additional Info */}
+        {/* Servings Info */}
         {recipe.servings && (
-          <div className="mt-4 text-center text-sm text-gray-500 font-medium">
+          <div className="mt-4 text-center text-sm text-slate-500 font-light">
             Serves {recipe.servings} people
           </div>
         )}

@@ -269,8 +269,8 @@ async function processRecipesWithLLM(
 ): Promise<SynthesizedRecipe[]> {
   const synthesizedRecipes: SynthesizedRecipe[] = [];
   
-  // Generate 10 unique recipes using LLM-style processing
-  for (let i = 0; i < 10; i++) {
+  // Generate maximum 6 unique recipes using LLM-style processing
+  for (let i = 0; i < 6; i++) {
     const recipe = await generateLLMRecipe(
       externalRecipes, 
       mainFood, 
