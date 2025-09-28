@@ -111,11 +111,7 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
-        
-        // Redirect admin to admin portal instead of dashboard
-        if (data.user && data.user.role === 'admin') {
-          router.push('/admin');
-        }
+        // Removed automatic admin redirect - let admin choose where to go
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -378,11 +374,11 @@ export default function Home() {
         {/* Hero Section - Compact for viewport */}
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-3">
-            🥕 ViralCarrot - Your Smart Kitchen Companion
+            ViralCarrot
           </h2>
           <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
-            Transform your cooking with AI-powered recipe discovery. Simply tell us what ingredients you have, 
-            and we'll find you the perfect recipes from our community and the web. No more wondering what to cook!
+            Let&apos;s make something delicious with what you have! Simply tell us what ingredients you have, 
+            and we&apos;ll find you the perfect recipes from our community and the web. No more wondering what to cook!
           </p>
 
           {/* Mode Selection */}
@@ -701,7 +697,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
               <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <span className="text-xl">��</span>
+                <span className="text-xl">🧠</span>
               </div>
               <h4 className="text-base font-semibold text-slate-800 mb-2">Smart Matching</h4>
               <p className="text-slate-600 text-sm">

@@ -112,5 +112,24 @@
     },
     "createdAt": "2025-09-28T15:22:40.195Z",
     "updatedAt": "2025-09-28T15:22:40.196Z"
+  },
+  {
+    "id": "user_1759075883504",
+    "email": "rich@rich",
+    "name": "rich@rich",
+    "role": "user",
+    "subscription": {
+      "plan": "free",
+      "status": "active"
+    },
+    "profile": {
+      "preferences": {
+        "cuisine": [],
+        "dietaryRestrictions": [],
+        "cookingSkill": "beginner"
+      }
+    },
+    "createdAt": "2025-09-28T16:11:23.504Z",
+    "updatedAt": "2025-09-28T16:11:23.504Z"
   }
 ]
