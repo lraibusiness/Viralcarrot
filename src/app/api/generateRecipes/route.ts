@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
 import NodeCache from 'node-cache';
 
 // Initialize cache with 30 minute TTL
@@ -81,16 +80,6 @@ interface RecipePuppyRecipe {
   title: string;
   ingredients: string;
   thumbnail: string;
-}
-
-interface UnsplashResponse {
-  results: Array<{
-    urls: {
-      regular: string;
-      small: string;
-    };
-    alt_description: string;
-  }>;
 }
 
 // Enhanced API endpoints
@@ -232,19 +221,15 @@ export async function POST(request: NextRequest) {
 async function fetchMultipleRecipes(
   mainFood: string, 
   ingredients: string[], 
-  filters: RecipeFilters
+  _filters: RecipeFilters
 ): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
   try {
     // Run all searches in parallel
     const searchPromises = [
-      searchTheMealDB(mainFood, filters),
-      searchRecipePuppy(mainFood, ingredients),
-      scrapeAllRecipes(mainFood),
-      scrapeFoodNetwork(mainFood),
-      scrapeBBCGoodFood(mainFood),
-      scrapeEpicurious(mainFood)
+      searchTheMealDB(mainFood, _filters),
+      searchRecipePuppy(mainFood, ingredients)
     ];
 
     const results = await Promise.allSettled(searchPromises);
@@ -262,7 +247,7 @@ async function fetchMultipleRecipes(
     const filteredRecipes = recipes
       .filter(recipe => includesMainIngredient(recipe, mainFood))
       .filter(recipe => matchUserIngredients(recipe, ingredients))
-      .filter(recipe => matchFilters(recipe, filters))
+      .filter(recipe => matchFilters(recipe, _filters))
       .sort((a, b) => calculateRelevanceScore(b, mainFood, ingredients) - calculateRelevanceScore(a, mainFood, ingredients))
       .slice(0, 20); // Get more recipes for better merging
 
@@ -517,7 +502,7 @@ function generateLLMDescription(title: string, mainFood: string, cuisine: string
 function determineCuisineLLM(baseRecipes: ExternalRecipe[], filters: RecipeFilters): string {
   if (filters.cuisine) return filters.cuisine;
   
-  const cuisines = baseRecipes.map(r => r.cuisine).filter(Boolean);
+  const cuisines = baseRecipes.map(r => r.cuisine).filter(Boolean) as string[];
   if (cuisines.length > 0) {
     return cuisines[0];
   }
@@ -530,7 +515,7 @@ function determineCuisineLLM(baseRecipes: ExternalRecipe[], filters: RecipeFilte
 function determineMealTypeLLM(baseRecipes: ExternalRecipe[], filters: RecipeFilters): string {
   if (filters.mealType) return filters.mealType;
   
-  const mealTypes = baseRecipes.map(r => r.mealType).filter(Boolean);
+  const mealTypes = baseRecipes.map(r => r.mealType).filter(Boolean) as string[];
   if (mealTypes.length > 0) {
     return mealTypes[0];
   }
@@ -674,8 +659,8 @@ function removeDuplicateRecipes(recipes: ExternalRecipe[]): ExternalRecipe[] {
   });
 }
 
-// API search functions (simplified versions)
-async function searchTheMealDB(mainFood: string, filters: RecipeFilters): Promise<ExternalRecipe[]> {
+// API search functions
+async function searchTheMealDB(mainFood: string, _filters: RecipeFilters): Promise<ExternalRecipe[]> {
   try {
     const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
     if (response.data.meals) {
@@ -723,23 +708,6 @@ async function searchRecipePuppy(mainFood: string, ingredients: string[]): Promi
   } catch (error) {
     console.error('❌ RecipePuppy search error:', error);
   }
-  return [];
-}
-
-async function scrapeAllRecipes(mainFood: string): Promise<ExternalRecipe[]> {
-  // Simplified scraping - return empty for now
-  return [];
-}
-
-async function scrapeFoodNetwork(mainFood: string): Promise<ExternalRecipe[]> {
-  return [];
-}
-
-async function scrapeBBCGoodFood(mainFood: string): Promise<ExternalRecipe[]> {
-  return [];
-}
-
-async function scrapeEpicurious(mainFood: string): Promise<ExternalRecipe[]> {
   return [];
 }
 
