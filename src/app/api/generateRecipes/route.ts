@@ -197,7 +197,6 @@ const FALLBACK_IMAGES = {
 };
 
 export async function POST(request: NextRequest) {
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     console.log('🧠 Enhanced Recipe Composer: Starting intelligent recipe synthesis');
@@ -339,7 +338,6 @@ function getTimeContext(cookingTime: string): string {
 async function fetchAPIRecipes(mainFood: string, ingredients: string[], filters: RecipeFilters): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     // Run API searches in parallel
@@ -371,7 +369,6 @@ async function fetchAPIRecipes(mainFood: string, ingredients: string[], filters:
 async function scrapeWebRecipes(searchQuery: string): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     // Scrape from multiple sources in parallel
@@ -400,7 +397,6 @@ async function scrapeWebRecipes(searchQuery: string): Promise<ExternalRecipe[]> 
 
 // Scrape a specific source
 async function scrapeSource(source: ScrapeSource, searchQuery: string): Promise<ExternalRecipe[]> {
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     const searchUrl = `${source.searchUrl}${encodeURIComponent(searchQuery)}`;
@@ -431,7 +427,6 @@ async function scrapeSource(source: ScrapeSource, searchQuery: string): Promise<
 
     // Scrape each recipe
     for (const link of limitedLinks) {
-      const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
         const recipe = await scrapeRecipePage(link, source);
@@ -453,7 +448,6 @@ async function scrapeSource(source: ScrapeSource, searchQuery: string): Promise<
 
 // Scrape individual recipe page
 async function scrapeRecipePage(url: string, source: ScrapeSource): Promise<ExternalRecipe | null> {
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     const response = await axios.get(url, {
@@ -745,7 +739,6 @@ function determineMealTypeEnhanced(baseRecipes: ExternalRecipe[], filters: Recip
 
 // Enhanced image selection
 async function getEnhancedRecipeImage(title: string, mainFood: string, cuisine: string, mealType: string, index: number, sessionKey: string): Promise<string> {
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     // Get used images for this session
@@ -915,7 +908,6 @@ function determineDifficulty(baseRecipes: ExternalRecipe[]): string {
 
 // API search functions
 async function searchTheMealDB(mainFood: string, _filters: RecipeFilters): Promise<ExternalRecipe[]> {
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
@@ -942,7 +934,6 @@ async function searchTheMealDB(mainFood: string, _filters: RecipeFilters): Promi
 }
 
 async function searchRecipePuppy(mainFood: string, ingredients: string[]): Promise<ExternalRecipe[]> {
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
   
   try {
     const ingredientQuery = ingredients.length > 0 ? ingredients.join(',') : '';
