@@ -158,7 +158,7 @@ export default function Home() {
             {/* Main Food Item Input with Autocomplete */}
             <div className="mb-8 relative">
               <label className="block text-lg font-semibold text-gray-700 mb-4">
-                🍽️ What's your main food item?
+                🍽️ What&apos;s your main food item?
               </label>
               <div className="relative max-w-2xl mx-auto">
                 <input

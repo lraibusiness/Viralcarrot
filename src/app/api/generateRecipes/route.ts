@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import NodeCache from 'node-cache';
+
+// Initialize cache with 30 minute TTL
+const cache = new NodeCache({ stdTTL: 1800 });
 
 interface ExternalRecipe {
   title: string;
@@ -12,6 +16,15 @@ interface ExternalRecipe {
   dietaryStyle?: string;
   image?: string;
   source: string;
+  rating?: number;
+  difficulty?: string;
+  servings?: number;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
 }
 
 interface SynthesizedRecipe {
@@ -28,19 +41,58 @@ interface SynthesizedRecipe {
   tags: string[];
   createdBy: string;
   matchScore: number;
+  rating?: number;
+  difficulty?: string;
+  servings?: number;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
 }
 
-// TheMealDB free API endpoints
+interface RecipeFilters {
+  cookingTime?: string;
+  cuisine?: string;
+  mealType?: string;
+  dietaryStyle?: string;
+}
+
+interface NutritionData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+interface MealDBRecipe {
+  strMeal: string;
+  strInstructions: string;
+  strMealThumb: string;
+  strCategory: string;
+  strArea: string;
+  [key: string]: string;
+}
+
+interface RecipePuppyRecipe {
+  title: string;
+  ingredients: string;
+  thumbnail: string;
+}
+
+// Enhanced API endpoints
 const MEALDB_BASE = 'https://www.themealdb.com/api/json/v1/1';
+const RECIPE_PUPPY_BASE = 'http://www.recipepuppy.com/api';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('API: Starting smart recipe synthesis');
+    console.log('🍳 API: Starting enhanced recipe synthesis');
     
     const body = await request.json();
-    const { mainFood, ingredients, filters } = body;
+    const { mainFood, ingredients = [], filters = {} } = body;
 
-    console.log('API: Received request:', { mainFood, ingredients, filters });
+    console.log('📝 API: Received request:', { mainFood, ingredients, filters });
 
     if (!mainFood || !mainFood.trim()) {
       return NextResponse.json(
@@ -49,165 +101,466 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Check cache first
+    const cacheKey = `recipes_${mainFood}_${JSON.stringify(ingredients)}_${JSON.stringify(filters)}`;
+    const cachedResult = cache.get(cacheKey);
+    if (cachedResult) {
+      console.log('⚡ API: Returning cached result');
+      return NextResponse.json(cachedResult);
+    }
 
-    console.log('API: Starting recipe search and synthesis');
+    console.log('🔍 API: Starting comprehensive recipe search');
 
-    // Step 1: Search for existing recipes from multiple sources
-    const externalRecipes = await searchExternalRecipes(mainFood, ingredients, filters);
-    console.log('API: Found external recipes:', externalRecipes.length);
+    // Step 1: Search for existing recipes from multiple sources in parallel
+    const [externalRecipes, nutritionData] = await Promise.all([
+      searchExternalRecipesParallel(mainFood, ingredients, filters as RecipeFilters),
+      fetchNutritionData(mainFood)
+    ]);
+    
+    console.log(`📊 API: Found ${externalRecipes.length} external recipes`);
 
-    // Step 2: Synthesize unique ViralCarrot recipes with smart matching
-    const synthesizedRecipes = await synthesizeRecipesWithMatching(externalRecipes, mainFood, ingredients, filters);
-    console.log('API: Synthesized recipes:', synthesizedRecipes.length);
+    // Step 2: Synthesize unique ViralCarrot recipes with advanced matching
+    const synthesizedRecipes = await synthesizeRecipesWithAdvancedMatching(
+      externalRecipes, 
+      mainFood, 
+      ingredients, 
+      filters as RecipeFilters,
+      nutritionData
+    );
+    
+    console.log(`🎯 API: Synthesized ${synthesizedRecipes.length} recipes`);
 
-    return NextResponse.json({
+    const result = {
       success: true,
       recipes: synthesizedRecipes,
       total: synthesizedRecipes.length,
-      message: `Created ${synthesizedRecipes.length} unique recipes by ViralCarrot`
-    });
+      message: `Created ${synthesizedRecipes.length} unique recipes by ViralCarrot`,
+      sources: [...new Set(externalRecipes.map(r => r.source))],
+      searchMetadata: {
+        mainFood,
+        ingredientCount: ingredients.length,
+        filtersApplied: Object.keys(filters).length,
+        externalRecipesFound: externalRecipes.length
+      }
+    };
+
+    // Cache the result
+    cache.set(cacheKey, result);
+
+    return NextResponse.json(result);
 
   } catch (error) {
-    console.error('API: Error in recipe synthesis:', error);
+    console.error('❌ API: Error in recipe synthesis:', error);
     return NextResponse.json(
       { 
         success: false, 
         error: 'Failed to synthesize recipes',
-        details: error?.toString() || 'Unknown error'
+        details: process.env.NODE_ENV === 'development' ? (error as Error)?.toString() : 'Internal server error'
       },
       { status: 500 }
     );
   }
 }
 
-async function searchExternalRecipes(mainFood: string, ingredients: string[], filters: any): Promise<ExternalRecipe[]> {
+async function searchExternalRecipesParallel(
+  mainFood: string, 
+  ingredients: string[], 
+  filters: RecipeFilters
+): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
   try {
-    // Search TheMealDB free API with multiple search strategies
-    const mealDbRecipes = await searchTheMealDBComprehensive(mainFood);
-    recipes.push(...mealDbRecipes);
+    // Run all searches in parallel for better performance
+    const searchPromises = [
+      searchTheMealDBComprehensive(mainFood),
+      searchRecipePuppy(mainFood, ingredients),
+      scrapeRecipeSitesEnhanced(mainFood)
+    ];
+
+    const results = await Promise.allSettled(searchPromises);
     
-    // Search for related foods if main food not found
-    if (recipes.length < 3) {
-      const relatedRecipes = await searchRelatedFoods(mainFood);
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        recipes.push(...result.value);
+        console.log(`✅ Search ${index + 1} completed: ${result.value.length} recipes`);
+      } else {
+        console.warn(`⚠️ Search ${index + 1} failed:`, result.reason);
+      }
+    });
+
+    // Search for related foods if we don't have enough recipes
+    if (recipes.length < 5) {
+      const relatedRecipes = await searchRelatedFoodsEnhanced(mainFood);
       recipes.push(...relatedRecipes);
     }
-    
-    // Web scraping for additional recipes
-    const scrapedRecipes = await scrapeRecipeSites(mainFood, ingredients);
-    recipes.push(...scrapedRecipes);
-    
+
   } catch (error) {
-    console.error('Error searching external recipes:', error);
+    console.error('❌ Error in parallel recipe search:', error);
   }
   
-  return recipes;
+  // Remove duplicates and sort by relevance
+  const uniqueRecipes = removeDuplicateRecipes(recipes);
+  return rankRecipesByRelevance(uniqueRecipes, mainFood, ingredients);
 }
 
 async function searchTheMealDBComprehensive(mainFood: string): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
   try {
-    // Try direct search first
-    const directResponse = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
-    if (directResponse.data.meals) {
-      const directRecipes = directResponse.data.meals.slice(0, 5).map((meal: any) => createMealDBRecipe(meal));
-      recipes.push(...directRecipes);
-    }
+    const searchPromises = [
+      axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`),
+      axios.get(`${MEALDB_BASE}/filter.php?i=${encodeURIComponent(mainFood)}`),
+      // Try searching by first letter for broader results
+      axios.get(`${MEALDB_BASE}/search.php?f=${mainFood.charAt(0).toLowerCase()}`)
+    ];
+
+    const responses = await Promise.allSettled(searchPromises);
     
-    // Try category search
-    const categoryResponse = await axios.get(`${MEALDB_BASE}/filter.php?c=${encodeURIComponent(mainFood)}`);
-    if (categoryResponse.data.meals && recipes.length < 5) {
-      const categoryRecipes = categoryResponse.data.meals.slice(0, 3).map((meal: any) => createMealDBRecipe(meal));
-      recipes.push(...categoryRecipes);
-    }
-    
-    // Try ingredient search
-    const ingredientResponse = await axios.get(`${MEALDB_BASE}/filter.php?i=${encodeURIComponent(mainFood)}`);
-    if (ingredientResponse.data.meals && recipes.length < 5) {
-      const ingredientRecipes = ingredientResponse.data.meals.slice(0, 3).map((meal: any) => createMealDBRecipe(meal));
-      recipes.push(...ingredientRecipes);
-    }
-    
+    responses.forEach((response) => {
+      if (response.status === 'fulfilled' && response.value.data.meals) {
+        const meals = response.value.data.meals.slice(0, 3);
+        meals.forEach((meal: MealDBRecipe) => {
+          recipes.push(createEnhancedMealDBRecipe(meal));
+        });
+      }
+    });
+
   } catch (error) {
-    console.error('TheMealDB comprehensive search error:', error);
+    console.error('❌ TheMealDB search error:', error);
   }
   
   return recipes;
 }
 
-function createMealDBRecipe(meal: any): ExternalRecipe {
-  return {
-    title: meal.strMeal,
-    ingredients: extractIngredients(meal),
-    steps: meal.strInstructions ? meal.strInstructions.split('\r\n').filter((step: string) => step.trim()) : [],
-    cookingTime: 30, // Default
-    cuisine: 'International',
-    mealType: 'dinner',
-    dietaryStyle: 'none',
-    image: meal.strMealThumb,
-    source: 'TheMealDB'
-  };
-}
-
-function extractIngredients(meal: any): string[] {
-  const ingredients: string[] = [];
-  for (let i = 1; i <= 20; i++) {
-    const ingredient = meal[`strIngredient${i}`];
-    const measure = meal[`strMeasure${i}`];
-    if (ingredient && ingredient.trim()) {
-      ingredients.push(`${measure ? measure.trim() + ' ' : ''}${ingredient.trim()}`);
+async function searchRecipePuppy(mainFood: string, ingredients: string[]): Promise<ExternalRecipe[]> {
+  try {
+    const ingredientQuery = ingredients.length > 0 ? ingredients.join(',') : '';
+    const url = `${RECIPE_PUPPY_BASE}/?q=${encodeURIComponent(mainFood)}&i=${encodeURIComponent(ingredientQuery)}`;
+    
+    const response = await axios.get(url, { timeout: 5000 });
+    
+    if (response.data && response.data.results) {
+      return response.data.results.slice(0, 5).map((recipe: RecipePuppyRecipe) => ({
+        title: recipe.title,
+        ingredients: recipe.ingredients ? recipe.ingredients.split(', ') : [],
+        steps: [], // Recipe Puppy doesn't provide steps
+        cookingTime: 30,
+        cuisine: 'International',
+        mealType: 'dinner',
+        image: recipe.thumbnail || '',
+        source: 'RecipePuppy',
+        rating: 4.0
+      }));
     }
+  } catch (error) {
+    console.error('❌ RecipePuppy search error:', error);
   }
-  return ingredients;
+  
+  return [];
 }
 
-async function searchRelatedFoods(mainFood: string): Promise<ExternalRecipe[]> {
-  // Map unique foods to related common foods
-  const foodMappings: { [key: string]: string[] } = {
-    'duck': ['chicken', 'poultry'],
-    'lamb': ['beef', 'meat'],
-    'venison': ['beef', 'meat'],
-    'quail': ['chicken', 'poultry'],
-    'rabbit': ['chicken', 'poultry'],
-    'goat': ['lamb', 'beef'],
-    'bison': ['beef', 'meat'],
-    'elk': ['beef', 'meat'],
-    'turkey': ['chicken', 'poultry'],
-    'pheasant': ['chicken', 'poultry'],
-    'squid': ['prawns', 'seafood'],
-    'octopus': ['prawns', 'seafood'],
-    'mussels': ['prawns', 'seafood'],
-    'scallops': ['prawns', 'seafood'],
-    'lobster': ['prawns', 'seafood'],
-    'crab': ['prawns', 'seafood'],
-    'tuna': ['salmon', 'fish'],
-    'cod': ['salmon', 'fish'],
-    'halibut': ['salmon', 'fish'],
-    'mackerel': ['salmon', 'fish'],
-    'tempeh': ['tofu', 'vegetables'],
-    'seitan': ['tofu', 'vegetables'],
-    'jackfruit': ['tofu', 'vegetables'],
-    'mushrooms': ['vegetables'],
-    'eggplant': ['vegetables'],
-    'zucchini': ['vegetables'],
-    'squash': ['vegetables'],
-    'sweet potato': ['potatoes', 'vegetables'],
-    'yam': ['potatoes', 'vegetables']
-  };
-  
-  const relatedFoods = foodMappings[mainFood.toLowerCase()] || [mainFood];
+async function scrapeRecipeSitesEnhanced(mainFood: string): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
-  for (const relatedFood of relatedFoods) {
+  const scrapingPromises = [
+    scrapeAllRecipesEnhanced(mainFood),
+    scrapeFoodNetworkEnhanced(mainFood),
+    scrapeBBCGoodFoodEnhanced(mainFood)
+  ];
+
+  const results = await Promise.allSettled(scrapingPromises);
+  
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      recipes.push(...result.value);
+      console.log(`✅ Scraping ${index + 1} completed: ${result.value.length} recipes`);
+    } else {
+      console.warn(`⚠️ Scraping ${index + 1} failed:`, result.reason);
+    }
+  });
+  
+  return recipes;
+}
+
+async function scrapeAllRecipesEnhanced(mainFood: string): Promise<ExternalRecipe[]> {
+  try {
+    const searchUrl = `https://www.allrecipes.com/search?q=${encodeURIComponent(mainFood)}`;
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive'
+      },
+      timeout: 10000
+    });
+    
+    const $ = cheerio.load(response.data);
+    const recipes: ExternalRecipe[] = [];
+    
+    // Enhanced selectors for AllRecipes
+    $('.mntl-card-list-items .card__content, .recipe-summary__item').slice(0, 3).each((_, element) => {
+      const title = $(element).find('.card__title, .recipe-summary__item-title').text().trim();
+      const image = $(element).find('img').attr('src') || '';
+      const cookingTime = extractCookingTime($(element).text());
+      const rating = extractRating($(element).text());
+      
+      if (title) {
+        recipes.push({
+          title,
+          ingredients: [],
+          steps: [],
+          cookingTime,
+          cuisine: 'International',
+          mealType: 'dinner',
+          image,
+          source: 'AllRecipes',
+          rating,
+          difficulty: 'Medium'
+        });
+      }
+    });
+    
+    return recipes;
+  } catch (error) {
+    console.error('❌ AllRecipes enhanced scraping error:', error);
+    return [];
+  }
+}
+
+async function scrapeFoodNetworkEnhanced(mainFood: string): Promise<ExternalRecipe[]> {
+  try {
+    const searchUrl = `https://www.foodnetwork.com/search/${encodeURIComponent(mainFood)}`;
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      },
+      timeout: 10000
+    });
+    
+    const $ = cheerio.load(response.data);
+    const recipes: ExternalRecipe[] = [];
+    
+    $('.m-MediaBlock__m-MediaWrap, .o-RecipeResult').slice(0, 2).each((_, element) => {
+      const title = $(element).find('.m-MediaBlock__a-HeadlineText, .o-RecipeResult__a-Title').text().trim();
+      const image = $(element).find('img').attr('src') || '';
+      
+      if (title) {
+        recipes.push({
+          title,
+          ingredients: [],
+          steps: [],
+          cookingTime: 35,
+          cuisine: 'American',
+          mealType: 'dinner',
+          image,
+          source: 'Food Network',
+          rating: 4.2,
+          difficulty: 'Medium'
+        });
+      }
+    });
+    
+    return recipes;
+  } catch (error) {
+    console.error('❌ Food Network scraping error:', error);
+    return [];
+  }
+}
+
+async function scrapeBBCGoodFoodEnhanced(mainFood: string): Promise<ExternalRecipe[]> {
+  try {
+    const searchUrl = `https://www.bbcgoodfood.com/search/recipes?q=${encodeURIComponent(mainFood)}`;
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      },
+      timeout: 10000
+    });
+    
+    const $ = cheerio.load(response.data);
+    const recipes: ExternalRecipe[] = [];
+    
+    $('.card__content, .teaser-item__content').slice(0, 2).each((_, element) => {
+      const title = $(element).find('.card__title, .teaser-item__title').text().trim();
+      const image = $(element).find('img').attr('src') || '';
+      
+      if (title) {
+        recipes.push({
+          title,
+          ingredients: [],
+          steps: [],
+          cookingTime: 30,
+          cuisine: 'British',
+          mealType: 'dinner',
+          image,
+          source: 'BBC Good Food',
+          rating: 4.3,
+          difficulty: 'Easy'
+        });
+      }
+    });
+    
+    return recipes;
+  } catch (error) {
+    console.error('❌ BBC Good Food scraping error:', error);
+    return [];
+  }
+}
+
+async function fetchNutritionData(mainFood: string): Promise<NutritionData> {
+  try {
+    // This could integrate with nutrition APIs like USDA FoodData Central
+    // For now, return estimated nutrition based on common foods
+    const nutritionEstimates: { [key: string]: NutritionData } = {
+      'chicken': { calories: 165, protein: 31, carbs: 0, fat: 3.6 },
+      'beef': { calories: 250, protein: 26, carbs: 0, fat: 15 },
+      'salmon': { calories: 208, protein: 22, carbs: 0, fat: 12 },
+      'tofu': { calories: 70, protein: 8, carbs: 2, fat: 4 },
+      'rice': { calories: 130, protein: 2.7, carbs: 28, fat: 0.3 },
+      'pasta': { calories: 131, protein: 5, carbs: 25, fat: 1.1 }
+    };
+    
+    return nutritionEstimates[mainFood.toLowerCase()] || { calories: 150, protein: 10, carbs: 15, fat: 5 };
+  } catch (error) {
+    console.error('❌ Nutrition data fetch error:', error);
+    return { calories: 150, protein: 10, carbs: 15, fat: 5 };
+  }
+}
+
+// Missing function implementations
+function extractCookingTime(text: string): number {
+  const timeMatch = text.match(/(\d+)\s*(?:min|minutes|hrs|hours)/i);
+  if (timeMatch) {
+    const time = parseInt(timeMatch[1]);
+    return text.toLowerCase().includes('hr') ? time * 60 : time;
+  }
+  return 30; // Default cooking time
+}
+
+function extractRating(text: string): number {
+  const ratingMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:star|stars|\/5)/i);
+  return ratingMatch ? parseFloat(ratingMatch[1]) : 4.0;
+}
+
+function removeDuplicateRecipes(recipes: ExternalRecipe[]): ExternalRecipe[] {
+  const seen = new Set<string>();
+  return recipes.filter(recipe => {
+    const key = recipe.title.toLowerCase().trim();
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function rankRecipesByRelevance(recipes: ExternalRecipe[], mainFood: string, ingredients: string[]): ExternalRecipe[] {
+  return recipes.sort((a, b) => {
+    let scoreA = 0;
+    let scoreB = 0;
+    
+    // Score based on title relevance
+    if (a.title.toLowerCase().includes(mainFood.toLowerCase())) scoreA += 10;
+    if (b.title.toLowerCase().includes(mainFood.toLowerCase())) scoreB += 10;
+    
+    // Score based on ingredient matches
+    ingredients.forEach(ing => {
+      if (a.ingredients.some(ingredient => ingredient.toLowerCase().includes(ing.toLowerCase()))) scoreA += 5;
+      if (b.ingredients.some(ingredient => ingredient.toLowerCase().includes(ing.toLowerCase()))) scoreB += 5;
+    });
+    
+    // Score based on rating
+    scoreA += (a.rating || 0) * 2;
+    scoreB += (b.rating || 0) * 2;
+    
+    return scoreB - scoreA;
+  });
+}
+
+async function synthesizeRecipesWithAdvancedMatching(
+  externalRecipes: ExternalRecipe[],
+  mainFood: string,
+  ingredients: string[],
+  filters: RecipeFilters,
+  nutritionData: NutritionData
+): Promise<SynthesizedRecipe[]> {
+  const synthesizedRecipes: SynthesizedRecipe[] = [];
+  
+  // Create unique recipes based on external data
+  externalRecipes.slice(0, 6).forEach((recipe, index) => {
+    const matchScore = calculateMatchScore(recipe, mainFood, ingredients);
+    
+    const synthesizedRecipe: SynthesizedRecipe = {
+      id: `viral-${Date.now()}-${index}`,
+      title: `ViralCarrot's ${recipe.title}`,
+      image: recipe.image || '/api/placeholder/400/300',
+      description: `A unique ${mainFood} recipe created by ViralCarrot, inspired by ${recipe.source}`,
+      ingredients: recipe.ingredients.length > 0 ? recipe.ingredients : generateIngredients(mainFood, ingredients),
+      steps: recipe.steps.length > 0 ? recipe.steps : generateSteps(mainFood),
+      cookingTime: recipe.cookingTime,
+      cuisine: recipe.cuisine,
+      mealType: recipe.mealType || 'dinner',
+      dietaryStyle: recipe.dietaryStyle,
+      tags: generateTags(recipe, mainFood),
+      createdBy: 'ViralCarrot AI Chef',
+      matchScore,
+      rating: recipe.rating,
+      difficulty: recipe.difficulty || 'Medium',
+      servings: recipe.servings || 4,
+      nutrition: recipe.nutrition || nutritionData
+    };
+    
+    synthesizedRecipes.push(synthesizedRecipe);
+  });
+  
+  // If we don't have enough recipes, generate some from scratch
+  while (synthesizedRecipes.length < 3) {
+    const index = synthesizedRecipes.length;
+    synthesizedRecipes.push({
+      id: `viral-generated-${Date.now()}-${index}`,
+      title: `ViralCarrot's Special ${mainFood} Recipe`,
+      image: '/api/placeholder/400/300',
+      description: `A creative ${mainFood} recipe crafted by ViralCarrot's AI Chef`,
+      ingredients: generateIngredients(mainFood, ingredients),
+      steps: generateSteps(mainFood),
+      cookingTime: 30 + (index * 10),
+      cuisine: 'Fusion',
+      mealType: 'dinner',
+      tags: [mainFood, 'viral-carrot', 'ai-created'],
+      createdBy: 'ViralCarrot AI Chef',
+      matchScore: 8.0,
+      rating: 4.5,
+      difficulty: 'Medium',
+      servings: 4,
+      nutrition: nutritionData
+    });
+  }
+  
+  return synthesizedRecipes;
+}
+
+async function searchRelatedFoodsEnhanced(mainFood: string): Promise<ExternalRecipe[]> {
+  // Simple related food search - could be enhanced with ML
+  const relatedFoods = {
+    'chicken': ['poultry', 'meat', 'protein'],
+    'beef': ['meat', 'steak', 'protein'],
+    'fish': ['seafood', 'salmon', 'protein'],
+    'vegetables': ['veggie', 'plant', 'healthy'],
+    'pasta': ['noodles', 'italian', 'carbs']
+  };
+  
+  const related = relatedFoods[mainFood.toLowerCase() as keyof typeof relatedFoods] || [mainFood];
+  const recipes: ExternalRecipe[] = [];
+  
+  for (const relatedFood of related.slice(0, 2)) {
     try {
       const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(relatedFood)}`);
       if (response.data.meals) {
-        const relatedRecipes = response.data.meals.slice(0, 2).map((meal: any) => createMealDBRecipe(meal));
-        recipes.push(...relatedRecipes);
+        response.data.meals.slice(0, 2).forEach((meal: MealDBRecipe) => {
+          recipes.push(createEnhancedMealDBRecipe(meal));
+        });
       }
     } catch (error) {
       console.error(`Error searching for related food ${relatedFood}:`, error);
@@ -217,472 +570,95 @@ async function searchRelatedFoods(mainFood: string): Promise<ExternalRecipe[]> {
   return recipes;
 }
 
-async function scrapeRecipeSites(mainFood: string, ingredients: string[]): Promise<ExternalRecipe[]> {
-  const recipes: ExternalRecipe[] = [];
+function createEnhancedMealDBRecipe(meal: MealDBRecipe): ExternalRecipe {
+  const ingredients: string[] = [];
   
-  try {
-    // Search AllRecipes
-    const allRecipesData = await scrapeAllRecipes(mainFood);
-    recipes.push(...allRecipesData);
-    
-    // Search Food.com
-    const foodComData = await scrapeFoodCom(mainFood);
-    recipes.push(...foodComData);
-    
-  } catch (error) {
-    console.error('Web scraping error:', error);
-  }
-  
-  return recipes;
-}
-
-async function scrapeAllRecipes(mainFood: string): Promise<ExternalRecipe[]> {
-  try {
-    const searchUrl = `https://www.allrecipes.com/search?q=${encodeURIComponent(mainFood)}`;
-    const response = await axios.get(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    const $ = cheerio.load(response.data);
-    const recipes: ExternalRecipe[] = [];
-    
-    $('.card--no-image').slice(0, 3).each((_, element) => {
-      const title = $(element).find('.card__title').text().trim();
-      const link = $(element).find('a').attr('href');
-      
-      if (title && link) {
-        recipes.push({
-          title,
-          ingredients: [], // Would need to scrape individual recipe pages
-          steps: [],
-          cookingTime: 30,
-          cuisine: 'International',
-          mealType: 'dinner',
-          dietaryStyle: 'none',
-          image: '',
-          source: 'AllRecipes'
-        });
-      }
-    });
-    
-    return recipes;
-  } catch (error) {
-    console.error('AllRecipes scraping error:', error);
-    return [];
-  }
-}
-
-async function scrapeFoodCom(mainFood: string): Promise<ExternalRecipe[]> {
-  try {
-    const searchUrl = `https://www.food.com/search?q=${encodeURIComponent(mainFood)}`;
-    const response = await axios.get(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    const $ = cheerio.load(response.data);
-    const recipes: ExternalRecipe[] = [];
-    
-    $('.recipe-card').slice(0, 2).each((_, element) => {
-      const title = $(element).find('.recipe-card__title').text().trim();
-      
-      if (title) {
-        recipes.push({
-          title,
-          ingredients: [],
-          steps: [],
-          cookingTime: 30,
-          cuisine: 'International',
-          mealType: 'dinner',
-          dietaryStyle: 'none',
-          image: '',
-          source: 'Food.com'
-        });
-      }
-    });
-    
-    return recipes;
-  } catch (error) {
-    console.error('Food.com scraping error:', error);
-    return [];
-  }
-}
-
-async function synthesizeRecipesWithMatching(externalRecipes: ExternalRecipe[], mainFood: string, ingredients: string[], filters: any): Promise<SynthesizedRecipe[]> {
-  const synthesized: SynthesizedRecipe[] = [];
-  
-  // Create recipes with smart matching
-  const allRecipes = await createSmartRecipes(mainFood, ingredients, filters, externalRecipes);
-  
-  // Sort by match score (highest first)
-  allRecipes.sort((a, b) => b.matchScore - a.matchScore);
-  
-  return allRecipes.slice(0, 10);
-}
-
-async function createSmartRecipes(mainFood: string, ingredients: string[], filters: any, externalRecipes: ExternalRecipe[]): Promise<SynthesizedRecipe[]> {
-  const recipes: SynthesizedRecipe[] = [];
-  
-  // Create recipes that match BOTH main food AND secondary ingredients (high priority)
-  if (ingredients.length > 0) {
-    for (let i = 0; i < 3; i++) {
-      const recipe = await createSynthesizedRecipe(
-        mainFood, 
-        ingredients, 
-        filters, 
-        i + 1, 
-        true, // high priority - matches both main and secondary
-        externalRecipes[i] || null
-      );
-      recipes.push(recipe);
+  // Extract ingredients from MealDB format
+  for (let i = 1; i <= 20; i++) {
+    const ingredient = meal[`strIngredient${i}`];
+    const measure = meal[`strMeasure${i}`];
+    if (ingredient && ingredient.trim()) {
+      ingredients.push(`${measure ? measure.trim() + ' ' : ''}${ingredient.trim()}`);
     }
   }
   
-  // Create recipes that match ONLY main food (lower priority)
-  for (let i = 3; i < 10; i++) {
-    const recipe = await createSynthesizedRecipe(
-      mainFood, 
-      ingredients, 
-      filters, 
-      i + 1, 
-      false, // lower priority - matches main food only
-      externalRecipes[i] || null
-    );
-    recipes.push(recipe);
-  }
-  
-  return recipes;
-}
-
-async function createSynthesizedRecipe(
-  mainFood: string, 
-  ingredients: string[], 
-  filters: any, 
-  index: number, 
-  highPriority: boolean,
-  externalRecipe: ExternalRecipe | null
-): Promise<SynthesizedRecipe> {
-  
-  // Create proper recipe title
-  const title = generateProperRecipeTitle(mainFood, ingredients, filters, index, highPriority);
-  
-  // Create unique description
-  const description = generateUniqueDescription(mainFood, filters);
-  
-  // Synthesize ingredients with smart matching
-  const synthesizedIngredients = synthesizeIngredientsSmart(mainFood, ingredients, highPriority);
-  
-  // Synthesize steps
-  const synthesizedSteps = synthesizeSteps(mainFood, ingredients, highPriority);
-  
-  // Generate tags
-  const tags = generateTags(filters, mainFood);
-  
-  // Calculate match score
-  const matchScore = calculateMatchScore(mainFood, ingredients, highPriority);
-  
-  // Get appropriate image - UNIQUE for each recipe
-  const image = getUniqueRecipeImage(mainFood, ingredients, index, highPriority);
-  
   return {
-    id: `viralcarrot-${Date.now()}-${index}`,
-    title,
-    image,
-    description,
-    ingredients: synthesizedIngredients,
-    steps: synthesizedSteps,
-    cookingTime: 30,
-    cuisine: filters.cuisine || 'International',
-    mealType: filters.mealType || 'dinner',
-    dietaryStyle: filters.dietaryStyle || 'none',
-    tags,
-    createdBy: 'ViralCarrot',
-    matchScore
+    title: meal.strMeal,
+    ingredients,
+    steps: meal.strInstructions ? meal.strInstructions.split('\n').filter(step => step.trim()) : [],
+    cookingTime: extractCookingTime(meal.strInstructions || ''),
+    cuisine: meal.strArea || 'International',
+    mealType: 'dinner',
+    image: meal.strMealThumb,
+    source: 'TheMealDB',
+    rating: 4.2,
+    difficulty: 'Medium',
+    servings: 4
   };
 }
 
-function generateProperRecipeTitle(mainFood: string, ingredients: string[], filters: any, index: number, highPriority: boolean): string {
-  const mainFoodCapitalized = mainFood.charAt(0).toUpperCase() + mainFood.slice(1);
+function calculateMatchScore(recipe: ExternalRecipe, mainFood: string, ingredients: string[]): number {
+  let score = 5.0; // Base score
   
-  if (highPriority && ingredients.length > 0) {
-    // Create titles that include both main food and secondary ingredients
-    const secondaryIngredient = ingredients[0];
-    const secondaryCapitalized = secondaryIngredient.charAt(0).toUpperCase() + secondaryIngredient.slice(1);
-    
-    const combinedTemplates = [
-      `${mainFoodCapitalized} and ${secondaryCapitalized} Pasta`,
-      `${mainFoodCapitalized} with ${secondaryCapitalized} Rice`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Stir-Fry`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Curry`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Tacos`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Salad`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Soup`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Fried Rice`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Skewers`,
-      `${mainFoodCapitalized} ${secondaryCapitalized} Bowl`
-    ];
-    
-    return combinedTemplates[index % combinedTemplates.length];
-  } else {
-    // Create titles that focus on main food only
-    const mainFoodTemplates = [
-      `${mainFoodCapitalized} Stir-Fry`,
-      `${mainFoodCapitalized} Curry`,
-      `${mainFoodCapitalized} Tacos`,
-      `${mainFoodCapitalized} Salad`,
-      `${mainFoodCapitalized} Soup`,
-      `${mainFoodCapitalized} Fried Rice`,
-      `${mainFoodCapitalized} Pasta`,
-      `${mainFoodCapitalized} Skewers`,
-      `${mainFoodCapitalized} Burgers`,
-      `${mainFoodCapitalized} Noodle Bowl`
-    ];
-    
-    return mainFoodTemplates[index % mainFoodTemplates.length];
+  // Title match
+  if (recipe.title.toLowerCase().includes(mainFood.toLowerCase())) {
+    score += 3.0;
   }
+  
+  // Ingredient matches
+  let ingredientMatches = 0;
+  ingredients.forEach(ing => {
+    if (recipe.ingredients.some(ingredient => ingredient.toLowerCase().includes(ing.toLowerCase()))) {
+      ingredientMatches++;
+    }
+  });
+  score += (ingredientMatches / Math.max(ingredients.length, 1)) * 2.0;
+  
+  // Rating bonus
+  if (recipe.rating) {
+    score += recipe.rating * 0.5;
+  }
+  
+  return Math.min(score, 10.0);
 }
 
-function synthesizeIngredientsSmart(mainFood: string, ingredients: string[], highPriority: boolean): string[] {
-  const synthesized: string[] = [];
-  
-  // Always include the main food
-  synthesized.push(`1 lb ${mainFood}`);
-  
-  if (highPriority && ingredients.length > 0) {
-    // Include secondary ingredients prominently
-    ingredients.forEach(ingredient => {
-      if (ingredient.trim()) {
-        synthesized.push(`2 cups ${ingredient.trim()}`);
-      }
-    });
-  }
-  
-  // Add common cooking ingredients
-  const commonIngredients = [
-    '2 cloves garlic, minced',
+function generateIngredients(mainFood: string, userIngredients: string[]): string[] {
+  const baseIngredients = [
+    `1 lb ${mainFood}`,
+    '2 tablespoons olive oil',
     '1 onion, diced',
-    '2 tbsp olive oil',
-    'Salt and pepper to taste',
-    '1 tsp herbs de provence',
-    '1/2 cup vegetable broth'
+    '2 cloves garlic, minced',
+    'Salt and pepper to taste'
   ];
   
-  commonIngredients.forEach(ingredient => {
-    if (!synthesized.some(ing => ing.toLowerCase().includes(ingredient.split(',')[0].toLowerCase()))) {
-      synthesized.push(ingredient);
+  // Add user ingredients
+  userIngredients.forEach(ing => {
+    if (!baseIngredients.some(base => base.toLowerCase().includes(ing.toLowerCase()))) {
+      baseIngredients.push(`1 cup ${ing}`);
     }
   });
   
-  return synthesized.slice(0, 8);
+  return baseIngredients;
 }
 
-function synthesizeSteps(mainFood: string, ingredients: string[], highPriority: boolean): string[] {
-  if (highPriority && ingredients.length > 0) {
-    return [
-      `Prepare your ${mainFood} by cleaning and cutting into appropriate pieces.`,
-      `Heat a large pan over medium-high heat and add olive oil.`,
-      `Season the ${mainFood} with salt, pepper, and your favorite herbs.`,
-      `Cook the ${mainFood} until golden brown and cooked through.`,
-      `Add ${ingredients[0]} and other ingredients, stir to combine.`,
-      `Let the flavors meld together for a few minutes.`,
-      `Taste and adjust seasoning as needed.`,
-      `Serve hot and enjoy your delicious creation!`
-    ];
-  } else {
-    return [
-      `Prepare your ${mainFood} by cleaning and cutting into appropriate pieces.`,
-      `Heat a large pan over medium-high heat and add olive oil.`,
-      `Season the ${mainFood} with salt, pepper, and your favorite herbs.`,
-      `Cook the ${mainFood} until golden brown and cooked through.`,
-      `Add your additional ingredients and stir to combine.`,
-      `Let the flavors meld together for a few minutes.`,
-      `Taste and adjust seasoning as needed.`,
-      `Serve hot and enjoy your delicious creation!`
-    ];
-  }
-}
-
-function calculateMatchScore(mainFood: string, ingredients: string[], highPriority: boolean): number {
-  let score = 10; // Base score for main food match
-  
-  if (highPriority && ingredients.length > 0) {
-    score += ingredients.length * 5; // Bonus for secondary ingredient matches
-  }
-  
-  return score;
-}
-
-function getUniqueRecipeImage(mainFood: string, ingredients: string[], index: number, highPriority: boolean): string {
-  // Create unique images for each recipe based on main food and cooking method
-  const imageMap: { [key: string]: string[] } = {
-    'chicken': [
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'beef': [
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'pork': [
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'lamb': [
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'duck': [
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'fish': [
-      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'salmon': [
-      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'prawns': [
-      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'shrimp': [
-      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'octopus': [
-      'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'vegetables': [
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'tofu': [
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'eggs': [
-      'https://images.unsplash.com/photo-1572441713132-51c75654db73?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'pasta': [
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&h=300&fit=crop'
-    ],
-    'rice': [
-      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'quinoa': [
-      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'bread': [
-      'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'potatoes': [
-      'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ],
-    'mushrooms': [
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
-    ]
-  };
-  
-  const foodImages = imageMap[mainFood.toLowerCase()] || [
-    'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=500&h=300&fit=crop'
+function generateSteps(mainFood: string): string[] {
+  return [
+    `Prepare the ${mainFood} by cleaning and cutting into appropriate pieces.`,
+    'Heat olive oil in a large pan over medium-high heat.',
+    `Add the ${mainFood} and cook until browned on all sides.`,
+    'Add onions and garlic, cook until fragrant.',
+    'Season with salt and pepper.',
+    'Cook for additional 10-15 minutes until fully cooked.',
+    'Serve hot and enjoy your ViralCarrot creation!'
   ];
-  
-  // Return unique image based on recipe index
-  return foodImages[index % foodImages.length];
 }
 
-function generateUniqueDescription(mainFood: string, filters: any): string {
-  const descriptions = [
-    `A delightful fusion of flavors featuring ${mainFood} as the star ingredient. This recipe combines traditional techniques with modern culinary innovation.`,
-    `Experience the perfect harmony of ${mainFood} with carefully selected ingredients that create a memorable dining experience.`,
-    `This unique ${mainFood} recipe brings together the best of culinary traditions, creating something truly special for your table.`,
-    `Discover the art of cooking with ${mainFood} in this carefully crafted recipe that balances taste, texture, and nutrition.`,
-    `A creative take on ${mainFood} that showcases the ingredient's versatility and natural flavors.`
-  ];
+function generateTags(recipe: ExternalRecipe, mainFood: string): string[] {
+  const tags = [mainFood.toLowerCase(), 'viral-carrot'];
   
-  return descriptions[Math.floor(Math.random() * descriptions.length)];
-}
-
-function generateTags(filters: any, mainFood: string): string[] {
-  const tags = [mainFood];
+  if (recipe.cuisine) tags.push(recipe.cuisine.toLowerCase());
+  if (recipe.difficulty) tags.push(recipe.difficulty.toLowerCase());
+  if (recipe.mealType) tags.push(recipe.mealType.toLowerCase());
   
-  if (filters.cuisine) tags.push(filters.cuisine);
-  if (filters.mealType) tags.push(filters.mealType);
-  if (filters.dietaryStyle) tags.push(filters.dietaryStyle);
-  
-  return tags;
+  return [...new Set(tags)];
 }
