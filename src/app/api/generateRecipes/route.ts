@@ -709,7 +709,7 @@ function determineCuisineEnhanced(baseRecipes: ExternalRecipe[], filters: Recipe
     return filters.cuisine.charAt(0).toUpperCase() + filters.cuisine.slice(1);
   }
   
-  const cuisines = baseRecipes.map(recipe => recipe.cuisine).filter(Boolean);
+  const cuisines = baseRecipes.map(recipe => recipe.cuisine).filter(Boolean) as string[];
   if (cuisines.length > 0) {
     return cuisines[0];
   }
@@ -723,7 +723,7 @@ function determineMealTypeEnhanced(baseRecipes: ExternalRecipe[], filters: Recip
     return filters.mealType.charAt(0).toUpperCase() + filters.mealType.slice(1);
   }
   
-  const mealTypes = baseRecipes.map(recipe => recipe.mealType).filter(Boolean);
+  const mealTypes = baseRecipes.map(recipe => recipe.mealType).filter(Boolean) as string[];
   if (mealTypes.length > 0) {
     return mealTypes[0];
   }
