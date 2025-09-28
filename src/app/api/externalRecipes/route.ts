@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
 import NodeCache from 'node-cache';
 
 // Initialize cache with 1 hour TTL for external recipes
@@ -191,7 +190,7 @@ async function fetchExternalRecipes(searchQuery: string, mainFood: string, userI
 }
 
 // Fetch recipes from a specific source
-async function fetchFromSource(source: any, searchQuery: string, mainFood: string, userIngredients: string[]): Promise<ExternalRecipe[]> {
+async function fetchFromSource(source: { name: string; baseUrl: string; searchUrl: string; apiUrl: string }, searchQuery: string, mainFood: string, userIngredients: string[]): Promise<ExternalRecipe[]> {
   try {
     console.log(`🔍 Fetching from ${source.name}: ${searchQuery}`);
     

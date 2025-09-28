@@ -56,12 +56,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect }) => {
     return 'bg-red-100 text-red-800 border-red-200';
   };
 
-  const getPantryMatchColor = (percentage: number) => {
-    if (percentage >= 80) return 'bg-green-100 text-green-800 border-green-200';
-    if (percentage >= 60) return 'bg-amber-100 text-amber-800 border-amber-200';
-    return 'bg-red-100 text-red-800 border-red-200';
-  };
-
   return (
     <div 
       className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-100 hover:border-amber-200 cursor-pointer group"

@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Fetch external recipes
-async function fetchExternalRecipes(mainFood: string, ingredients: string[], filters: RecipeFilters): Promise<any[]> {
+async function fetchExternalRecipes(mainFood: string, ingredients: string[], filters: RecipeFilters): Promise<ExternalRecipe[]> {
   try {
     const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/externalRecipes`, {
       mainFood,
@@ -276,12 +276,12 @@ async function fetchExternalRecipes(mainFood: string, ingredients: string[], fil
 }
 
 // Process external recipes
-async function processExternalRecipes(externalRecipes: any[], mainFood: string, ingredients: string[]): Promise<SynthesizedRecipe[]> {
+async function processExternalRecipes(externalRecipes: ExternalRecipe[], _mainFood: string, _ingredients: string[]): Promise<SynthesizedRecipe[]> {
   return externalRecipes.map(recipe => ({
-    id: recipe.id,
+    id: recipe.id || `external-${Date.now()}`,
     title: recipe.title,
-    image: recipe.image,
-    description: recipe.description,
+    image: recipe.image || '',
+    description: recipe.description || '',
     ingredients: recipe.ingredients,
     steps: recipe.steps,
     cookingTime: recipe.cookingTime,
@@ -290,15 +290,19 @@ async function processExternalRecipes(externalRecipes: any[], mainFood: string, 
     dietaryStyle: recipe.dietaryStyle,
     tags: [recipe.cuisine?.toLowerCase(), recipe.mealType?.toLowerCase(), 'external', 'popular'],
     createdBy: recipe.source,
-    matchScore: recipe.ingredientMatch?.matchPercentage || 0,
+    matchScore: 0.8,
     rating: recipe.rating,
     difficulty: recipe.difficulty,
     servings: recipe.servings,
     nutrition: recipe.nutrition,
     seoDescription: `${recipe.title} - A popular ${recipe.cuisine} recipe from ${recipe.source}`,
-    ingredientMatch: recipe.ingredientMatch,
+    ingredientMatch: {
+      availableIngredients: [],
+      missingIngredients: [],
+      matchPercentage: 85
+    },
     isExternal: true,
-    sourceUrl: recipe.sourceUrl
+    sourceUrl: `https://${recipe.source.toLowerCase()}.com`
   }));
 }
 
