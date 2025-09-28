@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface Recipe {
   id: string;
@@ -56,10 +57,11 @@ export default function RecipeModal({ recipe, onClose }: RecipeModalProps) {
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="relative h-64 md:h-80">
-          <img
+          <Image
             src={recipe.image || '/api/placeholder/800/400'}
             alt={recipe.title}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
             onError={(e) => {
               e.currentTarget.src = 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&h=400&fit=crop&crop=center';
             }}
@@ -97,7 +99,7 @@ export default function RecipeModal({ recipe, onClose }: RecipeModalProps) {
               
               {recipe.cuisine && (
                 <div className="flex items-center gap-1">
-                  <span>��</span>
+                  <span>🌍</span>
                   <span className="font-semibold">{recipe.cuisine}</span>
                 </div>
               )}

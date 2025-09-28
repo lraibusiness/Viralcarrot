@@ -83,14 +83,6 @@ interface RecipePuppyRecipe {
   thumbnail: string;
 }
 
-interface UnsplashImage {
-  urls: {
-    regular: string;
-    small: string;
-  };
-  alt_description: string;
-}
-
 // Enhanced API endpoints
 const MEALDB_BASE = 'https://www.themealdb.com/api/json/v1/1';
 const RECIPE_PUPPY_BASE = 'http://www.recipepuppy.com/api';
@@ -139,7 +131,7 @@ export async function POST(request: NextRequest) {
       nutritionData
     );
     
-    console.log(`�� API: Synthesized ${synthesizedRecipes.length} smart recipes`);
+    console.log(`🎯 API: Synthesized ${synthesizedRecipes.length} smart recipes`);
 
     const result = {
       success: true,
@@ -177,16 +169,16 @@ export async function POST(request: NextRequest) {
 async function searchExternalRecipesEnhanced(
   mainFood: string, 
   ingredients: string[], 
-  filters: RecipeFilters
+  _filters: RecipeFilters
 ): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
   try {
     // Run all searches in parallel for better performance
     const searchPromises = [
-      searchTheMealDBEnhanced(mainFood, filters),
+      searchTheMealDBEnhanced(mainFood, _filters),
       searchRecipePuppyEnhanced(mainFood, ingredients),
-      scrapeRecipeSitesSmart(mainFood, filters),
+      scrapeRecipeSitesSmart(mainFood, _filters),
       searchEdamamFallback(mainFood, ingredients) // New fallback API
     ];
 
@@ -205,7 +197,7 @@ async function searchExternalRecipesEnhanced(
     const filteredRecipes = recipes
       .filter(recipe => includesMainIngredient(recipe, mainFood))
       .filter(recipe => matchUserIngredients(recipe, ingredients))
-      .filter(recipe => matchFilters(recipe, filters))
+      .filter(recipe => matchFilters(recipe, _filters))
       .sort((a, b) => calculateRelevanceScore(b, mainFood, ingredients) - calculateRelevanceScore(a, mainFood, ingredients))
       .slice(0, 15); // Get top 15 most relevant
 
@@ -504,7 +496,8 @@ async function synthesizeRecipesSmart(
   const synthesizedRecipes: SynthesizedRecipe[] = [];
   
   // Process external recipes with smart enhancement
-  externalRecipes.slice(0, 8).forEach((recipe, index) => {
+  for (let index = 0; index < Math.min(externalRecipes.length, 8); index++) {
+    const recipe = externalRecipes[index];
     const matchScore = calculateRelevanceScore(recipe, mainFood, ingredients);
     const cuisine = recipe.cuisine || determineCuisineFromTitle(recipe.title);
     const mealType = recipe.mealType || determineMealTypeFromTitle(recipe.title);
@@ -531,7 +524,7 @@ async function synthesizeRecipesSmart(
     };
     
     synthesizedRecipes.push(synthesizedRecipe);
-  });
+  }
   
   // Generate additional smart recipes if needed
   while (synthesizedRecipes.length < 6) {
@@ -599,7 +592,7 @@ function generatePrepSteps(mainFood: string, cuisine: string): string[] {
   }
 }
 
-function generateCookingSteps(mainFood: string, cuisine: string, mealType: string, ingredients: string[]): string[] {
+function generateCookingSteps(mainFood: string, cuisine: string, mealType: string, _ingredients: string[]): string[] {
   const baseCooking = [
     'Heat 1-2 tablespoons of oil in a large skillet or pan over medium-high heat.',
     `Add the ${mainFood} and cook until well-browned on all sides.`
