@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import RecipeCard from '@/components/RecipeCard';
 import RecipeModal from '@/components/RecipeModal';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type AppMode = 'generator' | 'pantry';
 
@@ -97,6 +98,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetchUserData();
@@ -109,6 +111,11 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        
+        // Redirect admin to admin portal instead of dashboard
+        if (data.user && data.user.role === 'admin') {
+          router.push('/admin');
+        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -285,6 +292,38 @@ export default function Home() {
     }
   };
 
+  // Convert trending recipe to regular recipe for modal
+  const handleLatestRecipeClick = (trendingRecipe: TrendingRecipe) => {
+    const recipe: Recipe = {
+      id: trendingRecipe.id,
+      title: trendingRecipe.title,
+      image: trendingRecipe.image,
+      description: trendingRecipe.description,
+      ingredients: trendingRecipe.ingredients,
+      steps: trendingRecipe.steps,
+      cookingTime: trendingRecipe.cookingTime,
+      cuisine: trendingRecipe.cuisine,
+      mealType: trendingRecipe.mealType,
+      dietaryStyle: trendingRecipe.dietaryStyle,
+      tags: [trendingRecipe.cuisine, trendingRecipe.mealType, trendingRecipe.dietaryStyle],
+      createdBy: 'Community Member',
+      matchScore: 0.9,
+      rating: 4.5,
+      difficulty: 'Medium',
+      servings: 4,
+      nutrition: {
+        calories: 200 + Math.floor(Math.random() * 300),
+        protein: 15 + Math.floor(Math.random() * 20),
+        carbs: 20 + Math.floor(Math.random() * 30),
+        fat: 5 + Math.floor(Math.random() * 15)
+      },
+      seoDescription: trendingRecipe.description,
+      isExternal: false,
+      sourceUrl: trendingRecipe.sourceUrl
+    };
+    setSelectedRecipe(recipe);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
       {/* Header */}
@@ -335,19 +374,19 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
-            Smart Recipe Discovery
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        {/* Hero Section - Compact for viewport */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-3">
+            🥕 ViralCarrot - Your Smart Kitchen Companion
           </h2>
-          <p className="text-xl text-slate-600 mb-8 max-w-3xl mx-auto">
-            Discover ViralCarrot original recipes and popular recipes from the web. 
-            Get ingredient match percentages and find exactly what you can cook with your available ingredients.
+          <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
+            Transform your cooking with AI-powered recipe discovery. Simply tell us what ingredients you have, 
+            and we'll find you the perfect recipes from our community and the web. No more wondering what to cook!
           </p>
 
           {/* Mode Selection */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6">
             <div className="bg-white rounded-2xl p-2 shadow-lg border border-amber-100">
               <button
                 onClick={() => setAppMode('generator')}
@@ -373,12 +412,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Input Section */}
-        <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-6 md:p-8 mb-8">
+        {/* Input Section - Compact */}
+        <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-4 md:p-6 mb-6">
           {appMode === 'generator' && (
             <>
-              <div className="mb-6">
-                <label className="block text-xl font-light text-slate-800 mb-4">
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-slate-800 mb-3">
                   What&apos;s your main ingredient?
                 </label>
                 <input
@@ -386,24 +425,24 @@ export default function Home() {
                   value={mainFood}
                   onChange={(e) => setMainFood(e.target.value)}
                   placeholder="e.g., chicken, salmon, broccoli, pasta..."
-                  className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
+                  className="w-full max-w-xl mx-auto p-3 text-base border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400"
                 />
               </div>
 
-              <div className="mb-6">
-                <label className="block text-xl font-light text-slate-800 mb-4">
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-slate-800 mb-3">
                   Other ingredients you have?
                 </label>
                 
                 {/* Quick ingredient selection bubbles */}
-                <div className="mb-4">
-                  <p className="text-sm text-slate-500 mb-3">Quick select common ingredients:</p>
+                <div className="mb-3">
+                  <p className="text-sm text-slate-500 mb-2">Quick select common ingredients:</p>
                   <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
                     {COMMON_INGREDIENTS.map((ingredient) => (
                       <button
                         key={ingredient}
                         onClick={() => handleIngredientClick(ingredient)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ${
                           selectedIngredients.includes(ingredient)
                             ? 'bg-amber-500 text-white shadow-md'
                             : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700'
@@ -423,22 +462,22 @@ export default function Home() {
                     value={ingredients}
                     onChange={(e) => setIngredients(e.target.value)}
                     placeholder="e.g., garlic, onions, tomatoes, cheese..."
-                    className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
+                    className="w-full max-w-xl mx-auto p-3 text-base border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400"
                   />
-                  <p className="text-sm text-slate-500 mt-2">
+                  <p className="text-sm text-slate-500 mt-1">
                     Separate ingredients with commas
                   </p>
                 </div>
 
                 {/* Selected ingredients display */}
                 {selectedIngredients.length > 0 && (
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <p className="text-sm text-slate-600 mb-2">Selected ingredients:</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {selectedIngredients.map((ingredient) => (
                         <span
                           key={ingredient}
-                          className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm"
+                          className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-sm"
                         >
                           {ingredient}
                         </span>
@@ -452,36 +491,36 @@ export default function Home() {
 
           {appMode === 'pantry' && (
             <>
-              <div className="mb-6">
-                <label className="block text-xl font-light text-slate-800 mb-4">
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-slate-800 mb-3">
                   What&apos;s in your pantry?
                 </label>
                 <textarea
                   value={pantryIngredients}
                   onChange={(e) => setPantryIngredients(e.target.value)}
                   placeholder="Enter all your available ingredients (comma separated)... e.g., chicken, rice, onions, garlic, tomatoes, cheese"
-                  className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
-                  rows={3}
+                  className="w-full max-w-xl mx-auto p-3 text-base border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400"
+                  rows={2}
                 />
-                <p className="text-sm text-slate-500 mt-2">
+                <p className="text-sm text-slate-500 mt-1">
                   We&apos;ll find existing recipes you can make with these ingredients
                 </p>
               </div>
             </>
           )}
 
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Filters - Compact */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Cooking Time</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Cooking Time</label>
               <select
                 value={cookingTime}
                 onChange={(e) => setCookingTime(e.target.value)}
-                className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
               >
                 <option value="">Any time</option>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
                 <option value="60">1 hour</option>
                 <option value="120">2 hours</option>
                 <option value="240">4+ hours</option>
@@ -489,11 +528,11 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Cuisine</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Cuisine</label>
               <select
                 value={cuisine}
                 onChange={(e) => setCuisine(e.target.value)}
-                className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
               >
                 <option value="">Any cuisine</option>
                 <option value="italian">Italian</option>
@@ -506,11 +545,11 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Meal Type</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Meal Type</label>
               <select
                 value={mealType}
                 onChange={(e) => setMealType(e.target.value)}
-                className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
               >
                 <option value="">Any meal</option>
                 <option value="breakfast">Breakfast</option>
@@ -522,11 +561,11 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Dietary Style</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Dietary Style</label>
               <select
                 value={dietaryStyle}
                 onChange={(e) => setDietaryStyle(e.target.value)}
-                className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
               >
                 <option value="">Any diet</option>
                 <option value="vegetarian">Vegetarian</option>
@@ -543,11 +582,11 @@ export default function Home() {
             <button
               onClick={appMode === 'generator' ? handleGenerateRecipes : handlePantrySearch}
               disabled={loading}
-              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>Generating Recipes...</span>
                 </div>
               ) : (
@@ -558,8 +597,8 @@ export default function Home() {
         </div>
 
         {/* AdSense Ad Placement - Top */}
-        <div className="mb-8 text-center">
-          <div className="bg-slate-100 rounded-xl p-8 border-2 border-dashed border-slate-300">
+        <div className="mb-6 text-center">
+          <div className="bg-slate-100 rounded-xl p-6 border-2 border-dashed border-slate-300">
             <p className="text-slate-500 text-sm">Advertisement Space</p>
             <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
           </div>
@@ -567,16 +606,16 @@ export default function Home() {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <p className="text-red-600 text-center">{error}</p>
           </div>
         )}
 
         {/* Results Section */}
         {recipes.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-slate-800">
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-slate-800">
                 {appMode === 'generator' ? 'Smart Recipes' : 'Pantry Recipes'}
               </h3>
               <div className="text-sm text-slate-600">
@@ -584,7 +623,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recipes.map((recipe) => (
                 <RecipeCard
                   key={recipe.id}
@@ -595,8 +634,8 @@ export default function Home() {
             </div>
 
             {/* AdSense Ad Placement - Middle */}
-            <div className="my-8 text-center">
-              <div className="bg-slate-100 rounded-xl p-8 border-2 border-dashed border-slate-300">
+            <div className="my-6 text-center">
+              <div className="bg-slate-100 rounded-xl p-6 border-2 border-dashed border-slate-300">
                 <p className="text-slate-500 text-sm">Advertisement Space</p>
                 <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
               </div>
@@ -604,11 +643,11 @@ export default function Home() {
 
             {/* Load More Button */}
             {showLoadMore && (
-              <div className="text-center mt-8">
+              <div className="text-center mt-6">
                 <button
                   onClick={handleLoadMore}
                   disabled={loading}
-                  className="bg-white border-2 border-amber-500 text-amber-600 hover:bg-amber-50 font-semibold py-3 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-white border-2 border-amber-500 text-amber-600 hover:bg-amber-50 font-semibold py-2 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Loading...' : 'Load More Recipes'}
                 </button>
@@ -619,25 +658,29 @@ export default function Home() {
 
         {/* Latest Recipes Section */}
         {latestRecipes.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-8 mb-8">
-            <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">
+          <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-6 mb-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">
               Latest Community Recipes
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {latestRecipes.slice(0, 6).map((recipe) => (
-                <div key={recipe.id} className="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center space-x-4">
+                <div 
+                  key={recipe.id} 
+                  className="bg-gray-50 rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleLatestRecipeClick(recipe)}
+                >
+                  <div className="flex items-center space-x-3">
                     {recipe.image && (
                       <img
                         src={recipe.image}
                         alt={recipe.title}
-                        className="w-16 h-16 rounded-lg object-cover"
+                        className="w-12 h-12 rounded-lg object-cover"
                       />
                     )}
                     <div className="flex-1">
-                      <h5 className="font-semibold text-slate-800 mb-1">{recipe.title}</h5>
-                      <p className="text-sm text-slate-600 mb-2">{recipe.description}</p>
-                      <div className="flex items-center space-x-4 text-xs text-slate-500">
+                      <h5 className="font-semibold text-slate-800 mb-1 text-sm">{recipe.title}</h5>
+                      <p className="text-xs text-slate-600 mb-1 line-clamp-2">{recipe.description}</p>
+                      <div className="flex items-center space-x-2 text-xs text-slate-500">
                         <span>{recipe.cookingTime} min</span>
                         <span>{recipe.cuisine}</span>
                         <span>{recipe.views} views</span>
@@ -650,36 +693,36 @@ export default function Home() {
           </div>
         )}
 
-        {/* Features Section */}
-        <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-8">
-          <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">
+        {/* Features Section - Compact */}
+        <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-6">
+          <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">
             Why Choose ViralCarrot?
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🧠</span>
+              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <span className="text-xl">��</span>
               </div>
-              <h4 className="text-lg font-semibold text-slate-800 mb-2">Smart Matching</h4>
-              <p className="text-slate-600">
+              <h4 className="text-base font-semibold text-slate-800 mb-2">Smart Matching</h4>
+              <p className="text-slate-600 text-sm">
                 Get ingredient match percentages and see exactly what you can cook with your available ingredients.
               </p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🌐</span>
+              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <span className="text-xl">🌐</span>
               </div>
-              <h4 className="text-lg font-semibold text-slate-800 mb-2">Popular Recipes</h4>
-              <p className="text-slate-600">
+              <h4 className="text-base font-semibold text-slate-800 mb-2">Popular Recipes</h4>
+              <p className="text-slate-600 text-sm">
                 Discover trending recipes from popular cooking websites alongside ViralCarrot originals.
               </p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">⚡</span>
+              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <span className="text-xl">⚡</span>
               </div>
-              <h4 className="text-lg font-semibold text-slate-800 mb-2">Fast & Reliable</h4>
-              <p className="text-slate-600">
+              <h4 className="text-base font-semibold text-slate-800 mb-2">Fast & Reliable</h4>
+              <p className="text-slate-600 text-sm">
                 Get instant results with our optimized search and caching system for the best experience.
               </p>
             </div>
@@ -687,8 +730,8 @@ export default function Home() {
         </div>
 
         {/* AdSense Ad Placement - Bottom */}
-        <div className="mt-8 text-center">
-          <div className="bg-slate-100 rounded-xl p-8 border-2 border-dashed border-slate-300">
+        <div className="mt-6 text-center">
+          <div className="bg-slate-100 rounded-xl p-6 border-2 border-dashed border-slate-300">
             <p className="text-slate-500 text-sm">Advertisement Space</p>
             <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
           </div>
@@ -735,23 +778,23 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="bg-slate-800 text-white py-12 mt-16">
+      <footer className="bg-slate-800 text-white py-8 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">V</span>
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-6 h-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">V</span>
                 </div>
-                <span className="text-xl font-bold">ViralCarrot</span>
+                <span className="text-lg font-bold">ViralCarrot</span>
               </div>
               <p className="text-slate-300 text-sm">
                 Smart recipe discovery with ingredient matching and popular recipes from the web.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Features</h4>
-              <ul className="space-y-2 text-sm text-slate-300">
+              <h4 className="font-semibold mb-3">Features</h4>
+              <ul className="space-y-1 text-sm text-slate-300">
                 <li>Smart Recipe Generator</li>
                 <li>Pantry Wizard</li>
                 <li>Ingredient Matching</li>
@@ -759,8 +802,8 @@ export default function Home() {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Resources</h4>
-              <ul className="space-y-2 text-sm text-slate-300">
+              <h4 className="font-semibold mb-3">Resources</h4>
+              <ul className="space-y-1 text-sm text-slate-300">
                 <li><Link href="/about" className="hover:text-amber-400 transition-colors">About</Link></li>
                 <li><Link href="/contact" className="hover:text-amber-400 transition-colors">Contact</Link></li>
                 <li><Link href="/privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</Link></li>
@@ -768,13 +811,13 @@ export default function Home() {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Connect</h4>
+              <h4 className="font-semibold mb-3">Connect</h4>
               <p className="text-slate-300 text-sm">
                 Get the latest recipes and cooking tips delivered to your inbox.
               </p>
             </div>
           </div>
-          <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
+          <div className="border-t border-slate-700 mt-6 pt-6 text-center text-sm text-slate-400">
             <p>&copy; 2024 ViralCarrot. All rights reserved.</p>
           </div>
         </div>
