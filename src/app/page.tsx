@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RecipeCard from '@/components/RecipeCard';
 import RecipeModal from '@/components/RecipeModal';
+import Link from 'next/link';
 
 type AppMode = 'generator' | 'pantry';
 
@@ -39,6 +40,35 @@ interface Recipe {
   sourceUrl?: string;
 }
 
+interface TrendingRecipe {
+  id: string;
+  title: string;
+  image: string;
+  description: string;
+  ingredients: string[];
+  steps: string[];
+  cookingTime: number;
+  cuisine: string;
+  mealType: string;
+  dietaryStyle: string;
+  views: number;
+  likes: number;
+  createdAt: string;
+  website?: string;
+  sourceUrl?: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  subscription?: {
+    plan: string;
+    status: string;
+  };
+}
+
 export default function Home() {
   const [appMode, setAppMode] = useState<AppMode>('generator');
   const [mainFood, setMainFood] = useState('');
@@ -49,12 +79,46 @@ export default function Home() {
   const [mealType, setMealType] = useState('');
   const [dietaryStyle, setDietaryStyle] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [trendingRecipes, setTrendingRecipes] = useState<TrendingRecipe[]>([]);
+  const [newlyPostedRecipes, setNewlyPostedRecipes] = useState<TrendingRecipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showLoadMore, setShowLoadMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecipes, setTotalRecipes] = useState(0);
+  const [user, setUser] = useState<User | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
+
+  useEffect(() => {
+    fetchUserData();
+    fetchTrendingRecipes();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/user/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
+  const fetchTrendingRecipes = async () => {
+    try {
+      const response = await fetch('/api/recipes/trending');
+      if (response.ok) {
+        const data = await response.json();
+        setTrendingRecipes(data.trending);
+        setNewlyPostedRecipes(data.newlyPosted);
+      }
+    } catch (error) {
+      console.error('Error fetching trending recipes:', error);
+    }
+  };
 
   const handleGenerateRecipes = async () => {
     if (!mainFood.trim()) {
@@ -190,6 +254,15 @@ export default function Home() {
     setSelectedRecipe(null);
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
       {/* Header */}
@@ -202,10 +275,36 @@ export default function Home() {
               </div>
               <h1 className="text-2xl font-bold text-slate-800">ViralCarrot</h1>
             </div>
-            <div className="hidden md:flex items-center space-x-6">
-              <a href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</a>
-              <a href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</a>
-              <a href="/privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</a>
+            <div className="flex items-center space-x-6">
+              <Link href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</Link>
+              <Link href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</Link>
+              <Link href="/privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</Link>
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  <span className="text-slate-600">Welcome, {user.name}</span>
+                  <Link href="/dashboard" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors">
+                    Dashboard
+                  </Link>
+                  {user.role === 'admin' && (
+                    <Link href="/admin" className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-colors">
+                      Admin
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAuth(true)}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors"
+                >
+                  Login
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -249,6 +348,61 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Trending Recipes Section */}
+        {(trendingRecipes.length > 0 || newlyPostedRecipes.length > 0) && (
+          <div className="mb-12">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">Trending & New Recipes</h3>
+            
+            {trendingRecipes.length > 0 && (
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold text-slate-700 mb-4">🔥 Trending This Week</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {trendingRecipes.slice(0, 3).map((recipe) => (
+                    <div key={recipe.id} className="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow">
+                      <img
+                        src={recipe.image}
+                        alt={recipe.title}
+                        className="w-full h-48 object-cover rounded-lg mb-4"
+                      />
+                      <h5 className="font-semibold text-slate-800 mb-2">{recipe.title}</h5>
+                      <p className="text-slate-600 text-sm mb-3">{recipe.description}</p>
+                      <div className="flex items-center justify-between text-sm text-slate-500">
+                        <span>{recipe.views} views</span>
+                        <span>{recipe.likes} likes</span>
+                        <span className="text-amber-600 font-medium">{recipe.cuisine}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {newlyPostedRecipes.length > 0 && (
+              <div>
+                <h4 className="text-lg font-semibold text-slate-700 mb-4">✨ Just Posted</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {newlyPostedRecipes.slice(0, 3).map((recipe) => (
+                    <div key={recipe.id} className="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow">
+                      <img
+                        src={recipe.image}
+                        alt={recipe.title}
+                        className="w-full h-48 object-cover rounded-lg mb-4"
+                      />
+                      <h5 className="font-semibold text-slate-800 mb-2">{recipe.title}</h5>
+                      <p className="text-slate-600 text-sm mb-3">{recipe.description}</p>
+                      <div className="flex items-center justify-between text-sm text-slate-500">
+                        <span>{recipe.views} views</span>
+                        <span>{recipe.likes} likes</span>
+                        <span className="text-green-600 font-medium">New</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Input Section */}
         <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-6 md:p-8 mb-8">
@@ -505,6 +659,37 @@ export default function Home() {
         />
       )}
 
+      {/* Auth Modal */}
+      {showAuth && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">Sign In</h2>
+              <button
+                onClick={() => setShowAuth(false)}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              <Link
+                href="/auth/login"
+                className="block w-full bg-amber-500 hover:bg-amber-600 text-white py-3 px-4 rounded-xl text-center transition-colors"
+              >
+                Login / Register
+              </Link>
+              <button
+                onClick={() => setShowAuth(false)}
+                className="block w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 px-4 rounded-xl text-center transition-colors"
+              >
+                Continue as Guest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="bg-slate-800 text-white py-12 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -532,10 +717,10 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">Resources</h4>
               <ul className="space-y-2 text-sm text-slate-300">
-                <li><a href="/about" className="hover:text-amber-400 transition-colors">About</a></li>
-                <li><a href="/contact" className="hover:text-amber-400 transition-colors">Contact</a></li>
-                <li><a href="/privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
-                <li><a href="/terms" className="hover:text-amber-400 transition-colors">Terms of Service</a></li>
+                <li><Link href="/about" className="hover:text-amber-400 transition-colors">About</Link></li>
+                <li><Link href="/contact" className="hover:text-amber-400 transition-colors">Contact</Link></li>
+                <li><Link href="/privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-amber-400 transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
             <div>
