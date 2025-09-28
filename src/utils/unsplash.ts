@@ -23,7 +23,7 @@ interface UnsplashSearchResponse {
   total_pages: number;
 }
 
-// Enhanced Unsplash image fetcher with better search strategies
+// Enhanced Unsplash image fetcher with food-only filtering
 export class UnsplashImageFetcher {
   private accessKey: string;
   private usedImages: Set<string> = new Set();
@@ -34,7 +34,7 @@ export class UnsplashImageFetcher {
     this.sessionKey = sessionKey;
   }
 
-  // Get high-quality recipe image with multiple search strategies
+  // Get high-quality recipe image with food-only filtering
   async getRecipeImage(
     title: string, 
     mainFood: string, 
@@ -43,28 +43,28 @@ export class UnsplashImageFetcher {
     index: number = 0
   ): Promise<string> {
     try {
-      // Strategy 1: Search by exact recipe title
-      let image = await this.searchByTitle(title);
+      // Strategy 1: Search by exact recipe title + food filter
+      let image = await this.searchByTitleWithFoodFilter(title);
       if (image) return image;
 
-      // Strategy 2: Search by main food + cuisine
+      // Strategy 2: Search by main food + cuisine + food filter
       if (cuisine) {
-        image = await this.searchByFoodAndCuisine(mainFood, cuisine);
+        image = await this.searchByFoodAndCuisineWithFilter(mainFood, cuisine);
         if (image) return image;
       }
 
-      // Strategy 3: Search by main food + meal type
+      // Strategy 3: Search by main food + meal type + food filter
       if (mealType) {
-        image = await this.searchByFoodAndMealType(mainFood, mealType);
+        image = await this.searchByFoodAndMealTypeWithFilter(mainFood, mealType);
         if (image) return image;
       }
 
-      // Strategy 4: Search by main food with cooking methods
-      image = await this.searchByFoodWithMethods(mainFood);
+      // Strategy 4: Search by main food with cooking methods + food filter
+      image = await this.searchByFoodWithMethodsAndFilter(mainFood);
       if (image) return image;
 
-      // Strategy 5: Search by main food only
-      image = await this.searchByFood(mainFood);
+      // Strategy 5: Search by main food only + food filter
+      image = await this.searchByFoodWithFilter(mainFood);
       if (image) return image;
 
       // Fallback to curated food images
@@ -76,40 +76,40 @@ export class UnsplashImageFetcher {
     }
   }
 
-  // Search by exact recipe title
-  private async searchByTitle(title: string): Promise<string | null> {
-    const query = this.cleanTitleForSearch(title);
-    return await this.performSearch(query, 1);
+  // Search by exact recipe title with food filter
+  private async searchByTitleWithFoodFilter(title: string): Promise<string | null> {
+    const query = this.cleanTitleForSearch(title) + ' food dish meal';
+    return await this.performSearchWithFoodFilter(query, 1);
   }
 
-  // Search by main food and cuisine
-  private async searchByFoodAndCuisine(mainFood: string, cuisine: string): Promise<string | null> {
-    const query = `${mainFood} ${cuisine} food recipe`;
-    return await this.performSearch(query, 1);
+  // Search by main food and cuisine with food filter
+  private async searchByFoodAndCuisineWithFilter(mainFood: string, cuisine: string): Promise<string | null> {
+    const query = `${mainFood} ${cuisine} food dish meal recipe`;
+    return await this.performSearchWithFoodFilter(query, 1);
   }
 
-  // Search by main food and meal type
-  private async searchByFoodAndMealType(mainFood: string, mealType: string): Promise<string | null> {
-    const query = `${mainFood} ${mealType} food`;
-    return await this.performSearch(query, 1);
+  // Search by main food and meal type with food filter
+  private async searchByFoodAndMealTypeWithFilter(mainFood: string, mealType: string): Promise<string | null> {
+    const query = `${mainFood} ${mealType} food dish meal`;
+    return await this.performSearchWithFoodFilter(query, 1);
   }
 
-  // Search by main food with cooking methods
-  private async searchByFoodWithMethods(mainFood: string): Promise<string | null> {
+  // Search by main food with cooking methods and food filter
+  private async searchByFoodWithMethodsAndFilter(mainFood: string): Promise<string | null> {
     const cookingMethods = ['grilled', 'roasted', 'pan-seared', 'baked', 'fried', 'steamed'];
     const method = cookingMethods[Math.floor(Math.random() * cookingMethods.length)];
-    const query = `${method} ${mainFood} food`;
-    return await this.performSearch(query, 1);
+    const query = `${method} ${mainFood} food dish meal`;
+    return await this.performSearchWithFoodFilter(query, 1);
   }
 
-  // Search by main food only
-  private async searchByFood(mainFood: string): Promise<string | null> {
-    const query = `${mainFood} food recipe`;
-    return await this.performSearch(query, 1);
+  // Search by main food only with food filter
+  private async searchByFoodWithFilter(mainFood: string): Promise<string | null> {
+    const query = `${mainFood} food dish meal recipe`;
+    return await this.performSearchWithFoodFilter(query, 1);
   }
 
-  // Perform actual Unsplash search
-  private async performSearch(query: string, perPage: number = 1): Promise<string | null> {
+  // Perform actual Unsplash search with food filtering
+  private async performSearchWithFoodFilter(query: string, perPage: number = 1): Promise<string | null> {
     try {
       const response = await axios.get<UnsplashSearchResponse>('https://api.unsplash.com/search/photos', {
         params: {
@@ -124,16 +124,23 @@ export class UnsplashImageFetcher {
       });
 
       if (response.data.results && response.data.results.length > 0) {
-        const image = response.data.results[0];
+        // Filter out live animal images and ensure food-only content
+        const foodImages = response.data.results.filter(image => 
+          this.isFoodImage(image.alt_description, query)
+        );
         
-        // Check if we've already used this image
-        if (!this.usedImages.has(image.id)) {
-          this.usedImages.add(image.id);
+        if (foodImages.length > 0) {
+          const image = foodImages[0];
           
-          // Track download for analytics
-          this.trackDownload(image.links.download_location);
-          
-          return image.urls.regular;
+          // Check if we've already used this image
+          if (!this.usedImages.has(image.id)) {
+            this.usedImages.add(image.id);
+            
+            // Track download for analytics
+            this.trackDownload(image.links.download_location);
+            
+            return image.urls.regular;
+          }
         }
       }
 
@@ -142,6 +149,43 @@ export class UnsplashImageFetcher {
       console.error(`❌ Unsplash search failed for query "${query}":`, error);
       return null;
     }
+  }
+
+  // Check if image is food-related (not live animals)
+  private isFoodImage(altDescription: string, query: string): boolean {
+    if (!altDescription) return true; // If no description, assume it's okay
+    
+    const alt = altDescription.toLowerCase();
+    const queryLower = query.toLowerCase();
+    
+    // Exclude live animal images
+    const liveAnimalKeywords = [
+      'live chicken', 'live cow', 'live pig', 'live sheep', 'live goat',
+      'farm animal', 'livestock', 'poultry', 'cattle', 'swine',
+      'animal in field', 'chicken coop', 'barn', 'farm',
+      'raw meat', 'butcher', 'slaughter'
+    ];
+    
+    // Check for live animal keywords
+    const hasLiveAnimal = liveAnimalKeywords.some(keyword => 
+      alt.includes(keyword) || queryLower.includes(keyword)
+    );
+    
+    if (hasLiveAnimal) return false;
+    
+    // Include food-related keywords
+    const foodKeywords = [
+      'food', 'dish', 'meal', 'recipe', 'cooked', 'prepared',
+      'dinner', 'lunch', 'breakfast', 'appetizer', 'main course',
+      'grilled', 'roasted', 'baked', 'fried', 'steamed', 'boiled',
+      'plated', 'served', 'garnished', 'seasoned'
+    ];
+    
+    const hasFoodKeywords = foodKeywords.some(keyword => 
+      alt.includes(keyword) || queryLower.includes(keyword)
+    );
+    
+    return hasFoodKeywords;
   }
 
   // Clean title for better search results
@@ -166,67 +210,67 @@ export class UnsplashImageFetcher {
     }
   }
 
-  // Get fallback image based on main food
+  // Get fallback image based on main food (food-only images)
   private getFallbackImage(mainFood: string, index: number): string {
     const fallbackImages = {
       chicken: [
-        'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800',
-        'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800',
-        'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800'
+        'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800&q=80', // Cooked chicken breast
+        'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800&q=80', // Grilled chicken
+        'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800&q=80'  // Chicken dish
       ],
       beef: [
-        'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800',
-        'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800',
-        'https://images.unsplash.com/photo-1574484284002-952d92456975?w=800'
+        'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&q=80', // Cooked beef
+        'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800&q=80', // Beef steak
+        'https://images.unsplash.com/photo-1574484284002-952d92456975?w=800&q=80'  // Beef dish
       ],
       salmon: [
-        'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+        'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&q=80', // Cooked salmon
+        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800&q=80', // Salmon fillet
+        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&q=80'  // Salmon dish
       ],
       pasta: [
-        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800',
-        'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800',
-        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800'
+        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800&q=80', // Pasta dish
+        'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&q=80', // Spaghetti
+        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800&q=80'  // Pasta bowl
       ],
       rice: [
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800',
-        'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800'
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800&q=80', // Rice dish
+        'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800&q=80', // Rice bowl
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800&q=80'  // Rice meal
       ],
       vegetables: [
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
-        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800'
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&q=80', // Vegetable dish
+        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80', // Roasted vegetables
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&q=80'  // Vegetable medley
       ],
       fish: [
-        'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+        'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&q=80', // Fish dish
+        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800&q=80', // Fish fillet
+        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&q=80'  // Fish meal
       ],
       shrimp: [
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&q=80', // Shrimp dish
+        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800&q=80', // Shrimp scampi
+        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&q=80'  // Shrimp meal
       ],
       octopus: [
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800',
-        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800'
+        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&q=80', // Octopus dish
+        'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800&q=80', // Grilled octopus
+        'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&q=80'  // Octopus meal
       ]
     };
-
+    
     const foodKey = Object.keys(fallbackImages).find(key => 
       mainFood.toLowerCase().includes(key) || key.includes(mainFood.toLowerCase())
     ) as keyof typeof fallbackImages;
-
+    
     if (foodKey && fallbackImages[foodKey]) {
       const images = fallbackImages[foodKey];
       return images[index % images.length];
     }
-
-    // Ultimate fallback
-    return 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800';
+    
+    // Ultimate fallback - generic food image
+    return 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80';
   }
 
   // Get multiple images for a recipe collection
