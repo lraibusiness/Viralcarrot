@@ -39,20 +39,32 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
   };
 
   const uploadImage = async (file: File): Promise<string> => {
+    console.log('📤 Client: Starting image upload for file:', file.name);
+    
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData
-    });
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to upload image');
+      console.log('📤 Client: Upload response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Client: Upload failed:', errorData);
+        throw new Error(errorData.error || `Upload failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Client: Upload successful:', data);
+      return data.imageUrl;
+    } catch (error) {
+      console.error('❌ Client: Upload error:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.imageUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,9 +76,18 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
 
       // Upload image if one was selected
       if (imageFile) {
+        console.log('📤 Client: Uploading image file');
         setUploading(true);
-        imageUrl = await uploadImage(imageFile);
-        setUploading(false);
+        try {
+          imageUrl = await uploadImage(imageFile);
+          console.log('✅ Client: Image uploaded successfully:', imageUrl);
+        } catch (error) {
+          console.error('❌ Client: Image upload failed:', error);
+          alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          return;
+        } finally {
+          setUploading(false);
+        }
       }
 
       const recipeData = {
@@ -76,6 +97,8 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
         steps: formData.steps.split('\n').filter(step => step.trim()),
         cookingTime: parseInt(formData.cookingTime) || 0
       };
+
+      console.log('📝 Client: Submitting recipe data:', recipeData);
 
       const response = await fetch('/api/recipes/user', {
         method: 'POST',
@@ -106,10 +129,11 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
         onSuccess?.();
       } else {
         const errorData = await response.json();
+        console.error('❌ Client: Recipe submission failed:', errorData);
         alert(errorData.error || 'Failed to submit recipe. Please try again.');
       }
     } catch (error) {
-      console.error('Error submitting recipe:', error);
+      console.error('❌ Client: Recipe submission error:', error);
       alert('Failed to submit recipe. Please try again.');
     } finally {
       setSubmitting(false);

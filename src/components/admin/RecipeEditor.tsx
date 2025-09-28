@@ -56,20 +56,32 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
   };
 
   const uploadImage = async (file: File): Promise<string> => {
+    console.log('📤 Client: Starting image upload for file:', file.name);
+    
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData
-    });
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to upload image');
+      console.log('📤 Client: Upload response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Client: Upload failed:', errorData);
+        throw new Error(errorData.error || `Upload failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Client: Upload successful:', data);
+      return data.imageUrl;
+    } catch (error) {
+      console.error('❌ Client: Upload error:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.imageUrl;
   };
 
   const handleSave = async () => {
@@ -79,9 +91,18 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
 
       // Upload new image if one was selected
       if (imageFile) {
+        console.log('📤 Client: Uploading image file');
         setUploading(true);
-        imageUrl = await uploadImage(imageFile);
-        setUploading(false);
+        try {
+          imageUrl = await uploadImage(imageFile);
+          console.log('✅ Client: Image uploaded successfully:', imageUrl);
+        } catch (error) {
+          console.error('❌ Client: Image upload failed:', error);
+          alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          return;
+        } finally {
+          setUploading(false);
+        }
       }
 
       const updatedRecipe: Recipe = {
