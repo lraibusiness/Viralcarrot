@@ -19,14 +19,20 @@ interface Recipe {
   servings?: number;
   matchScore?: number;
   seoDescription?: string;
+  pantryMatch?: {
+    availableIngredients: string[];
+    missingIngredients: string[];
+    matchPercentage: number;
+  };
 }
 
 interface RecipeCardProps {
   recipe: Recipe;
   onClick: () => void;
+  showPantryMatch?: boolean;
 }
 
-export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
+export default function RecipeCard({ recipe, onClick, showPantryMatch = false }: RecipeCardProps) {
   const [imageError, setImageError] = useState(false);
 
   const formatTime = (minutes: number) => {
@@ -50,6 +56,12 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
     const stars = '★'.repeat(Math.floor(rating));
     const halfStar = rating % 1 >= 0.5 ? '☆' : '';
     return stars + halfStar;
+  };
+
+  const getMatchColor = (percentage: number) => {
+    if (percentage >= 80) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    if (percentage >= 60) return 'bg-amber-100 text-amber-800 border-amber-200';
+    return 'bg-rose-100 text-rose-800 border-rose-200';
   };
 
   const handleImageError = () => {
@@ -107,6 +119,15 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
           )}
         </div>
 
+        {/* Pantry Match Badge */}
+        {showPantryMatch && recipe.pantryMatch && (
+          <div className="absolute bottom-3 left-3">
+            <div className={`px-3 py-1 rounded-full text-xs font-medium border shadow-lg ${getMatchColor(recipe.pantryMatch.matchPercentage)}`}>
+              {recipe.pantryMatch.matchPercentage}% Match
+            </div>
+          </div>
+        )}
+
         {/* Subtle Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
@@ -121,6 +142,30 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
         <p className="text-slate-600 text-sm mb-4 line-clamp-2 leading-relaxed font-light">
           {recipe.description}
         </p>
+        
+        {/* Pantry Match Info */}
+        {showPantryMatch && recipe.pantryMatch && (
+          <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-slate-700">Pantry Match</span>
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${getMatchColor(recipe.pantryMatch.matchPercentage)}`}>
+                {recipe.pantryMatch.matchPercentage}%
+              </span>
+            </div>
+            <div className="text-xs text-slate-600">
+              <div className="mb-1">
+                <span className="font-medium text-emerald-700">✓ You have:</span> {recipe.pantryMatch.availableIngredients.slice(0, 3).join(', ')}
+                {recipe.pantryMatch.availableIngredients.length > 3 && ` +${recipe.pantryMatch.availableIngredients.length - 3} more`}
+              </div>
+              {recipe.pantryMatch.missingIngredients.length > 0 && (
+                <div>
+                  <span className="font-medium text-rose-700">✗ Need:</span> {recipe.pantryMatch.missingIngredients.slice(0, 2).join(', ')}
+                  {recipe.pantryMatch.missingIngredients.length > 2 && ` +${recipe.pantryMatch.missingIngredients.length - 2} more`}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
         {/* Compact Metadata */}
         <div className="flex items-center justify-between mb-4">
