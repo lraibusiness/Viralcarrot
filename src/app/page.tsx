@@ -311,6 +311,7 @@ export default function Home() {
                         rows={3}
                       />
                       <p className="text-sm text-slate-500 mt-2">
+                      <p className="text-sm text-slate-500 mt-2">
                         We&apos;ll find existing recipes you can make with these ingredients
                       </p>
                     </div>
