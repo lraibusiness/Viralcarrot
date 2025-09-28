@@ -69,10 +69,18 @@ interface User {
   };
 }
 
+// Common ingredients for quick selection
+const COMMON_INGREDIENTS = [
+  'garlic', 'onion', 'tomato', 'cheese', 'butter', 'olive oil', 
+  'salt', 'black pepper', 'lemon', 'herbs', 'mushrooms', 'bell pepper',
+  'carrot', 'celery', 'potato', 'rice', 'pasta', 'bread'
+];
+
 export default function Home() {
   const [appMode, setAppMode] = useState<AppMode>('generator');
   const [mainFood, setMainFood] = useState('');
   const [ingredients, setIngredients] = useState('');
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [pantryIngredients, setPantryIngredients] = useState('');
   const [cookingTime, setCookingTime] = useState('');
   const [cuisine, setCuisine] = useState('');
@@ -121,6 +129,14 @@ export default function Home() {
     }
   };
 
+  const handleIngredientClick = (ingredient: string) => {
+    if (selectedIngredients.includes(ingredient)) {
+      setSelectedIngredients(prev => prev.filter(ing => ing !== ingredient));
+    } else {
+      setSelectedIngredients(prev => [...prev, ingredient]);
+    }
+  };
+
   const handleGenerateRecipes = async () => {
     if (!mainFood.trim()) {
       setError('Please enter a main food item');
@@ -131,6 +147,9 @@ export default function Home() {
     setError('');
     setCurrentPage(1);
 
+    // Combine selected ingredients with manually typed ones
+    const allIngredients = [...selectedIngredients, ...ingredients.split(',').map(ing => ing.trim()).filter(ing => ing)];
+
     try {
       const response = await fetch('/api/generateRecipes', {
         method: 'POST',
@@ -139,7 +158,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           mainFood: mainFood.trim(),
-          ingredients: ingredients.split(',').map(ing => ing.trim()).filter(ing => ing),
+          ingredients: allIngredients,
           filters: {
             cookingTime,
             cuisine,
@@ -219,6 +238,8 @@ export default function Home() {
     setCurrentPage(prev => prev + 1);
 
     try {
+      const allIngredients = [...selectedIngredients, ...ingredients.split(',').map(ing => ing.trim()).filter(ing => ing)];
+      
       const response = await fetch('/api/generateRecipes', {
         method: 'POST',
         headers: {
@@ -226,7 +247,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           mainFood: mainFood.trim(),
-          ingredients: ingredients.split(',').map(ing => ing.trim()).filter(ing => ing),
+          ingredients: allIngredients,
           filters: {
             cookingTime,
             cuisine,
@@ -373,16 +394,58 @@ export default function Home() {
                 <label className="block text-xl font-light text-slate-800 mb-4">
                   Other ingredients you have?
                 </label>
-                <input
-                  type="text"
-                  value={ingredients}
-                  onChange={(e) => setIngredients(e.target.value)}
-                  placeholder="e.g., garlic, onions, tomatoes, cheese..."
-                  className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
-                />
-                <p className="text-sm text-slate-500 mt-2">
-                  Separate ingredients with commas
-                </p>
+                
+                {/* Quick ingredient selection bubbles */}
+                <div className="mb-4">
+                  <p className="text-sm text-slate-500 mb-3">Quick select common ingredients:</p>
+                  <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
+                    {COMMON_INGREDIENTS.map((ingredient) => (
+                      <button
+                        key={ingredient}
+                        onClick={() => handleIngredientClick(ingredient)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                          selectedIngredients.includes(ingredient)
+                            ? 'bg-amber-500 text-white shadow-md'
+                            : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700'
+                        }`}
+                      >
+                        {ingredient}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Manual ingredient input */}
+                <div>
+                  <p className="text-sm text-slate-500 mb-2">Or type additional ingredients:</p>
+                  <input
+                    type="text"
+                    value={ingredients}
+                    onChange={(e) => setIngredients(e.target.value)}
+                    placeholder="e.g., garlic, onions, tomatoes, cheese..."
+                    className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
+                  />
+                  <p className="text-sm text-slate-500 mt-2">
+                    Separate ingredients with commas
+                  </p>
+                </div>
+
+                {/* Selected ingredients display */}
+                {selectedIngredients.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-slate-600 mb-2">Selected ingredients:</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {selectedIngredients.map((ingredient) => (
+                        <span
+                          key={ingredient}
+                          className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm"
+                        >
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
