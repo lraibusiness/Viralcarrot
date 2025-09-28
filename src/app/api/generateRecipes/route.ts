@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import NodeCache from 'node-cache';
+import * as cheerio from 'cheerio';
 
 // Initialize cache with 30 minute TTL
 const cache = new NodeCache({ stdTTL: 1800 });
@@ -70,77 +71,49 @@ interface NutritionData {
   fat: number;
 }
 
-interface MealDBRecipe {
-  strMeal: string;
-  strInstructions: string;
-  strMealThumb: string;
-  strCategory: string;
-  strArea: string;
-  [key: string]: string;
-}
-
-interface RecipePuppyRecipe {
-  title: string;
-  ingredients: string;
-  thumbnail: string;
-}
-
 // Enhanced API endpoints
 const MEALDB_BASE = 'https://www.themealdb.com/api/json/v1/1';
 const RECIPE_PUPPY_BASE = 'http://www.recipepuppy.com/api';
 const UNSPLASH_BASE = 'https://api.unsplash.com/search/photos';
 
-// LLM-like natural language processing templates
-const COOKING_TIPS = [
-  "💡 Pro tip: Use fresh herbs for the best flavor",
-  "🔥 Chef's secret: Let the meat rest before slicing",
-  "⏰ Timing tip: Prep all ingredients before cooking",
-  "🌶️ Flavor boost: Toast spices for enhanced aroma",
-  "🥄 Technique: Taste and adjust seasoning throughout",
-  "🔥 Heat control: Don't rush the cooking process",
-  "🧄 Fresh is best: Use fresh garlic and ginger",
-  "🍋 Brighten up: A squeeze of lemon adds freshness",
-  "🧂 Season smart: Salt in layers for better flavor",
-  "🔥 Perfect sear: Don't move the food too early"
-];
-
-const COOKING_METHODS = [
-  "Sauté until golden and fragrant",
-  "Simmer gently until tender",
-  "Roast until perfectly caramelized",
-  "Grill for beautiful char marks",
-  "Braise until fork-tender",
-  "Stir-fry until crisp-tender",
-  "Steam until just cooked through",
-  "Pan-sear for a golden crust",
-  "Slow-cook until fall-apart tender",
-  "Quick-fry for maximum flavor"
-];
-
-const FLAVOR_ENHANCERS = [
-  "with a splash of wine",
-  "seasoned with aromatic herbs",
-  "finished with a drizzle of olive oil",
-  "garnished with fresh herbs",
-  "accented with citrus zest",
-  "enhanced with umami-rich ingredients",
-  "balanced with a touch of sweetness",
-  "brightened with a squeeze of lemon",
-  "warmed with aromatic spices",
-  "elevated with quality ingredients"
-];
-
-const RECIPE_VARIATIONS = [
-  "Classic",
-  "Gourmet",
-  "Rustic",
-  "Modern",
-  "Traditional",
-  "Fusion",
-  "Elevated",
-  "Artisanal",
-  "Signature",
-  "Ultimate"
+// Web scraping sources
+const SCRAPE_SOURCES = [
+  {
+    name: 'AllRecipes',
+    baseUrl: 'https://www.allrecipes.com',
+    searchUrl: 'https://www.allrecipes.com/search?q=',
+    selectors: {
+      title: 'h1.headline, .recipe-card__title, .card__title',
+      ingredients: '.ingredients-item-name, .recipe-ingredients__item, .ingredients-section__item',
+      instructions: '.recipe-instructions__item, .instructions-section__item, .recipe-directions__item',
+      time: '.recipe-meta-item__data, .recipe-meta__item',
+      image: '.recipe-card__img, .card__img img, .recipe-image img'
+    }
+  },
+  {
+    name: 'FoodNetwork',
+    baseUrl: 'https://www.foodnetwork.com',
+    searchUrl: 'https://www.foodnetwork.com/search?q=',
+    selectors: {
+      title: 'h1.headline, .o-RecipeTitle, .recipe-title',
+      ingredients: '.o-Ingredients__a-Ingredient, .ingredients-item, .recipe-ingredients__item',
+      instructions: '.o-Method__m-Step, .directions-item, .recipe-directions__item',
+      time: '.o-RecipeInfo__a-Description, .recipe-meta-item',
+      image: '.o-AssetCard__a-Image img, .recipe-image img'
+    }
+  },
+  {
+    name: 'BBCGoodFood',
+    baseUrl: 'https://www.bbcgoodfood.com',
+    searchUrl: 'https://www.bbcgoodfood.com/search?q=',
+    selectors: {
+      title: 'h1.heading-1, .recipe-title, .post__title',
+      ingredients: '.recipe-ingredients__item, .ingredients-item',
+      instructions: '.recipe-method__item, .method-item',
+      time: '.recipe-details__item, .recipe-meta-item',
+      image: '.recipe-image img, .post__image img'
+    }
+  }
 ];
 
 // Comprehensive fallback image pools organized by food type
@@ -148,50 +121,42 @@ const FALLBACK_IMAGES = {
   chicken: [
     'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&h=400&fit=crop'
+    'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=600&h=400&fit=crop'
   ],
   beef: [
     'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1558030006-450675393462?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1551782450-17144efb9c50?w=600&h=400&fit=crop'
+    'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop'
   ],
   fish: [
     'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1535399831218-d5bd36d1a6b3?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1599084993091-1cb5c0721cc6?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1551782450-17144efb9c50?w=600&h=400&fit=crop'
+    'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=600&h=400&fit=crop'
+  ],
+  octopus: [
+    'https://images.unsplash.com/photo-1551782450-17144efb9c50?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop'
+  ],
+  seafood: [
+    'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1535399831218-d5bd36d1a6b3?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=600&h=400&fit=crop'
   ],
   pasta: [
     'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1563379091339-03246963d51a?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1572441713132-51c75654db73?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1579952363873-27d3bfad9c0d?w=600&h=400&fit=crop'
+    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&h=400&fit=crop'
   ],
   vegetables: [
     'https://images.unsplash.com/photo-1574484284002-952d92456975?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1506368249639-73a05d6f6488?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1543362906-acfc16c67564?w=600&h=400&fit=crop'
+    'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&h=400&fit=crop'
   ],
   rice: [
     'https://images.unsplash.com/photo-1604503468500-a3c769998f12?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=600&h=400&fit=crop'
+    'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600&h=400&fit=crop'
   ],
   general: [
     'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=600&h=400&fit=crop',
@@ -199,27 +164,13 @@ const FALLBACK_IMAGES = {
     'https://images.unsplash.com/photo-1604503468500-a3c769998f12?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1535399831218-d5bd36d1a6b3?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1558030006-450675393462?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1563379091339-03246963d51a?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=600&h=400&fit=crop'
+    'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=600&h=400&fit=crop'
   ]
 };
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🧠 LLM-Style Recipe Composer: Starting intelligent recipe synthesis');
+    console.log('🧠 Enhanced Recipe Composer: Starting intelligent recipe synthesis');
     
     const body = await request.json();
     const { mainFood, ingredients = [], filters = {} } = body;
@@ -234,30 +185,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Check cache first
-    const cacheKey = `llm_recipes_${mainFood}_${JSON.stringify(ingredients)}_${JSON.stringify(filters)}`;
+    const cacheKey = `enhanced_recipes_${mainFood}_${JSON.stringify(ingredients)}_${JSON.stringify(filters)}`;
     const cachedResult = cache.get(cacheKey);
     if (cachedResult) {
       console.log('⚡ API: Returning cached result');
       return NextResponse.json(cachedResult);
     }
 
-    console.log('🔍 API: Starting LLM-Style Recipe Generation');
+    console.log('🔍 API: Starting Enhanced Recipe Generation');
 
     // Clear image cache for this session to ensure fresh unique images
     const sessionKey = `images_${mainFood}_${Date.now()}`;
     imageCache.set(sessionKey, new Set());
 
-    // Step 1: Fetch multiple recipes from various sources
-    const [externalRecipes, nutritionData] = await Promise.all([
-      fetchMultipleRecipes(mainFood, ingredients, filters as RecipeFilters),
+    // Step 1: Build comprehensive search query
+    const searchQuery = buildSearchQuery(mainFood, ingredients, filters as RecipeFilters);
+    console.log('🔍 Search Query:', searchQuery);
+
+    // Step 2: Fetch recipes from multiple sources including web scraping
+    const [apiRecipes, scrapedRecipes, nutritionData] = await Promise.all([
+      fetchAPIRecipes(mainFood, ingredients, filters as RecipeFilters),
+      scrapeWebRecipes(searchQuery),
       fetchNutritionData(mainFood)
     ]);
     
-    console.log(`📊 API: Found ${externalRecipes.length} external recipes`);
+    const allRecipes = [...apiRecipes, ...scrapedRecipes];
+    console.log(`�� API: Found ${allRecipes.length} total recipes (${apiRecipes.length} API, ${scrapedRecipes.length} scraped)`);
 
-    // Step 2: LLM-style natural language processing and merging
-    const synthesizedRecipes = await processRecipesWithLLM(
-      externalRecipes, 
+    // Step 3: Enhanced recipe processing and synthesis
+    const synthesizedRecipes = await processRecipesWithEnhancedLogic(
+      allRecipes, 
       mainFood, 
       ingredients, 
       filters as RecipeFilters,
@@ -265,19 +222,22 @@ export async function POST(request: NextRequest) {
       sessionKey
     );
     
-    console.log(`🎯 API: Generated ${synthesizedRecipes.length} LLM-style recipes`);
+    console.log(`🎯 API: Generated ${synthesizedRecipes.length} enhanced recipes`);
 
     const result = {
       success: true,
       recipes: synthesizedRecipes,
       total: synthesizedRecipes.length,
-      message: `Created ${synthesizedRecipes.length} intelligent recipes by ViralCarrot LLM Composer`,
-      sources: [...new Set(externalRecipes.map(r => r.source))],
+      message: `Created ${synthesizedRecipes.length} intelligent recipes by ViralCarrot Enhanced Composer`,
+      sources: [...new Set(allRecipes.map(r => r.source))],
       searchMetadata: {
         mainFood,
+        searchQuery,
         ingredientCount: ingredients.length,
         filtersApplied: Object.keys(filters).length,
-        externalRecipesFound: externalRecipes.length
+        apiRecipesFound: apiRecipes.length,
+        scrapedRecipesFound: scrapedRecipes.length,
+        totalRecipesFound: allRecipes.length
       }
     };
 
@@ -287,11 +247,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('❌ API: Error in LLM-Style Recipe Composer:', error);
+    console.error('❌ API: Error in Enhanced Recipe Composer:', error);
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to generate intelligent recipes',
+        error: 'Failed to generate enhanced recipes',
         details: process.env.NODE_ENV === 'development' ? (error as Error)?.toString() : 'Internal server error'
       },
       { status: 500 }
@@ -299,18 +259,60 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Fetch multiple recipes from various sources
-async function fetchMultipleRecipes(
-  mainFood: string, 
-  ingredients: string[], 
-  _filters: RecipeFilters
-): Promise<ExternalRecipe[]> {
+// Build comprehensive search query using all selected fields
+function buildSearchQuery(mainFood: string, ingredients: string[], filters: RecipeFilters): string {
+  let query = mainFood;
+  
+  // Add supporting ingredients
+  if (ingredients && ingredients.length > 0) {
+    query += ` ${ingredients.join(' ')}`;
+  }
+  
+  // Add cuisine filter
+  if (filters.cuisine) {
+    query += ` ${filters.cuisine}`;
+  }
+  
+  // Add meal type filter
+  if (filters.mealType) {
+    query += ` ${filters.mealType}`;
+  }
+  
+  // Add dietary style filter
+  if (filters.dietaryStyle) {
+    query += ` ${filters.dietaryStyle}`;
+  }
+  
+  // Add cooking time context
+  if (filters.cookingTime) {
+    const timeContext = getTimeContext(filters.cookingTime);
+    if (timeContext) {
+      query += ` ${timeContext}`;
+    }
+  }
+  
+  return query.trim();
+}
+
+function getTimeContext(cookingTime: string): string {
+  const timeMap: { [key: string]: string } = {
+    '15': 'quick easy',
+    '30': 'easy',
+    '60': 'simple',
+    '120': 'traditional',
+    '240': 'slow cooked'
+  };
+  return timeMap[cookingTime] || '';
+}
+
+// Fetch recipes from API sources
+async function fetchAPIRecipes(mainFood: string, ingredients: string[], filters: RecipeFilters): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
   try {
-    // Run all searches in parallel
+    // Run API searches in parallel
     const searchPromises = [
-      searchTheMealDB(mainFood, _filters),
+      searchTheMealDB(mainFood, filters),
       searchRecipePuppy(mainFood, ingredients)
     ];
 
@@ -319,30 +321,174 @@ async function fetchMultipleRecipes(
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         recipes.push(...result.value);
-        console.log(`✅ Source ${index + 1} completed: ${result.value.length} recipes`);
+        console.log(`✅ API Source ${index + 1} completed: ${result.value.length} recipes`);
       } else {
-        console.warn(`⚠️ Source ${index + 1} failed:`, result.reason);
+        console.warn(`⚠️ API Source ${index + 1} failed:`, result.reason);
       }
     });
 
-    // Filter and deduplicate
-    const filteredRecipes = recipes
-      .filter(recipe => includesMainIngredient(recipe, mainFood))
-      .filter(recipe => matchUserIngredients(recipe, ingredients))
-      .filter(recipe => matchFilters(recipe, _filters))
-      .sort((a, b) => calculateRelevanceScore(b, mainFood, ingredients) - calculateRelevanceScore(a, mainFood, ingredients))
-      .slice(0, 20); // Get more recipes for better merging
-
-    return removeDuplicateRecipes(filteredRecipes);
+    return recipes;
 
   } catch (error) {
-    console.error('❌ Error in multi-source recipe fetch:', error);
+    console.error('❌ Error in API recipe fetch:', error);
     return [];
   }
 }
 
-// LLM-style natural language processing and recipe generation
-async function processRecipesWithLLM(
+// Scrape recipes from web sources
+async function scrapeWebRecipes(searchQuery: string): Promise<ExternalRecipe[]> {
+  const recipes: ExternalRecipe[] = [];
+  
+  try {
+    // Scrape from multiple sources in parallel
+    const scrapePromises = SCRAPE_SOURCES.map(source => 
+      scrapeSource(source, searchQuery)
+    );
+
+    const results = await Promise.allSettled(scrapePromises);
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        recipes.push(...result.value);
+        console.log(`✅ Scraped Source ${index + 1} completed: ${result.value.length} recipes`);
+      } else {
+        console.warn(`⚠️ Scraped Source ${index + 1} failed:`, result.reason);
+      }
+    });
+
+    return recipes;
+
+  } catch (error) {
+    console.error('❌ Error in web scraping:', error);
+    return [];
+  }
+}
+
+// Scrape a specific source
+async function scrapeSource(source: any, searchQuery: string): Promise<ExternalRecipe[]> {
+  try {
+    const searchUrl = `${source.searchUrl}${encodeURIComponent(searchQuery)}`;
+    console.log(`🔍 Scraping ${source.name}: ${searchUrl}`);
+    
+    const response = await axios.get(searchUrl, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+    const recipes: ExternalRecipe[] = [];
+
+    // Find recipe links
+    const recipeLinks: string[] = [];
+    $('a[href*="recipe"], a[href*="Recipe"]').each((_, element) => {
+      const href = $(element).attr('href');
+      if (href && !recipeLinks.includes(href)) {
+        const fullUrl = href.startsWith('http') ? href : `${source.baseUrl}${href}`;
+        recipeLinks.push(fullUrl);
+      }
+    });
+
+    // Limit to first 3 recipe links to avoid overwhelming
+    const limitedLinks = recipeLinks.slice(0, 3);
+
+    // Scrape each recipe
+    for (const link of limitedLinks) {
+      try {
+        const recipe = await scrapeRecipePage(link, source);
+        if (recipe) {
+          recipes.push(recipe);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to scrape recipe from ${link}:`, error);
+      }
+    }
+
+    return recipes;
+
+  } catch (error) {
+    console.error(`❌ Error scraping ${source.name}:`, error);
+    return [];
+  }
+}
+
+// Scrape individual recipe page
+async function scrapeRecipePage(url: string, source: any): Promise<ExternalRecipe | null> {
+  try {
+    const response = await axios.get(url, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+
+    // Extract recipe data using selectors
+    const title = $(source.selectors.title).first().text().trim();
+    if (!title) return null;
+
+    const ingredients: string[] = [];
+    $(source.selectors.ingredients).each((_, element) => {
+      const ingredient = $(element).text().trim();
+      if (ingredient) {
+        ingredients.push(ingredient);
+      }
+    });
+
+    const steps: string[] = [];
+    $(source.selectors.instructions).each((_, element) => {
+      const step = $(element).text().trim();
+      if (step) {
+        steps.push(step);
+      }
+    });
+
+    const image = $(source.selectors.image).first().attr('src') || '';
+
+    // Extract cooking time
+    let cookingTime = 30; // default
+    $(source.selectors.time).each((_, element) => {
+      const timeText = $(element).text().toLowerCase();
+      if (timeText.includes('min') || timeText.includes('hour')) {
+        const timeMatch = timeText.match(/(\d+)/);
+        if (timeMatch) {
+          cookingTime = parseInt(timeMatch[1]);
+          if (timeText.includes('hour')) {
+            cookingTime *= 60;
+          }
+        }
+      }
+    });
+
+    if (ingredients.length === 0 || steps.length === 0) {
+      return null;
+    }
+
+    return {
+      title,
+      ingredients,
+      steps,
+      cookingTime,
+      cuisine: 'International',
+      mealType: 'dinner',
+      image,
+      source: source.name,
+      rating: 4.0,
+      difficulty: 'Medium',
+      servings: 4,
+      description: `A delicious ${title} recipe from ${source.name}`
+    };
+
+  } catch (error) {
+    console.error(`❌ Error scraping recipe page ${url}:`, error);
+    return null;
+  }
+}
+
+// Enhanced recipe processing with better logic
+async function processRecipesWithEnhancedLogic(
   externalRecipes: ExternalRecipe[],
   mainFood: string,
   ingredients: string[],
@@ -352,10 +498,21 @@ async function processRecipesWithLLM(
 ): Promise<SynthesizedRecipe[]> {
   const synthesizedRecipes: SynthesizedRecipe[] = [];
   
-  // Generate maximum 6 unique recipes using LLM-style processing
-  for (let i = 0; i < 6; i++) {
-    const recipe = await generateLLMRecipe(
-      externalRecipes, 
+  // Filter and sort recipes by relevance
+  const relevantRecipes = externalRecipes
+    .filter(recipe => includesMainIngredient(recipe, mainFood))
+    .filter(recipe => matchUserIngredients(recipe, ingredients))
+    .filter(recipe => matchFilters(recipe, filters))
+    .sort((a, b) => calculateRelevanceScore(b, mainFood, ingredients) - calculateRelevanceScore(a, mainFood, ingredients));
+
+  console.log(`📊 Filtered to ${relevantRecipes.length} relevant recipes`);
+
+  // Generate up to 6 unique recipes
+  const maxRecipes = Math.min(6, relevantRecipes.length);
+  
+  for (let i = 0; i < maxRecipes; i++) {
+    const recipe = await generateEnhancedRecipe(
+      relevantRecipes, 
       mainFood, 
       ingredients, 
       filters, 
@@ -369,9 +526,9 @@ async function processRecipesWithLLM(
   return synthesizedRecipes;
 }
 
-// Generate a single LLM-style recipe
-async function generateLLMRecipe(
-  externalRecipes: ExternalRecipe[],
+// Generate enhanced recipe with better logic
+async function generateEnhancedRecipe(
+  relevantRecipes: ExternalRecipe[],
   mainFood: string,
   ingredients: string[],
   filters: RecipeFilters,
@@ -380,85 +537,181 @@ async function generateLLMRecipe(
   sessionKey: string
 ): Promise<SynthesizedRecipe> {
   // Select base recipes for merging (2-3 recipes)
-  const baseRecipes = selectBaseRecipes(externalRecipes, index);
+  const baseRecipes = selectBaseRecipes(relevantRecipes, index);
   
   // Generate unique title with variation
-  const title = generateLLMTitle(mainFood, baseRecipes, index);
+  const title = generateEnhancedTitle(mainFood, baseRecipes, index);
   
   // Merge and enhance ingredients
-  const mergedIngredients = mergeIngredientsLLM(baseRecipes, mainFood, ingredients);
+  const mergedIngredients = mergeIngredientsEnhanced(baseRecipes, mainFood, ingredients);
   
   // Generate intelligent cooking steps
-  const cookingSteps = generateLLMSteps(mainFood, baseRecipes, mergedIngredients, index);
+  const cookingSteps = generateEnhancedSteps(mainFood, baseRecipes, mergedIngredients, index);
   
-  // Determine cuisine and meal type first (needed for image selection)
-  const cuisine = determineCuisineLLM(baseRecipes, filters);
-  const mealType = determineMealTypeLLM(baseRecipes, filters);
+  // Determine cuisine and meal type
+  const cuisine = determineCuisineEnhanced(baseRecipes, filters);
+  const mealType = determineMealTypeEnhanced(baseRecipes, filters);
   
-  // Get appropriate unique image with full context
-  const image = await getUniqueRecipeImage(title, mainFood, cuisine, mealType, index, sessionKey);
+  // Get appropriate unique image
+  const image = await getEnhancedRecipeImage(title, mainFood, cuisine, mealType, index, sessionKey);
   
   // Generate description
-  const description = generateLLMDescription(title, mainFood, cuisine, mealType);
+  const description = generateEnhancedDescription(title, mainFood, cuisine, mealType);
   
-  // Calculate cooking time
-  const cookingTime = calculateCookingTimeLLM(baseRecipes, mainFood, mealType);
+  // Calculate match score
+  const matchScore = calculateMatchScore(baseRecipes, mainFood, ingredients);
   
   // Generate tags
-  const tags = generateLLMTags(mainFood, cuisine, mealType, mergedIngredients);
+  const tags = generateEnhancedTags(mainFood, cuisine, mealType, filters);
   
   return {
-    id: `viral-llm-${Date.now()}-${index}`,
+    id: `enhanced-${Date.now()}-${index}`,
     title,
     image,
     description,
     ingredients: mergedIngredients,
     steps: cookingSteps,
-    cookingTime,
+    cookingTime: calculateCookingTime(baseRecipes, filters),
     cuisine,
     mealType,
-    dietaryStyle: determineDietaryStyleLLM(mergedIngredients),
+    dietaryStyle: filters.dietaryStyle,
     tags,
-    createdBy: 'ViralCarrot LLM Chef',
-    matchScore: 9.0 + (Math.random() * 0.9), // High match score for LLM recipes
-    rating: 4.5 + (Math.random() * 0.4), // High rating
-    difficulty: determineDifficultyLLM(mainFood, mealType, cookingSteps.length),
-    servings: 4 + Math.floor(Math.random() * 4), // 4-7 servings
-    nutrition: nutritionData,
-    seoDescription: generateSEODescription(title, mainFood, cuisine, mealType)
+    createdBy: 'ViralCarrot Enhanced Composer',
+    matchScore,
+    rating: 4.2 + (Math.random() * 0.8), // 4.2-5.0 rating
+    difficulty: determineDifficulty(baseRecipes),
+    servings: 4,
+    nutrition: {
+      calories: nutritionData.calories + Math.floor(Math.random() * 200),
+      protein: nutritionData.protein + Math.floor(Math.random() * 20),
+      carbs: nutritionData.carbs + Math.floor(Math.random() * 30),
+      fat: nutritionData.fat + Math.floor(Math.random() * 15)
+    },
+    seoDescription: `${title} - A delicious ${cuisine} ${mealType} recipe featuring ${mainFood}. Perfect for any occasion.`
   };
 }
 
-// IMPROVED IMAGE SYSTEM: Get unique, contextual images for each recipe
-async function getUniqueRecipeImage(
-  title: string, 
-  mainFood: string, 
-  cuisine: string, 
-  mealType: string, 
-  index: number,
-  sessionKey: string
-): Promise<string> {
-  console.log(`🖼️ Getting unique image for recipe ${index + 1}: ${title}`);
-  
-  // Get used images set for this session
-  const usedImages = imageCache.get(sessionKey) as Set<string> || new Set<string>();
-  
-  // Create multiple search strategies for variety
-  const searchStrategies = [
-    `${mainFood} ${cuisine} food photography`,
-    `${mainFood} ${mealType} dish plated`,
-    `${mainFood} recipe ${cuisine} cuisine`,
-    `delicious ${mainFood} meal served`,
-    `${mainFood} cooking ${mealType}`,
-    `professional ${mainFood} food photo`
+// Enhanced title generation
+function generateEnhancedTitle(mainFood: string, baseRecipes: ExternalRecipe[], index: number): string {
+  const titleVariations = [
+    `Delicious ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
+    `Perfect ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Dish`,
+    `Amazing ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Creation`,
+    `Gourmet ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`,
+    `Chef's ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Special`,
+    `Ultimate ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`
   ];
   
-  // Use different strategy for each recipe index
-  const query = searchStrategies[index % searchStrategies.length];
+  if (baseRecipes.length > 0) {
+    const baseTitle = baseRecipes[0].title;
+    const words = baseTitle.split(' ');
+    if (words.length > 2) {
+      return `${words.slice(0, 2).join(' ')} ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`;
+    }
+  }
   
+  return titleVariations[index % titleVariations.length];
+}
+
+// Enhanced ingredient merging
+function mergeIngredientsEnhanced(baseRecipes: ExternalRecipe[], mainFood: string, userIngredients: string[]): string[] {
+  const allIngredients = new Set<string>();
+  
+  // Add main food
+  allIngredients.add(mainFood);
+  
+  // Add user ingredients
+  userIngredients.forEach(ingredient => {
+    if (ingredient.trim()) {
+      allIngredients.add(ingredient.trim());
+    }
+  });
+  
+  // Add ingredients from base recipes
+  baseRecipes.forEach(recipe => {
+    recipe.ingredients.forEach(ingredient => {
+      if (ingredient.trim()) {
+        allIngredients.add(ingredient.trim());
+      }
+    });
+  });
+  
+  // Convert to array and limit to 12 ingredients
+  return Array.from(allIngredients).slice(0, 12);
+}
+
+// Enhanced step generation
+function generateEnhancedSteps(mainFood: string, baseRecipes: ExternalRecipe[], ingredients: string[], index: number): string[] {
+  const steps: string[] = [];
+  
+  // Preparation step
+  steps.push(`Prepare the ${mainFood} by cleaning and cutting as needed.`);
+  
+  // Ingredient preparation
+  if (ingredients.length > 1) {
+    steps.push(`Gather all ingredients: ${ingredients.slice(1, 4).join(', ')}.`);
+  }
+  
+  // Cooking steps based on main food type
+  if (mainFood.toLowerCase().includes('octopus') || mainFood.toLowerCase().includes('seafood')) {
+    steps.push(`Heat a large pan over medium-high heat and add olive oil.`);
+    steps.push(`Cook the ${mainFood} for 3-4 minutes per side until golden brown.`);
+    steps.push(`Add garlic, herbs, and seasonings to the pan.`);
+    steps.push(`Continue cooking for another 2-3 minutes until fragrant.`);
+  } else if (mainFood.toLowerCase().includes('chicken')) {
+    steps.push(`Season the ${mainFood} with salt, pepper, and your favorite spices.`);
+    steps.push(`Heat oil in a large skillet over medium-high heat.`);
+    steps.push(`Cook the ${mainFood} for 6-8 minutes per side until golden and cooked through.`);
+  } else {
+    steps.push(`Heat oil in a large pan over medium heat.`);
+    steps.push(`Add the ${mainFood} and cook until tender, about 10-15 minutes.`);
+    steps.push(`Season with salt, pepper, and herbs to taste.`);
+  }
+  
+  // Finishing steps
+  steps.push(`Taste and adjust seasoning as needed.`);
+  steps.push(`Serve hot and enjoy your delicious ${mainFood} creation!`);
+  
+  return steps;
+}
+
+// Enhanced cuisine determination
+function determineCuisineEnhanced(baseRecipes: ExternalRecipe[], filters: RecipeFilters): string {
+  if (filters.cuisine) {
+    return filters.cuisine.charAt(0).toUpperCase() + filters.cuisine.slice(1);
+  }
+  
+  const cuisines = baseRecipes.map(recipe => recipe.cuisine).filter(Boolean);
+  if (cuisines.length > 0) {
+    return cuisines[0];
+  }
+  
+  return 'International';
+}
+
+// Enhanced meal type determination
+function determineMealTypeEnhanced(baseRecipes: ExternalRecipe[], filters: RecipeFilters): string {
+  if (filters.mealType) {
+    return filters.mealType.charAt(0).toUpperCase() + filters.mealType.slice(1);
+  }
+  
+  const mealTypes = baseRecipes.map(recipe => recipe.mealType).filter(Boolean);
+  if (mealTypes.length > 0) {
+    return mealTypes[0];
+  }
+  
+  return 'Dinner';
+}
+
+// Enhanced image selection
+async function getEnhancedRecipeImage(title: string, mainFood: string, cuisine: string, mealType: string, index: number, sessionKey: string): Promise<string> {
   try {
-    // Try Unsplash with contextual search
-    const response = await axios.get(`${UNSPLASH_BASE}?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`, {
+    // Get used images for this session
+    const usedImages = imageCache.get(sessionKey) as Set<string> || new Set();
+    
+    // Try Unsplash first
+    const unsplashQuery = `${mainFood} ${cuisine} ${mealType} recipe food`;
+    const response = await axios.get(`${UNSPLASH_BASE}?query=${encodeURIComponent(unsplashQuery)}&per_page=10&orientation=landscape`, {
       headers: {
         'Authorization': `Client-ID ${process.env.UNSPLASH_ACCESS_KEY || 'demo'}`
       },
@@ -466,315 +719,85 @@ async function getUniqueRecipeImage(
     });
     
     if (response.data.results && response.data.results.length > 0) {
-      // Find first unused image
       for (const result of response.data.results) {
         const imageUrl = result.urls.regular;
         if (!usedImages.has(imageUrl)) {
           usedImages.add(imageUrl);
           imageCache.set(sessionKey, usedImages);
-          console.log(`✅ Found unique Unsplash image for recipe ${index + 1}`);
           return imageUrl;
         }
       }
     }
   } catch (error) {
-    console.error(`❌ Unsplash image fetch error for recipe ${index + 1}:`, error);
+    console.error('❌ Unsplash image fetch error:', error);
   }
   
-  // Fallback to curated images with food type matching
-  const fallbackImage = getUniqueFallbackImage(mainFood, index, usedImages);
-  usedImages.add(fallbackImage);
-  imageCache.set(sessionKey, usedImages);
+  // Fallback to curated images
+  const foodType = getFoodType(mainFood);
+  const fallbackImages = FALLBACK_IMAGES[foodType] || FALLBACK_IMAGES.general;
+  const availableImages = fallbackImages.filter(img => !usedImages.has(img));
   
-  console.log(`📷 Using fallback image for recipe ${index + 1}`);
-  return fallbackImage;
-}
-
-// Get unique fallback image based on food type and ensure no duplicates
-function getUniqueFallbackImage(mainFood: string, index: number, usedImages: Set<string>): string {
-  // Determine food category
-  const foodLower = mainFood.toLowerCase();
-  let imagePool = FALLBACK_IMAGES.general;
-  
-  if (foodLower.includes('chicken') || foodLower.includes('poultry')) {
-    imagePool = FALLBACK_IMAGES.chicken;
-  } else if (foodLower.includes('beef') || foodLower.includes('steak') || foodLower.includes('meat')) {
-    imagePool = FALLBACK_IMAGES.beef;
-  } else if (foodLower.includes('fish') || foodLower.includes('salmon') || foodLower.includes('seafood')) {
-    imagePool = FALLBACK_IMAGES.fish;
-  } else if (foodLower.includes('pasta') || foodLower.includes('spaghetti') || foodLower.includes('noodle')) {
-    imagePool = FALLBACK_IMAGES.pasta;
-  } else if (foodLower.includes('vegetable') || foodLower.includes('salad') || foodLower.includes('veggie')) {
-    imagePool = FALLBACK_IMAGES.vegetables;
-  } else if (foodLower.includes('rice') || foodLower.includes('grain')) {
-    imagePool = FALLBACK_IMAGES.rice;
+  if (availableImages.length > 0) {
+    const selectedImage = availableImages[index % availableImages.length];
+    usedImages.add(selectedImage);
+    imageCache.set(sessionKey, usedImages);
+    return selectedImage;
   }
   
-  // Find unused image from the pool
-  for (let i = 0; i < imagePool.length; i++) {
-    const imageIndex = (index + i) % imagePool.length;
-    const imageUrl = imagePool[imageIndex];
-    if (!usedImages.has(imageUrl)) {
-      return imageUrl;
-    }
+  // Final fallback
+  return FALLBACK_IMAGES.general[index % FALLBACK_IMAGES.general.length];
+}
+
+function getFoodType(mainFood: string): string {
+  const food = mainFood.toLowerCase();
+  if (food.includes('chicken')) return 'chicken';
+  if (food.includes('beef') || food.includes('steak')) return 'beef';
+  if (food.includes('fish') || food.includes('salmon') || food.includes('tuna')) return 'fish';
+  if (food.includes('octopus') || food.includes('squid') || food.includes('shrimp')) return 'seafood';
+  if (food.includes('pasta') || food.includes('spaghetti')) return 'pasta';
+  if (food.includes('rice')) return 'rice';
+  if (food.includes('vegetable') || food.includes('broccoli')) return 'vegetables';
+  return 'general';
+}
+
+// Enhanced description generation
+function generateEnhancedDescription(title: string, mainFood: string, cuisine: string, mealType: string): string {
+  return `A delicious ${cuisine} ${mealType} recipe featuring ${mainFood}. This ${title.toLowerCase()} combines fresh ingredients with traditional cooking techniques to create a memorable dining experience. Perfect for any occasion.`;
+}
+
+// Enhanced tag generation
+function generateEnhancedTags(mainFood: string, cuisine: string, mealType: string, filters: RecipeFilters): string[] {
+  const tags = [cuisine.toLowerCase(), mealType.toLowerCase(), 'viralcarrot'];
+  
+  if (filters.dietaryStyle) {
+    tags.push(filters.dietaryStyle.toLowerCase());
   }
   
-  // If all images in category are used, use general pool
-  if (imagePool !== FALLBACK_IMAGES.general) {
-    for (let i = 0; i < FALLBACK_IMAGES.general.length; i++) {
-      const imageIndex = (index + i) % FALLBACK_IMAGES.general.length;
-      const imageUrl = FALLBACK_IMAGES.general[imageIndex];
-      if (!usedImages.has(imageUrl)) {
-        return imageUrl;
-      }
-    }
+  if (mainFood.toLowerCase().includes('octopus') || mainFood.toLowerCase().includes('seafood')) {
+    tags.push('seafood', 'mediterranean');
   }
   
-  // Last resort: return any image (shouldn't happen with 20+ fallback images)
-  return imagePool[index % imagePool.length];
+  return tags;
 }
 
-// Select 2-3 base recipes for merging
-function selectBaseRecipes(externalRecipes: ExternalRecipe[], index: number): ExternalRecipe[] {
-  if (externalRecipes.length === 0) return [];
-  
-  const numRecipes = Math.min(3, externalRecipes.length);
-  const startIndex = (index * 2) % externalRecipes.length;
-  
-  const selected = [];
-  for (let i = 0; i < numRecipes; i++) {
-    const recipeIndex = (startIndex + i) % externalRecipes.length;
-    selected.push(externalRecipes[recipeIndex]);
-  }
-  
-  return selected;
+// Helper functions
+function selectBaseRecipes(recipes: ExternalRecipe[], index: number): ExternalRecipe[] {
+  const startIndex = index * 2;
+  return recipes.slice(startIndex, startIndex + 2);
 }
 
-// Generate unique title with LLM-style variations
-function generateLLMTitle(mainFood: string, baseRecipes: ExternalRecipe[], index: number): string {
-  const variation = RECIPE_VARIATIONS[index % RECIPE_VARIATIONS.length];
-  const method = COOKING_METHODS[index % COOKING_METHODS.length];
-  const enhancer = FLAVOR_ENHANCERS[index % FLAVOR_ENHANCERS.length];
-  
-  const titles = [
-    `${variation} ${mainFood} ${method.split(' ')[0]} Recipe`,
-    `Chef's ${mainFood} ${method.split(' ')[0]} ${variation}`,
-    `${mainFood} ${method.split(' ')[0]} ${enhancer.split(' ')[0]} Delight`,
-    `Ultimate ${mainFood} ${method.split(' ')[0]} Experience`,
-    `${variation} ${mainFood} ${enhancer.split(' ')[0]} Creation`
-  ];
-  
-  return titles[index % titles.length];
-}
-
-// Merge ingredients using LLM-style logic
-function mergeIngredientsLLM(baseRecipes: ExternalRecipe[], mainFood: string, userIngredients: string[]): string[] {
-  const allIngredients = new Set<string>();
-  
-  // Add main food
-  allIngredients.add(`1 lb ${mainFood}`);
-  
-  // Merge ingredients from base recipes
-  baseRecipes.forEach(recipe => {
-    recipe.ingredients.forEach(ingredient => {
-      if (ingredient.trim() && !ingredient.toLowerCase().includes(mainFood.toLowerCase())) {
-        allIngredients.add(ingredient.trim());
-      }
-    });
-  });
-  
-  // Add user ingredients
-  userIngredients.forEach(ingredient => {
-    if (ingredient.trim()) {
-      allIngredients.add(`1 cup ${ingredient.trim()}`);
-    }
-  });
-  
-  // Add common cooking ingredients
-  const commonIngredients = [
-    '2 tablespoons olive oil',
-    '1 medium onion, diced',
-    '2 cloves garlic, minced',
-    'Salt and pepper to taste',
-    '1 teaspoon herbs (optional)',
-    '2 tablespoons butter',
-    '1 tablespoon fresh herbs',
-    '1 lemon, juiced'
-  ];
-  
-  commonIngredients.forEach(ingredient => allIngredients.add(ingredient));
-  
-  return Array.from(allIngredients).slice(0, 15);
-}
-
-// Generate intelligent cooking steps with LLM-style processing
-function generateLLMSteps(mainFood: string, baseRecipes: ExternalRecipe[], ingredients: string[], index: number): string[] {
-  const steps = [];
-  
-  // Preparation steps
-  steps.push(`Wash and prepare the ${mainFood}, trimming any excess fat or unwanted parts.`);
-  steps.push('Gather all your ingredients and have them ready for cooking.');
-  
-  // Add cooking tip
-  const tip = COOKING_TIPS[index % COOKING_TIPS.length];
-  steps.push(tip);
-  
-  // Main cooking steps (merged from base recipes)
-  const baseSteps = baseRecipes.flatMap(recipe => recipe.steps).filter(step => step.trim());
-  
-  if (baseSteps.length > 0) {
-    // Select and merge the best steps
-    const selectedSteps = baseSteps.slice(0, 4);
-    selectedSteps.forEach(step => {
-      if (step.length > 20) { // Only use substantial steps
-        steps.push(step);
-      }
-    });
-  } else {
-    // Generate steps if no base steps available
-    const method = COOKING_METHODS[index % COOKING_METHODS.length];
-    const enhancer = FLAVOR_ENHANCERS[index % FLAVOR_ENHANCERS.length];
-    
-    steps.push(`Heat oil in a large pan over medium-high heat.`);
-    steps.push(`Add the ${mainFood} and ${method.toLowerCase()}.`);
-    steps.push(`Add aromatics and ${enhancer.toLowerCase()}.`);
-    steps.push('Season with salt and pepper to taste.');
-  }
-  
-  // Finishing steps
-  steps.push('Taste and adjust seasoning as needed.');
-  steps.push('Let the dish rest for 2-3 minutes before serving.');
-  steps.push('Garnish with fresh herbs and serve immediately.');
-  
-  return steps;
-}
-
-// LLM-style description generation
-function generateLLMDescription(title: string, mainFood: string, cuisine: string, mealType: string): string {
-  const descriptions = [
-    `${title} is a sophisticated ${cuisine} dish that showcases the natural flavors of ${mainFood}. This ${mealType.toLowerCase()} recipe combines traditional techniques with modern culinary insights for an unforgettable dining experience.`,
-    `Experience the rich complexity of ${cuisine} cuisine with this exceptional ${mainFood} recipe. Perfect for ${mealType.toLowerCase()}, this dish brings together premium ingredients and expert cooking methods for a truly memorable meal.`,
-    `This ${cuisine} ${mainFood} creation is a testament to culinary artistry, blending authentic flavors with contemporary presentation. Ideal for ${mealType.toLowerCase()}, it promises to delight your taste buds with every bite.`
-  ];
-  
-  return descriptions[Math.floor(Math.random() * descriptions.length)];
-}
-
-// Determine cuisine using LLM-style logic
-function determineCuisineLLM(baseRecipes: ExternalRecipe[], filters: RecipeFilters): string {
-  if (filters.cuisine) return filters.cuisine;
-  
-  const cuisines = baseRecipes.map(r => r.cuisine).filter(Boolean) as string[];
-  if (cuisines.length > 0) {
-    return cuisines[0];
-  }
-  
-  const cuisineOptions = ['Italian', 'Asian', 'Mediterranean', 'American', 'French', 'Mexican'];
-  return cuisineOptions[Math.floor(Math.random() * cuisineOptions.length)];
-}
-
-// Determine meal type using LLM-style logic
-function determineMealTypeLLM(baseRecipes: ExternalRecipe[], filters: RecipeFilters): string {
-  if (filters.mealType) return filters.mealType;
-  
-  const mealTypes = baseRecipes.map(r => r.mealType).filter(Boolean) as string[];
-  if (mealTypes.length > 0) {
-    return mealTypes[0];
-  }
-  
-  const mealTypeOptions = ['Dinner', 'Lunch', 'Breakfast', 'Brunch'];
-  return mealTypeOptions[Math.floor(Math.random() * mealTypeOptions.length)];
-}
-
-// Calculate cooking time using LLM-style logic
-function calculateCookingTimeLLM(baseRecipes: ExternalRecipe[], mainFood: string, mealType: string): number {
-  const baseTimes = baseRecipes.map(r => r.cookingTime).filter(t => t > 0);
-  if (baseTimes.length > 0) {
-    const avgTime = baseTimes.reduce((a, b) => a + b, 0) / baseTimes.length;
-    return Math.round(avgTime);
-  }
-  
-  const baseTime = {
-    'chicken': 25,
-    'beef': 35,
-    'fish': 15,
-    'vegetables': 20,
-    'pasta': 20
-  };
-  
-  const foodTime = Object.entries(baseTime).find(([food]) => 
-    mainFood.toLowerCase().includes(food)
-  )?.[1] || 30;
-  
-  return foodTime + (mealType.toLowerCase().includes('soup') ? 15 : 0);
-}
-
-// Generate LLM-style tags
-function generateLLMTags(mainFood: string, cuisine: string, mealType: string, ingredients: string[]): string[] {
-  const tags = [
-    mainFood.toLowerCase(),
-    'viral-carrot',
-    'llm-generated',
-    cuisine.toLowerCase(),
-    mealType.toLowerCase()
-  ];
-  
-  // Add ingredient-based tags
-  ingredients.slice(0, 3).forEach(ingredient => {
-    const keyIngredient = ingredient.split(',')[0].trim().toLowerCase();
-    if (keyIngredient.length > 3) {
-      tags.push(keyIngredient);
-    }
-  });
-  
-  return [...new Set(tags)];
-}
-
-// Determine dietary style using LLM logic
-function determineDietaryStyleLLM(ingredients: string[]): string {
-  const lowerIngredients = ingredients.map(ing => ing.toLowerCase());
-  
-  if (lowerIngredients.some(ing => ing.includes('vegan') || ing.includes('tofu'))) return 'Vegan';
-  if (lowerIngredients.some(ing => ing.includes('vegetarian') || ing.includes('cheese'))) return 'Vegetarian';
-  if (lowerIngredients.some(ing => ing.includes('gluten-free'))) return 'Gluten-Free';
-  if (lowerIngredients.some(ing => ing.includes('keto'))) return 'Keto';
-  
-  return 'Regular';
-}
-
-// Determine difficulty using LLM logic
-function determineDifficultyLLM(mainFood: string, mealType: string, stepCount: number): string {
-  if (mealType.toLowerCase().includes('soup') || mealType.toLowerCase().includes('salad')) return 'Easy';
-  if (mainFood.toLowerCase().includes('beef') || mainFood.toLowerCase().includes('lamb')) return 'Hard';
-  if (stepCount > 8) return 'Hard';
-  if (stepCount > 5) return 'Medium';
-  return 'Easy';
-}
-
-// Generate SEO description
-function generateSEODescription(title: string, mainFood: string, cuisine: string, mealType: string): string {
-  return `${title} - A delicious ${cuisine} ${mainFood} recipe perfect for ${mealType.toLowerCase()}. Learn how to make this authentic dish with step-by-step instructions, ingredients, and cooking tips. Discover the best ${mainFood} recipes on ViralCarrot.`;
-}
-
-// Utility functions
 function includesMainIngredient(recipe: ExternalRecipe, mainFood: string): boolean {
-  const titleMatch = recipe.title.toLowerCase().includes(mainFood.toLowerCase());
-  const ingredientMatch = recipe.ingredients.some(ing => 
-    ing.toLowerCase().includes(mainFood.toLowerCase())
-  );
-  return titleMatch || ingredientMatch;
+  const searchText = `${recipe.title} ${recipe.ingredients.join(' ')}`.toLowerCase();
+  return searchText.includes(mainFood.toLowerCase());
 }
 
 function matchUserIngredients(recipe: ExternalRecipe, userIngredients: string[]): boolean {
   if (userIngredients.length === 0) return true;
   
-  const matchCount = userIngredients.filter(userIng => 
-    recipe.ingredients.some(recipeIng => 
-      recipeIng.toLowerCase().includes(userIng.toLowerCase())
-    )
-  ).length;
-  
-  return matchCount >= Math.ceil(userIngredients.length * 0.3);
+  const recipeText = `${recipe.title} ${recipe.ingredients.join(' ')}`.toLowerCase();
+  return userIngredients.some(ingredient => 
+    recipeText.includes(ingredient.toLowerCase())
+  );
 }
 
 function matchFilters(recipe: ExternalRecipe, filters: RecipeFilters): boolean {
@@ -787,49 +810,77 @@ function matchFilters(recipe: ExternalRecipe, filters: RecipeFilters): boolean {
   if (filters.dietaryStyle && recipe.dietaryStyle && !recipe.dietaryStyle.toLowerCase().includes(filters.dietaryStyle.toLowerCase())) {
     return false;
   }
-  if (filters.cookingTime) {
-    const timeLimit = parseInt(filters.cookingTime);
-    if (recipe.cookingTime > timeLimit) return false;
-  }
   return true;
 }
 
 function calculateRelevanceScore(recipe: ExternalRecipe, mainFood: string, ingredients: string[]): number {
-  let score = 5.0;
+  let score = 0;
   
-  if (recipe.title.toLowerCase().includes(mainFood.toLowerCase())) score += 3.0;
+  // Title match
+  if (recipe.title.toLowerCase().includes(mainFood.toLowerCase())) {
+    score += 10;
+  }
   
-  const ingredientMatches = ingredients.filter(ing => 
-    recipe.ingredients.some(recipeIng => 
-      recipeIng.toLowerCase().includes(ing.toLowerCase())
-    )
-  ).length;
-  score += (ingredientMatches / Math.max(ingredients.length, 1)) * 2.0;
+  // Ingredient match
+  const recipeText = recipe.ingredients.join(' ').toLowerCase();
+  if (recipeText.includes(mainFood.toLowerCase())) {
+    score += 5;
+  }
   
-  if (recipe.rating) score += recipe.rating * 0.5;
+  // User ingredient matches
+  ingredients.forEach(ingredient => {
+    if (recipeText.includes(ingredient.toLowerCase())) {
+      score += 2;
+    }
+  });
   
-  return Math.min(score, 10.0);
+  return score;
 }
 
-function removeDuplicateRecipes(recipes: ExternalRecipe[]): ExternalRecipe[] {
-  const seen = new Set<string>();
-  return recipes.filter(recipe => {
-    const key = recipe.title.toLowerCase().trim();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+function calculateMatchScore(baseRecipes: ExternalRecipe[], mainFood: string, ingredients: string[]): number {
+  if (baseRecipes.length === 0) return 0.5;
+  
+  let totalScore = 0;
+  baseRecipes.forEach(recipe => {
+    totalScore += calculateRelevanceScore(recipe, mainFood, ingredients);
   });
+  
+  return Math.min(totalScore / (baseRecipes.length * 20), 1);
+}
+
+function calculateCookingTime(baseRecipes: ExternalRecipe[], filters: RecipeFilters): number {
+  if (filters.cookingTime) {
+    return parseInt(filters.cookingTime);
+  }
+  
+  if (baseRecipes.length > 0) {
+    const avgTime = baseRecipes.reduce((sum, recipe) => sum + recipe.cookingTime, 0) / baseRecipes.length;
+    return Math.round(avgTime);
+  }
+  
+  return 30;
+}
+
+function determineDifficulty(baseRecipes: ExternalRecipe[]): string {
+  if (baseRecipes.length === 0) return 'Medium';
+  
+  const difficulties = baseRecipes.map(recipe => recipe.difficulty).filter(Boolean);
+  if (difficulties.length > 0) {
+    return difficulties[0];
+  }
+  
+  return 'Medium';
 }
 
 // API search functions
-async function searchTheMealDB(mainFood: string, _filters: RecipeFilters): Promise<ExternalRecipe[]> {
+async function searchTheMealDB(mainFood: string, filters: RecipeFilters): Promise<ExternalRecipe[]> {
   try {
     const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
     if (response.data.meals) {
-      return response.data.meals.slice(0, 3).map((meal: MealDBRecipe) => ({
+      return response.data.meals.slice(0, 5).map((meal: any) => ({
         title: meal.strMeal,
         ingredients: extractMealDBIngredients(meal),
-        steps: meal.strInstructions ? meal.strInstructions.split('\n').filter(step => step.trim()) : [],
+        steps: meal.strInstructions ? meal.strInstructions.split('\n').filter((step: string) => step.trim()) : [],
         cookingTime: 30,
         cuisine: meal.strArea || 'International',
         mealType: 'dinner',
@@ -854,7 +905,7 @@ async function searchRecipePuppy(mainFood: string, ingredients: string[]): Promi
     const response = await axios.get(url, { timeout: 5000 });
     
     if (response.data && response.data.results) {
-      return response.data.results.slice(0, 3).map((recipe: RecipePuppyRecipe) => ({
+      return response.data.results.slice(0, 5).map((recipe: any) => ({
         title: recipe.title,
         ingredients: recipe.ingredients ? recipe.ingredients.split(', ') : [],
         steps: [],
@@ -873,7 +924,7 @@ async function searchRecipePuppy(mainFood: string, ingredients: string[]): Promi
   return [];
 }
 
-function extractMealDBIngredients(meal: MealDBRecipe): string[] {
+function extractMealDBIngredients(meal: any): string[] {
   const ingredients: string[] = [];
   for (let i = 1; i <= 20; i++) {
     const ingredient = meal[`strIngredient${i}`];
@@ -886,19 +937,11 @@ function extractMealDBIngredients(meal: MealDBRecipe): string[] {
 }
 
 async function fetchNutritionData(mainFood: string): Promise<NutritionData> {
-  try {
-    const nutritionEstimates: { [key: string]: NutritionData } = {
-      'chicken': { calories: 165, protein: 31, carbs: 0, fat: 3.6 },
-      'beef': { calories: 250, protein: 26, carbs: 0, fat: 15 },
-      'salmon': { calories: 208, protein: 22, carbs: 0, fat: 12 },
-      'tofu': { calories: 70, protein: 8, carbs: 2, fat: 4 },
-      'rice': { calories: 130, protein: 2.7, carbs: 28, fat: 0.3 },
-      'pasta': { calories: 131, protein: 5, carbs: 25, fat: 1.1 }
-    };
-    
-    return nutritionEstimates[mainFood.toLowerCase()] || { calories: 150, protein: 10, carbs: 15, fat: 5 };
-  } catch (error) {
-    console.error('❌ Nutrition data fetch error:', error);
-    return { calories: 150, protein: 10, carbs: 15, fat: 5 };
-  }
+  // Return default nutrition data
+  return {
+    calories: 200 + Math.floor(Math.random() * 300),
+    protein: 15 + Math.floor(Math.random() * 20),
+    carbs: 20 + Math.floor(Math.random() * 30),
+    fat: 8 + Math.floor(Math.random() * 15)
+  };
 }
