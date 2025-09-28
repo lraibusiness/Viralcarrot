@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/auth';
+import fs from 'fs';
+import path from 'path';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('📊 Trending API: Fetching latest community recipes');
     
-    // Create 5 complete community recipes
+    // Try to fetch user-submitted recipes first
+    let userRecipes = [];
+    try {
+      const recipesPath = path.join(process.cwd(), 'data', 'recipes.json');
+      if (fs.existsSync(recipesPath)) {
+        const recipesData = JSON.parse(fs.readFileSync(recipesPath, 'utf8'));
+        userRecipes = recipesData.filter(recipe => recipe.status === 'approved');
+        console.log(`📋 Found ${userRecipes.length} approved user recipes`);
+      }
+    } catch (error) {
+      console.log('⚠️ Could not load user recipes, using fallback');
+    }
+    
+    // Create 5 complete community recipes as fallback
     const communityRecipes = [
       {
         id: 'community-1',
@@ -39,6 +54,9 @@ export async function GET(request: NextRequest) {
         cuisine: 'Italian',
         mealType: 'Dinner',
         dietaryStyle: 'Regular',
+        tags: ['Italian', 'Dinner', 'Chicken', 'Creamy'],
+        createdBy: 'ViralCarrot Community',
+        matchScore: 95,
         views: 1247,
         likes: 89,
         createdAt: new Date().toISOString(),
@@ -79,6 +97,9 @@ export async function GET(request: NextRequest) {
         cuisine: 'French',
         mealType: 'Dessert',
         dietaryStyle: 'Regular',
+        tags: ['French', 'Dessert', 'Chocolate', 'Baking'],
+        createdBy: 'ViralCarrot Community',
+        matchScore: 92,
         views: 2156,
         likes: 156,
         createdAt: new Date(Date.now() - 86400000).toISOString(),
@@ -121,6 +142,9 @@ export async function GET(request: NextRequest) {
         cuisine: 'Mediterranean',
         mealType: 'Lunch',
         dietaryStyle: 'Vegetarian',
+        tags: ['Mediterranean', 'Lunch', 'Quinoa', 'Healthy'],
+        createdBy: 'ViralCarrot Community',
+        matchScore: 88,
         views: 1893,
         likes: 134,
         createdAt: new Date(Date.now() - 172800000).toISOString(),
@@ -164,6 +188,9 @@ export async function GET(request: NextRequest) {
         cuisine: 'Asian',
         mealType: 'Dinner',
         dietaryStyle: 'Regular',
+        tags: ['Asian', 'Dinner', 'Beef', 'Spicy'],
+        createdBy: 'ViralCarrot Community',
+        matchScore: 90,
         views: 1674,
         likes: 98,
         createdAt: new Date(Date.now() - 259200000).toISOString(),
@@ -208,6 +235,9 @@ export async function GET(request: NextRequest) {
         cuisine: 'American',
         mealType: 'Dessert',
         dietaryStyle: 'Regular',
+        tags: ['American', 'Dessert', 'Cheesecake', 'Baking'],
+        createdBy: 'ViralCarrot Community',
+        matchScore: 94,
         views: 3421,
         likes: 267,
         createdAt: new Date(Date.now() - 345600000).toISOString(),
@@ -216,12 +246,20 @@ export async function GET(request: NextRequest) {
       }
     ];
     
-    console.log(`✅ Trending API: Created ${communityRecipes.length} community recipes`);
+    // Combine user recipes with community recipes
+    const allRecipes = [...userRecipes, ...communityRecipes];
+    
+    // Sort by creation date (newest first) and take the first 6
+    const sortedRecipes = allRecipes
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 6);
+    
+    console.log(`✅ Trending API: Returning ${sortedRecipes.length} recipes (${userRecipes.length} user + ${communityRecipes.length} community)`);
     
     return NextResponse.json({
       success: true,
-      recipes: communityRecipes,
-      total: communityRecipes.length
+      recipes: sortedRecipes,
+      total: sortedRecipes.length
     });
     
   } catch (error) {

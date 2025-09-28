@@ -30,7 +30,7 @@
     "cuisine": "Italian",
     "mealType": "Dinner",
     "dietaryStyle": "Regular",
-    "image": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800&q=80",
+    "image": "/uploads/1759081028082-icjf54ucg6.jpg",
     "website": "ViralCarrot Community",
     "sourceUrl": "#",
     "createdBy": "admin@viralcarrot.com",
@@ -38,7 +38,8 @@
     "status": "approved",
     "isApproved": true,
     "views": 1247,
-    "likes": 89
+    "likes": 89,
+    "updatedAt": "2025-09-28T17:37:08.314Z"
   },
   {
     "id": "community-2",
@@ -81,7 +82,8 @@
     "status": "approved",
     "isApproved": true,
     "views": 2156,
-    "likes": 156
+    "likes": 156,
+    "updatedAt": "1970-01-01T00:00:00.000Z"
   },
   {
     "id": "community-3",
@@ -126,7 +128,8 @@
     "status": "approved",
     "isApproved": true,
     "views": 1893,
-    "likes": 134
+    "likes": 134,
+    "updatedAt": "1970-01-01T00:00:00.000Z"
   },
   {
     "id": "community-4",
@@ -172,7 +175,8 @@
     "status": "approved",
     "isApproved": true,
     "views": 1674,
-    "likes": 98
+    "likes": 98,
+    "updatedAt": "1970-01-01T00:00:00.000Z"
   },
   {
     "id": "community-5",
@@ -219,6 +223,79 @@
     "status": "approved",
     "isApproved": true,
     "views": 3421,
-    "likes": 267
+    "likes": 267,
+    "updatedAt": "1970-01-01T00:00:00.000Z"
+  },
+  {
+    "title": "chicken ",
+    "description": "Chicken test ",
+    "ingredients": [
+      "test@2",
+      "test@2",
+      "test@2",
+      "test@2"
+    ],
+    "steps": [
+      "test@2",
+      "test@2",
+      "test@2",
+      "test@2",
+      "test@2"
+    ],
+    "cookingTime": 30,
+    "cuisine": "",
+    "mealType": "",
+    "dietaryStyle": "",
+    "image": "/uploads/1759081249087-1j8q2vwdwsf.jpg",
+    "website": "https://www.viralcarrot.com/",
+    "sourceUrl": "https://www.viralcarrot.com/",
+    "isPublic": true,
+    "id": "4b8hu3po80rmg3zk2t2",
+    "userId": "9ztv6ersp2dmg3zipet",
+    "views": 0,
+    "likes": 0,
+    "createdAt": "2025-09-28T17:40:49.334Z",
+    "updatedAt": "2025-09-28T17:42:53.647Z",
+    "isApproved": true
+  },
+  {
+    "id": "user-recipe-test-1",
+    "title": "My Amazing Chicken Stir Fry",
+    "description": "A delicious and quick chicken stir fry that I make every week. Perfect for busy weeknights!",
+    "ingredients": [
+      "2 chicken breasts, sliced",
+      "1 bell pepper, sliced",
+      "1 onion, sliced",
+      "2 cloves garlic, minced",
+      "2 tbsp soy sauce",
+      "1 tbsp oyster sauce",
+      "1 tbsp vegetable oil",
+      "Salt and pepper to taste"
+    ],
+    "steps": [
+      "Heat oil in a large pan over medium-high heat.",
+      "Add chicken and cook until golden brown, about 5 minutes.",
+      "Add garlic and stir for 30 seconds.",
+      "Add bell pepper and onion, cook for 3-4 minutes.",
+      "Add soy sauce and oyster sauce, stir to combine.",
+      "Cook for another 2 minutes until everything is heated through.",
+      "Season with salt and pepper to taste.",
+      "Serve over rice or noodles."
+    ],
+    "cookingTime": 20,
+    "cuisine": "Asian",
+    "mealType": "Dinner",
+    "dietaryStyle": "Regular",
+    "image": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800&q=80",
+    "website": "User Submitted",
+    "sourceUrl": "#",
+    "createdBy": "test@test",
+    "createdAt": "2025-09-28T18:00:00.000Z",
+    "status": "approved",
+    "isApproved": true,
+    "isPublic": true,
+    "views": 0,
+    "likes": 0,
+    "updatedAt": "2025-09-28T18:00:00.000Z"
   }
 ]

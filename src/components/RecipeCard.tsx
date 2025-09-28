@@ -12,7 +12,7 @@ interface Recipe {
   cuisine?: string;
   mealType?: string;
   dietaryStyle?: string;
-  tags: string[];
+  tags?: string[];
   createdBy: string;
   matchScore: number;
   rating?: number;
@@ -55,6 +55,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect }) => {
     if (percentage >= 60) return 'bg-amber-100 text-amber-800 border-amber-200';
     return 'bg-red-100 text-red-800 border-red-200';
   };
+
+  // Safe array handling
+  const safeTags = recipe.tags || [];
+  const safeAvailableIngredients = recipe.ingredientMatch?.availableIngredients || [];
+  const safeMissingIngredients = recipe.ingredientMatch?.missingIngredients || [];
 
   return (
     <div 
@@ -120,16 +125,18 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect }) => {
         </p>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1 mb-3">
-          {recipe.tags.slice(0, 3).map((tag, index) => (
-            <span
-              key={index}
-              className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {safeTags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {safeTags.slice(0, 3).map((tag, index) => (
+              <span
+                key={index}
+                className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Ingredient Match Info */}
         {recipe.ingredientMatch && (
@@ -142,23 +149,23 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect }) => {
             </div>
             
             {/* Available Ingredients */}
-            {recipe.ingredientMatch.availableIngredients.length > 0 && (
+            {safeAvailableIngredients.length > 0 && (
               <div className="mb-2">
                 <span className="text-xs text-green-600 font-medium">✓ Available: </span>
                 <span className="text-xs text-slate-600">
-                  {recipe.ingredientMatch.availableIngredients.slice(0, 3).join(', ')}
-                  {recipe.ingredientMatch.availableIngredients.length > 3 && '...'}
+                  {safeAvailableIngredients.slice(0, 3).join(', ')}
+                  {safeAvailableIngredients.length > 3 && '...'}
                 </span>
               </div>
             )}
 
             {/* Missing Ingredients */}
-            {recipe.ingredientMatch.missingIngredients.length > 0 && (
+            {safeMissingIngredients.length > 0 && (
               <div>
                 <span className="text-xs text-red-600 font-medium">✗ Missing: </span>
                 <span className="text-xs text-slate-600">
-                  {recipe.ingredientMatch.missingIngredients.slice(0, 2).join(', ')}
-                  {recipe.ingredientMatch.missingIngredients.length > 2 && '...'}
+                  {safeMissingIngredients.slice(0, 2).join(', ')}
+                  {safeMissingIngredients.length > 2 && '...'}
                 </span>
               </div>
             )}

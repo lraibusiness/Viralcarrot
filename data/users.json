@@ -21,73 +21,10 @@
     "updatedAt": "2025-09-28T14:46:29.576Z"
   },
   {
-    "id": "user_1759071158604",
-    "email": "sajithakahandwala@outlook.com",
-    "name": "Sajitha kahandawala",
-    "role": "admin",
-    "password": "c2FqaXRoYQ==",
-    "token": "admin_token_1",
-    "subscription": {
-      "plan": "free",
-      "status": "active"
-    },
-    "profile": {
-      "preferences": {
-        "cuisine": [],
-        "dietaryRestrictions": [],
-        "cookingSkill": "beginner"
-      }
-    },
-    "createdAt": "2025-09-28T14:52:38.604Z",
-    "updatedAt": "2025-09-28T15:26:44.678Z"
-  },
-  {
-    "id": "user_1759071482604",
-    "email": "test@example.com",
-    "name": "Test User",
-    "role": "user",
-    "password": "dGVzdA==",
-    "token": "test_token_2",
-    "subscription": {
-      "plan": "free",
-      "status": "active"
-    },
-    "profile": {
-      "preferences": {
-        "cuisine": [],
-        "dietaryRestrictions": [],
-        "cookingSkill": "beginner"
-      }
-    },
-    "createdAt": "2025-09-28T14:58:02.604Z",
-    "updatedAt": "2025-09-28T14:58:02.604Z"
-  },
-  {
-    "id": "user_1759071777203",
-    "email": "sugar420@gmail.com",
-    "name": "sugar420",
-    "role": "user",
-    "password": "c3VnYXI0MjA=",
-    "token": "sugar_token_1",
-    "subscription": {
-      "plan": "free",
-      "status": "active"
-    },
-    "profile": {
-      "preferences": {
-        "cuisine": [],
-        "dietaryRestrictions": [],
-        "cookingSkill": "beginner"
-      }
-    },
-    "createdAt": "2025-09-28T15:02:57.203Z",
-    "updatedAt": "2025-09-28T15:02:57.203Z"
-  },
-  {
     "id": "user_1759072568023",
     "email": "test@testt",
     "name": "test@testt",
-    "role": "user",
+    "role": "premium",
     "password": "dGVzdA==",
     "token": "test_token_3",
     "subscription": {
@@ -102,7 +39,7 @@
       }
     },
     "createdAt": "2025-09-28T15:16:08.023Z",
-    "updatedAt": "2025-09-28T15:16:08.023Z"
+    "updatedAt": "2025-09-28T17:37:49.010Z"
   },
   {
     "id": "user_1759072960195",
@@ -110,7 +47,7 @@
     "name": "Admin User",
     "role": "admin",
     "password": "YWRtaW4=",
-    "token": "admin_token_2",
+    "token": "e1ke6s00rdbmg3zm8ym",
     "subscription": {
       "plan": "pro",
       "status": "active"
@@ -123,27 +60,16 @@
       }
     },
     "createdAt": "2025-09-28T15:22:40.195Z",
-    "updatedAt": "2025-09-28T15:22:40.196Z"
+    "updatedAt": "2025-09-28T17:42:30.622Z"
   },
   {
-    "id": "user_1759075883504",
-    "email": "rich@rich",
-    "name": "rich@rich",
-    "role": "user",
-    "password": "cmljaA==",
-    "token": "rich_token_1",
-    "subscription": {
-      "plan": "free",
-      "status": "active"
-    },
-    "profile": {
-      "preferences": {
-        "cuisine": [],
-        "dietaryRestrictions": [],
-        "cookingSkill": "beginner"
-      }
-    },
-    "createdAt": "2025-09-28T16:11:23.504Z",
-    "updatedAt": "2025-09-28T16:11:23.504Z"
+    "id": "9ztv6ersp2dmg3zipet",
+    "email": "test@2",
+    "name": "test@2",
+    "role": "premium",
+    "createdAt": "2025-09-28T17:39:45.317Z",
+    "updatedAt": "2025-09-28T17:43:12.206Z",
+    "password": "dGVzdEAy",
+    "token": "ctgz7je4ulimg3zipet"
   }
 ]
