@@ -79,8 +79,7 @@ export default function Home() {
   const [mealType, setMealType] = useState('');
   const [dietaryStyle, setDietaryStyle] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [trendingRecipes, setTrendingRecipes] = useState<TrendingRecipe[]>([]);
-  const [newlyPostedRecipes, setNewlyPostedRecipes] = useState<TrendingRecipe[]>([]);
+  const [latestRecipes, setLatestRecipes] = useState<TrendingRecipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -93,7 +92,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchUserData();
-    fetchTrendingRecipes();
+    fetchLatestRecipes();
   }, []);
 
   const fetchUserData = async () => {
@@ -110,16 +109,15 @@ export default function Home() {
     }
   };
 
-  const fetchTrendingRecipes = async () => {
+  const fetchLatestRecipes = async () => {
     try {
       const response = await fetch('/api/recipes/trending');
       if (response.ok) {
         const data = await response.json();
-        setTrendingRecipes(data.trending);
-        setNewlyPostedRecipes(data.newlyPosted);
+        setLatestRecipes(data.recipes || []);
       }
     } catch (error) {
-      console.error('Error fetching trending recipes:', error);
+      console.error('Error fetching latest recipes:', error);
     }
   };
 
@@ -354,61 +352,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Trending Recipes Section */}
-        {(trendingRecipes.length > 0 || newlyPostedRecipes.length > 0) && (
-          <div className="mb-12">
-            <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">Trending & New Recipes</h3>
-            
-            {trendingRecipes.length > 0 && (
-              <div className="mb-8">
-                <h4 className="text-lg font-semibold text-slate-700 mb-4">🔥 Trending This Week</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {trendingRecipes.slice(0, 3).map((recipe) => (
-                    <div key={recipe.id} className="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow">
-                      <img
-                        src={recipe.image}
-                        alt={recipe.title}
-                        className="w-full h-48 object-cover rounded-lg mb-4"
-                      />
-                      <h5 className="font-semibold text-slate-800 mb-2">{recipe.title}</h5>
-                      <p className="text-slate-600 text-sm mb-3">{recipe.description}</p>
-                      <div className="flex items-center justify-between text-sm text-slate-500">
-                        <span>{recipe.views} views</span>
-                        <span>{recipe.likes} likes</span>
-                        <span className="text-amber-600 font-medium">{recipe.cuisine}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {newlyPostedRecipes.length > 0 && (
-              <div>
-                <h4 className="text-lg font-semibold text-slate-700 mb-4">✨ Just Posted</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {newlyPostedRecipes.slice(0, 3).map((recipe) => (
-                    <div key={recipe.id} className="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow">
-                      <img
-                        src={recipe.image}
-                        alt={recipe.title}
-                        className="w-full h-48 object-cover rounded-lg mb-4"
-                      />
-                      <h5 className="font-semibold text-slate-800 mb-2">{recipe.title}</h5>
-                      <p className="text-slate-600 text-sm mb-3">{recipe.description}</p>
-                      <div className="flex items-center justify-between text-sm text-slate-500">
-                        <span>{recipe.views} views</span>
-                        <span>{recipe.likes} likes</span>
-                        <span className="text-green-600 font-medium">New</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Input Section */}
         <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-6 md:p-8 mb-8">
           {appMode === 'generator' && (
@@ -608,6 +551,39 @@ export default function Home() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Latest Recipes Section */}
+        {latestRecipes.length > 0 && (
+          <div className="bg-white rounded-3xl shadow-xl border border-amber-100 p-8 mb-8">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">
+              Latest Community Recipes
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {latestRecipes.slice(0, 6).map((recipe) => (
+                <div key={recipe.id} className="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center space-x-4">
+                    {recipe.image && (
+                      <img
+                        src={recipe.image}
+                        alt={recipe.title}
+                        className="w-16 h-16 rounded-lg object-cover"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h5 className="font-semibold text-slate-800 mb-1">{recipe.title}</h5>
+                      <p className="text-sm text-slate-600 mb-2">{recipe.description}</p>
+                      <div className="flex items-center space-x-4 text-xs text-slate-500">
+                        <span>{recipe.cookingTime} min</span>
+                        <span>{recipe.cuisine}</span>
+                        <span>{recipe.views} views</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
