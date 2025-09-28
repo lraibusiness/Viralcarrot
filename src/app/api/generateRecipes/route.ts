@@ -54,6 +54,13 @@ interface SynthesizedRecipe {
     fat?: number;
   };
   seoDescription?: string;
+  ingredientMatch?: {
+    availableIngredients: string[];
+    missingIngredients: string[];
+    matchPercentage: number;
+  };
+  isExternal?: boolean;
+  sourceUrl?: string;
 }
 
 interface RecipeFilters {
@@ -144,12 +151,12 @@ const FALLBACK_IMAGES = {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🧠 Enhanced Recipe Composer: Starting intelligent recipe synthesis');
+    console.log('🧠 Enhanced Recipe Composer: Starting intelligent recipe synthesis with external recipes');
     
     const body = await request.json();
-    const { mainFood, ingredients = [], filters = {} } = body;
+    const { mainFood, ingredients = [], filters = {}, includeExternal = true } = body;
 
-    console.log('📝 API: Received request:', { mainFood, ingredients, filters });
+    console.log('�� API: Received request:', { mainFood, ingredients, filters, includeExternal });
 
     if (!mainFood || !mainFood.trim()) {
       return NextResponse.json(
@@ -159,14 +166,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check cache first
-    const cacheKey = `enhanced_recipes_${mainFood}_${JSON.stringify(ingredients)}_${JSON.stringify(filters)}`;
+    const cacheKey = `enhanced_recipes_${mainFood}_${JSON.stringify(ingredients)}_${JSON.stringify(filters)}_${includeExternal}`;
     const cachedResult = cache.get(cacheKey);
     if (cachedResult) {
       console.log('⚡ API: Returning cached result');
       return NextResponse.json(cachedResult);
     }
 
-    console.log('🔍 API: Starting Enhanced Recipe Generation');
+    console.log('🔍 API: Starting Enhanced Recipe Generation with External Recipes');
 
     // Clear image cache for this session to ensure fresh unique images
     const sessionKey = `images_${mainFood}_${Date.now()}`;
@@ -176,13 +183,14 @@ export async function POST(request: NextRequest) {
     const searchQuery = buildSearchQuery(mainFood, ingredients, filters as RecipeFilters);
     console.log('🔍 Search Query:', searchQuery);
 
-    // Step 2: Fetch recipes from API sources
-    const [apiRecipes, nutritionData] = await Promise.all([
+    // Step 2: Fetch recipes from multiple sources in parallel
+    const [apiRecipes, externalRecipes, nutritionData] = await Promise.all([
       fetchAPIRecipes(mainFood, ingredients, filters as RecipeFilters),
+      includeExternal ? fetchExternalRecipes(mainFood, ingredients, filters as RecipeFilters) : Promise.resolve([]),
       fetchNutritionData(mainFood)
     ]);
     
-    console.log(`📊 API: Found ${apiRecipes.length} API recipes`);
+    console.log(`📊 API: Found ${apiRecipes.length} API recipes, ${externalRecipes.length} external recipes`);
 
     // Step 3: If no API recipes found, generate fallback recipes for exotic ingredients
     let allRecipes = apiRecipes;
@@ -192,23 +200,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Enhanced recipe processing and synthesis
-    const synthesizedRecipes = await processRecipesWithEnhancedLogic(
-      allRecipes, 
-      mainFood, 
-      ingredients, 
-      filters as RecipeFilters,
-      nutritionData,
-      sessionKey
-    );
+    const [viralCarrotRecipes, processedExternalRecipes] = await Promise.all([
+      processRecipesWithEnhancedLogic(
+        allRecipes, 
+        mainFood, 
+        ingredients, 
+        filters as RecipeFilters,
+        nutritionData,
+        sessionKey
+      ),
+      processExternalRecipes(externalRecipes, mainFood, ingredients)
+    ]);
     
-    console.log(`�� API: Generated ${synthesizedRecipes.length} enhanced recipes`);
+    // Step 5: Combine and rank recipes (ViralCarrot originals first, then external)
+    const combinedRecipes = [...viralCarrotRecipes, ...processedExternalRecipes];
+    
+    console.log(`🎯 API: Generated ${viralCarrotRecipes.length} ViralCarrot recipes, ${processedExternalRecipes.length} external recipes`);
 
     const result = {
       success: true,
-      recipes: synthesizedRecipes,
-      total: synthesizedRecipes.length,
-      message: `Created ${synthesizedRecipes.length} intelligent recipes by ViralCarrot Enhanced Composer`,
-      sources: [...new Set(allRecipes.map(r => r.source))],
+      recipes: combinedRecipes,
+      total: combinedRecipes.length,
+      viralCarrotCount: viralCarrotRecipes.length,
+      externalCount: processedExternalRecipes.length,
+      message: `Created ${viralCarrotRecipes.length} ViralCarrot recipes and found ${processedExternalRecipes.length} popular recipes from the web`,
+      sources: [...new Set([...allRecipes.map(r => r.source), ...externalRecipes.map(r => r.source)])],
       searchMetadata: {
         mainFood,
         searchQuery,
@@ -216,7 +232,8 @@ export async function POST(request: NextRequest) {
         filtersApplied: Object.keys(filters).length,
         apiRecipesFound: apiRecipes.length,
         fallbackRecipesGenerated: allRecipes.length - apiRecipes.length,
-        totalRecipesFound: allRecipes.length
+        externalRecipesFound: externalRecipes.length,
+        totalRecipesFound: combinedRecipes.length
       }
     };
 
@@ -236,6 +253,53 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Fetch external recipes
+async function fetchExternalRecipes(mainFood: string, ingredients: string[], filters: RecipeFilters): Promise<any[]> {
+  try {
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/externalRecipes`, {
+      mainFood,
+      ingredients,
+      filters
+    });
+    
+    if (response.data.success) {
+      return response.data.recipes || [];
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Error fetching external recipes:', error);
+    return [];
+  }
+}
+
+// Process external recipes
+async function processExternalRecipes(externalRecipes: any[], mainFood: string, ingredients: string[]): Promise<SynthesizedRecipe[]> {
+  return externalRecipes.map(recipe => ({
+    id: recipe.id,
+    title: recipe.title,
+    image: recipe.image,
+    description: recipe.description,
+    ingredients: recipe.ingredients,
+    steps: recipe.steps,
+    cookingTime: recipe.cookingTime,
+    cuisine: recipe.cuisine,
+    mealType: recipe.mealType,
+    dietaryStyle: recipe.dietaryStyle,
+    tags: [recipe.cuisine?.toLowerCase(), recipe.mealType?.toLowerCase(), 'external', 'popular'],
+    createdBy: recipe.source,
+    matchScore: recipe.ingredientMatch?.matchPercentage || 0,
+    rating: recipe.rating,
+    difficulty: recipe.difficulty,
+    servings: recipe.servings,
+    nutrition: recipe.nutrition,
+    seoDescription: `${recipe.title} - A popular ${recipe.cuisine} recipe from ${recipe.source}`,
+    ingredientMatch: recipe.ingredientMatch,
+    isExternal: true,
+    sourceUrl: recipe.sourceUrl
+  }));
 }
 
 // Build comprehensive search query using all selected fields
@@ -539,7 +603,28 @@ async function generateEnhancedRecipe(
       carbs: nutritionData.carbs + Math.floor(Math.random() * 30),
       fat: nutritionData.fat + Math.floor(Math.random() * 15)
     },
-    seoDescription: `${title} - A delicious ${cuisine} ${mealType} recipe featuring ${mainFood}. Perfect for any occasion.`
+    seoDescription: `${title} - A delicious ${cuisine} ${mealType} recipe featuring ${mainFood}. Perfect for any occasion.`,
+    ingredientMatch: {
+      availableIngredients: ingredients.filter(ing => 
+        mergedIngredients.some(recipeIng => 
+          recipeIng.toLowerCase().includes(ing.toLowerCase()) ||
+          ing.toLowerCase().includes(recipeIng.toLowerCase())
+        )
+      ),
+      missingIngredients: ingredients.filter(ing => 
+        !mergedIngredients.some(recipeIng => 
+          recipeIng.toLowerCase().includes(ing.toLowerCase()) ||
+          ing.toLowerCase().includes(recipeIng.toLowerCase())
+        )
+      ),
+      matchPercentage: Math.round((ingredients.filter(ing => 
+        mergedIngredients.some(recipeIng => 
+          recipeIng.toLowerCase().includes(ing.toLowerCase()) ||
+          ing.toLowerCase().includes(recipeIng.toLowerCase())
+        )
+      ).length / Math.max(ingredients.length, 1)) * 100)
+    },
+    isExternal: false
   };
 }
 
