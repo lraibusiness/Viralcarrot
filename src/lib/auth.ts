@@ -172,20 +172,51 @@ export class AuthService {
     return { user, token };
   }
 
-  // Get user by token
+  // Get user by token (FIXED: Correct token parsing)
   static async getUserByToken(token: string): Promise<User | null> {
-    if (!token) return null;
+    if (!token) {
+      console.log('❌ No token provided');
+      return null;
+    }
     
-    const userId = token.split('_')[1];
-    if (!userId) return null;
+    // Parse token: token_userId_timestamp
+    // Token format: token_user_1234567890_1234567890
+    if (!token.startsWith('token_')) {
+      console.log('❌ Invalid token format - must start with "token_"');
+      return null;
+    }
+    
+    // Remove "token_" prefix and split by "_"
+    const tokenBody = token.substring(6); // Remove "token_"
+    const parts = tokenBody.split('_');
+    
+    if (parts.length < 2) {
+      console.log('❌ Invalid token format - not enough parts');
+      return null;
+    }
+    
+    // The user ID is everything except the last part (timestamp)
+    const userId = parts.slice(0, -1).join('_');
+    const timestamp = parts[parts.length - 1];
+    
+    console.log('🔍 Token body:', tokenBody);
+    console.log('🔍 Parts:', parts);
+    console.log('🔍 User ID:', userId);
+    console.log('�� Timestamp:', timestamp);
+    
+    if (!userId) {
+      console.log('❌ No user ID in token');
+      return null;
+    }
     
     const users = loadUsers();
     const user = users.find(u => u.id === userId);
     
     if (user) {
-      console.log(`✅ Token validated for user: ${user.email}`);
+      console.log(`✅ Token validated for user: ${user.email} (ID: ${user.id})`);
     } else {
-      console.log(`❌ Token validation failed for user ID: ${userId}`);
+      console.log(`❌ Token validation failed - user not found for ID: ${userId}`);
+      console.log('Available users:', users.map(u => u.id));
     }
     
     return user || null;
@@ -327,14 +358,15 @@ export class AuthService {
   }
 }
 
-// Middleware to check authentication
+// Middleware to check authentication (FIXED: Better cookie handling)
 export async function requireAuth(request: NextRequest): Promise<User | null> {
   const token = request.cookies.get('auth-token')?.value;
   if (!token) {
-    console.log('❌ No auth token found');
+    console.log('❌ No auth token found in cookies');
     return null;
   }
 
+  console.log('🔍 Checking token:', token);
   const user = await AuthService.getUserByToken(token);
   if (!user) {
     console.log('❌ Invalid auth token');

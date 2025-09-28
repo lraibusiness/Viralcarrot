@@ -1,0 +1,59 @@
+[
+  {
+    "id": "user_1759070789576",
+    "email": "test@test",
+    "name": "test@test",
+    "role": "user",
+    "subscription": {
+      "plan": "free",
+      "status": "active"
+    },
+    "profile": {
+      "preferences": {
+        "cuisine": [],
+        "dietaryRestrictions": [],
+        "cookingSkill": "beginner"
+      }
+    },
+    "createdAt": "2025-09-28T14:46:29.576Z",
+    "updatedAt": "2025-09-28T14:46:29.576Z"
+  },
+  {
+    "id": "user_1759071158604",
+    "email": "sajithakahandwala@outlook.com",
+    "name": "Sajitha kahandawala",
+    "role": "user",
+    "subscription": {
+      "plan": "free",
+      "status": "active"
+    },
+    "profile": {
+      "preferences": {
+        "cuisine": [],
+        "dietaryRestrictions": [],
+        "cookingSkill": "beginner"
+      }
+    },
+    "createdAt": "2025-09-28T14:52:38.604Z",
+    "updatedAt": "2025-09-28T14:52:38.604Z"
+  },
+  {
+    "id": "user_1759071482604",
+    "email": "test@example.com",
+    "name": "Test User",
+    "role": "user",
+    "subscription": {
+      "plan": "free",
+      "status": "active"
+    },
+    "profile": {
+      "preferences": {
+        "cuisine": [],
+        "dietaryRestrictions": [],
+        "cookingSkill": "beginner"
+      }
+    },
+    "createdAt": "2025-09-28T14:58:02.604Z",
+    "updatedAt": "2025-09-28T14:58:02.604Z"
+  }
+]
