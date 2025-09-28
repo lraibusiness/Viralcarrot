@@ -288,7 +288,7 @@ export default function PrivacyPage() {
               <ul className="space-y-2 text-sm text-slate-300">
                 <li><Link href="/privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</Link></li>
                 <li><Link href="/terms" className="hover:text-amber-400 transition-colors">Terms of Service</Link></li>
-                <Link href="/cookies" className="hover:text-amber-400 transition-colors">Cookie Policy</Link></li>
+                <li><Link href="/cookies" className="hover:text-amber-400 transition-colors">Cookie Policy</Link></li>
                 <li><Link href="/disclaimer" className="hover:text-amber-400 transition-colors">Disclaimer</Link></li>
               </ul>
             </div>
