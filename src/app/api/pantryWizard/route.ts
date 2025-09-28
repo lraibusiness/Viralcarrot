@@ -488,7 +488,7 @@ function removeDuplicateRecipes(recipes: ExternalRecipe[]): ExternalRecipe[] {
 }
 
 // API search functions
-async function searchTheMealDB(mainFood: string, filters: RecipeFilters): Promise<ExternalRecipe[]> {
+async function searchTheMealDB(mainFood: string, _filters: RecipeFilters): Promise<ExternalRecipe[]> {
   try {
     const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
     if (response.data.meals) {
