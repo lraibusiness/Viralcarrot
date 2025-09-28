@@ -91,7 +91,7 @@ export default function Home() {
     } catch (error) {
       console.error('Frontend: Error generating recipes:', error);
       console.error('Frontend: Error type:', typeof error);
-      console.error('Frontend: Error message:', error?.message);
+      console.error('Frontend: Error message:', (error as Error)?.message);
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipes. Please try again.';
       setError(errorMessage);
