@@ -83,8 +83,8 @@ export default function RecipeCard({ recipe, onClick, showPantryMatch = false }:
       className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-500 cursor-pointer overflow-hidden border border-slate-100 hover:border-amber-200 group transform hover:-translate-y-1"
       onClick={onClick}
     >
-      {/* Compact Image Section */}
-      <div className="relative h-48 w-full overflow-hidden">
+      {/* Mobile-Optimized Image Section */}
+      <div className="relative h-48 sm:h-56 w-full overflow-hidden">
         <Image
           src={imageError ? getFallbackImage() : recipe.image || getFallbackImage()}
           alt={recipe.title}
@@ -93,136 +93,111 @@ export default function RecipeCard({ recipe, onClick, showPantryMatch = false }:
           onError={handleImageError}
         />
         
-        {/* Minimalist Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1">
+        {/* Mobile-Optimized Badges */}
+        <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1">
           {recipe.createdBy && (
             <div className="bg-white/90 backdrop-blur-sm text-slate-800 px-2 py-1 rounded-full text-xs font-medium shadow-lg">
               {recipe.createdBy}
             </div>
           )}
-          {recipe.matchScore && recipe.matchScore > 8 && (
-            <div className="bg-amber-500/90 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
-              Top Match
-            </div>
-          )}
-        </div>
-        
-        {/* Time and Rating Overlay */}
-        <div className="absolute top-3 right-3 flex flex-col gap-1">
-          <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
+          <div className="bg-white/90 backdrop-blur-sm text-slate-800 px-2 py-1 rounded-full text-xs font-medium shadow-lg">
             {formatTime(recipe.cookingTime)}
           </div>
-          {recipe.rating && (
-            <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
-              {getRatingStars(recipe.rating)} {recipe.rating.toFixed(1)}
-            </div>
-          )}
         </div>
 
-        {/* Pantry Match Badge */}
-        {showPantryMatch && recipe.pantryMatch && (
-          <div className="absolute bottom-3 left-3">
-            <div className={`px-3 py-1 rounded-full text-xs font-medium border shadow-lg ${getMatchColor(recipe.pantryMatch.matchPercentage)}`}>
-              {recipe.pantryMatch.matchPercentage}% Match
-            </div>
+        {/* Mobile-Optimized Rating Badge */}
+        {recipe.rating && (
+          <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-white/90 backdrop-blur-sm text-amber-600 px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+            {getRatingStars(recipe.rating)}
           </div>
         )}
-
-        {/* Subtle Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
-      
-      {/* Compact Content Section */}
-      <div className="p-5">
-        {/* Title and Description */}
-        <h3 className="text-lg font-light text-slate-900 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors duration-300">
+
+      {/* Mobile-Optimized Content */}
+      <div className="p-4 sm:p-6">
+        {/* Title */}
+        <h3 className="text-lg sm:text-xl font-medium text-slate-900 mb-2 sm:mb-3 line-clamp-2 group-hover:text-amber-600 transition-colors duration-300">
           {recipe.title}
         </h3>
-        
-        <p className="text-slate-600 text-sm mb-4 line-clamp-2 leading-relaxed font-light">
+
+        {/* Description */}
+        <p className="text-sm sm:text-base text-slate-600 mb-3 sm:mb-4 line-clamp-2 leading-relaxed">
           {recipe.description}
         </p>
-        
-        {/* Pantry Match Info */}
-        {showPantryMatch && recipe.pantryMatch && (
-          <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-slate-700">Pantry Match</span>
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${getMatchColor(recipe.pantryMatch.matchPercentage)}`}>
-                {recipe.pantryMatch.matchPercentage}%
-              </span>
-            </div>
-            <div className="text-xs text-slate-600">
-              <div className="mb-1">
-                <span className="font-medium text-emerald-700">✓ You have:</span> {recipe.pantryMatch.availableIngredients.slice(0, 3).join(', ')}
-                {recipe.pantryMatch.availableIngredients.length > 3 && ` +${recipe.pantryMatch.availableIngredients.length - 3} more`}
-              </div>
-              {recipe.pantryMatch.missingIngredients.length > 0 && (
-                <div>
-                  <span className="font-medium text-rose-700">✗ Need:</span> {recipe.pantryMatch.missingIngredients.slice(0, 2).join(', ')}
-                  {recipe.pantryMatch.missingIngredients.length > 2 && ` +${recipe.pantryMatch.missingIngredients.length - 2} more`}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {/* Compact Metadata */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            {recipe.cuisine && (
-              <div className="flex items-center text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-full font-medium">
-                {recipe.cuisine}
-              </div>
-            )}
-            {recipe.mealType && (
-              <div className="flex items-center text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-full font-medium">
-                {recipe.mealType}
-              </div>
-            )}
-          </div>
-          
+
+        {/* Mobile-Optimized Tags */}
+        <div className="flex flex-wrap gap-1 sm:gap-2 mb-3 sm:mb-4">
+          {recipe.cuisine && (
+            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full text-xs font-medium">
+              {recipe.cuisine}
+            </span>
+          )}
+          {recipe.mealType && (
+            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full text-xs font-medium">
+              {recipe.mealType}
+            </span>
+          )}
           {recipe.difficulty && (
-            <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(recipe.difficulty)}`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(recipe.difficulty)}`}>
               {recipe.difficulty}
-            </div>
+            </span>
           )}
         </div>
-        
-        {/* Compact Tags */}
-        {recipe.tags && recipe.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-4">
-            {recipe.tags.slice(0, 2).map((tag, index) => (
-              <span
-                key={index}
-                className="bg-amber-50 text-amber-700 px-2 py-1 rounded-full text-xs font-medium hover:bg-amber-100 transition-colors duration-300"
-              >
-                {tag}
-              </span>
-            ))}
-            {recipe.tags.length > 2 && (
-              <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs font-medium">
-                +{recipe.tags.length - 2}
-              </span>
+
+        {/* Mobile-Optimized Pantry Match */}
+        {showPantryMatch && recipe.pantryMatch && (
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-100">
+            <h4 className="text-sm font-medium text-slate-700 mb-2">Pantry Match:</h4>
+            <div className={`px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${getMatchColor(recipe.pantryMatch.matchPercentage)}`}>
+              <span>{recipe.pantryMatch.matchPercentage}% Match</span>
+            </div>
+            
+            {/* Available Ingredients */}
+            {recipe.pantryMatch.availableIngredients.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-slate-600 mb-1">Available:</p>
+                <div className="flex flex-wrap gap-1">
+                  {recipe.pantryMatch.availableIngredients.slice(0, 3).map((ingredient, index) => (
+                    <span key={index} className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs">
+                      {ingredient}
+                    </span>
+                  ))}
+                  {recipe.pantryMatch.availableIngredients.length > 3 && (
+                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs">
+                      +{recipe.pantryMatch.availableIngredients.length - 3} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Missing Ingredients */}
+            {recipe.pantryMatch.missingIngredients.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-slate-600 mb-1">Missing:</p>
+                <div className="flex flex-wrap gap-1">
+                  {recipe.pantryMatch.missingIngredients.slice(0, 3).map((ingredient, index) => (
+                    <span key={index} className="bg-rose-100 text-rose-800 px-2 py-1 rounded-full text-xs">
+                      {ingredient}
+                    </span>
+                  ))}
+                  {recipe.pantryMatch.missingIngredients.length > 3 && (
+                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs">
+                      +{recipe.pantryMatch.missingIngredients.length - 3} more
+                    </span>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}
-        
-        {/* Compact Action Button */}
-        <button className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group">
-          <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
-            <span>View Recipe</span>
-            <span className="transform group-hover:translate-x-1 transition-transform duration-300">→</span>
-          </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        </button>
-        
-        {/* Servings Info */}
-        {recipe.servings && (
-          <div className="mt-2 text-center text-xs text-slate-500 font-light">
-            Serves {recipe.servings} people
-          </div>
-        )}
+
+        {/* Mobile-Optimized Action Button */}
+        <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-100">
+          <button className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 text-sm sm:text-base">
+            View Recipe
+          </button>
+        </div>
       </div>
     </div>
   );

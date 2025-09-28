@@ -223,53 +223,55 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      {/* Hero Section - Optimized for single viewport */}
-      <div className="relative overflow-hidden h-screen flex items-center">
-        <div className="max-w-6xl mx-auto px-6 w-full">
+      {/* Hero Section - Mobile Optimized */}
+      <div className="relative overflow-hidden min-h-screen flex items-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-light text-slate-900 mb-6 tracking-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-light text-slate-900 mb-4 sm:mb-6 tracking-tight">
               ViralCarrot
             </h1>
-            <div className="w-20 h-0.5 bg-gradient-to-r from-amber-400 to-orange-500 mx-auto mb-6"></div>
-            <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-2xl mx-auto leading-relaxed font-light">
+            <div className="w-16 sm:w-20 h-0.5 bg-gradient-to-r from-amber-400 to-orange-500 mx-auto mb-4 sm:mb-6"></div>
+            <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed font-light px-4">
               Transform your ingredients into <span className="text-amber-600 font-medium">exceptional recipes</span> with our intelligent culinary composer
             </p>
             
-            {/* Mode Selection */}
-            <div className="flex justify-center mb-8">
-              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-2 border border-slate-200/50 shadow-lg">
+            {/* Mode Selection - Mobile Optimized */}
+            <div className="flex justify-center mb-6 sm:mb-8 px-4">
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-1 sm:p-2 border border-slate-200/50 shadow-lg w-full max-w-md">
                 <div className="flex">
                   <button
                     onClick={() => switchMode('generator')}
-                    className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                    className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 rounded-xl font-medium transition-all duration-300 text-sm sm:text-base ${
                       appMode === 'generator'
                         ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg'
                         : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                     }`}
                   >
-                    Recipe Generator
+                    <span className="hidden sm:inline">Recipe Generator</span>
+                    <span className="sm:hidden">Generator</span>
                   </button>
                   <button
                     onClick={() => switchMode('pantry')}
-                    className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                    className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 rounded-xl font-medium transition-all duration-300 text-sm sm:text-base ${
                       appMode === 'pantry'
                         ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg'
                         : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                     }`}
                   >
-                    Pantry Wizard
+                    <span className="hidden sm:inline">Pantry Wizard</span>
+                    <span className="sm:hidden">Pantry</span>
                   </button>
                 </div>
               </div>
             </div>
             
-            {/* Input Section */}
-            <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-slate-200/50">
+            {/* Input Section - Mobile Optimized */}
+            <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-slate-200/50 mx-4">
               {appMode === 'generator' ? (
                 // Recipe Generator Mode
                 <>
-                  <div className="mb-6">
-                    <label className="block text-xl font-light text-slate-800 mb-4">
+                  <div className="mb-4 sm:mb-6">
+                    <label className="block text-lg sm:text-xl font-light text-slate-800 mb-3 sm:mb-4">
                       What is your main ingredient?
                     </label>
                     <input
@@ -277,19 +279,19 @@ export default function Home() {
                       value={mainFood}
                       onChange={(e) => setMainFood(e.target.value)}
                       placeholder="e.g., chicken, salmon, vegetables, pasta..."
-                      className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
+                      className="w-full p-3 sm:p-4 text-base sm:text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
                     />
                   </div>
 
-                  <div className="mb-6">
-                    <label className="block text-base font-light text-slate-700 mb-3">
+                  <div className="mb-4 sm:mb-6">
+                    <label className="block text-sm sm:text-base font-light text-slate-700 mb-2 sm:mb-3">
                       Supporting ingredients (optional)
                     </label>
                     <textarea
                       value={ingredients}
                       onChange={(e) => setIngredients(e.target.value)}
                       placeholder="Enter supporting ingredients (comma separated)... e.g., garlic, onions, tomatoes, herbs"
-                      className="w-full max-w-xl mx-auto p-3 text-base border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
+                      className="w-full p-3 text-sm sm:text-base border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
                       rows={2}
                     />
                   </div>
@@ -297,26 +299,26 @@ export default function Home() {
               ) : (
                 // Pantry Wizard Mode
                 <>
-                  <div className="mb-6">
-                    <label className="block text-xl font-light text-slate-800 mb-4">
+                  <div className="mb-4 sm:mb-6">
+                    <label className="block text-lg sm:text-xl font-light text-slate-800 mb-3 sm:mb-4">
                       What&apos;s in your pantry?
                     </label>
                     <textarea
                       value={pantryIngredients}
                       onChange={(e) => setPantryIngredients(e.target.value)}
                       placeholder="Enter all your available ingredients (comma separated)... e.g., chicken, rice, onions, garlic, tomatoes, cheese"
-                      className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
+                      className="w-full p-3 sm:p-4 text-base sm:text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
                       rows={3}
                     />
-                    <p className="text-sm text-slate-500 mt-2">
+                    <p className="text-xs sm:text-sm text-slate-500 mt-2">
                       We&apos;ll find existing recipes you can make with these ingredients
                     </p>
                   </div>
                 </>
               )}
 
-              {/* Compact Filters */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 max-w-3xl mx-auto">
+              {/* Mobile-Optimized Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 sm:mb-6">
                 <div className="bg-white/60 backdrop-blur-sm border border-slate-200/50 rounded-xl p-3 hover:bg-white/80 transition-all duration-300">
                   <label className="block text-xs font-medium text-slate-700 mb-2">Cooking Time</label>
                   <select
@@ -408,14 +410,14 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {/* Mobile-Optimized Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
                 <button
                   onClick={appMode === 'generator' ? handleGenerateRecipes : handlePantrySearch}
                   disabled={loading || (appMode === 'generator' ? !mainFood.trim() : !pantryIngredients.trim())}
-                  className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-10 py-4 rounded-xl text-base font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group"
+                  className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group"
                 >
-                  <span className="relative z-10 flex items-center gap-2">
+                  <span className="relative z-10 flex items-center justify-center gap-2">
                     {loading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -434,9 +436,9 @@ export default function Home() {
                 {hasSearched && (
                   <button
                     onClick={clearResults}
-                    className="bg-gradient-to-r from-slate-500 to-slate-600 text-white px-8 py-4 rounded-xl text-base font-medium hover:from-slate-600 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group"
+                    className="w-full sm:w-auto bg-gradient-to-r from-slate-500 to-slate-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-medium hover:from-slate-600 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group"
                   >
-                    <span className="relative z-10 flex items-center gap-2">
+                    <span className="relative z-10 flex items-center justify-center gap-2">
                       <span>Clear Results</span>
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-600 to-slate-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -444,14 +446,14 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Error Display */}
+              {/* Mobile-Optimized Error Display */}
               {error && (
-                <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-800 rounded-xl shadow-lg">
+                <div className="mt-4 p-3 sm:p-4 bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-800 rounded-xl shadow-lg">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
                     <div>
                       <p className="font-medium text-sm">Error</p>
-                      <p className="text-xs">{error}</p>
+                      <p className="text-xs break-words">{error}</p>
                     </div>
                   </div>
                 </div>
@@ -461,15 +463,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Results Section - Only shows when recipes exist */}
+      {/* Results Section - Mobile Optimized */}
       {recipes.length > 0 && (
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="flex justify-between items-center mb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 sm:mb-12 gap-4">
             <div>
-              <h2 className="text-3xl font-light text-slate-900 mb-2">
+              <h2 className="text-2xl sm:text-3xl font-light text-slate-900 mb-2">
                 {appMode === 'generator' ? 'Your Recipe Collection' : 'Pantry Recipes'}
               </h2>
-              <p className="text-lg text-slate-600 font-light">
+              <p className="text-base sm:text-lg text-slate-600 font-light">
                 {appMode === 'generator' 
                   ? `${recipes.length} exceptional recipes crafted by our culinary intelligence`
                   : `${recipes.length} recipes you can make with your pantry ingredients`
@@ -478,13 +480,13 @@ export default function Home() {
             </div>
             <button
               onClick={handleRefreshRecipes}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
               Refresh
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {recipes.map((recipe) => (
               <RecipeCard
                 key={recipe.id}
