@@ -299,7 +299,7 @@ export default function Home() {
                 <>
                   <div className="mb-6">
                     <label className="block text-xl font-light text-slate-800 mb-4">
-                      What's in your pantry?
+                      WhatWhat's in your pantry?apos;s in your pantry?
                     </label>
                     <textarea
                       value={pantryIngredients}
@@ -309,7 +309,7 @@ export default function Home() {
                       rows={3}
                     />
                     <p className="text-sm text-slate-500 mt-2">
-                      We'll find existing recipes you can make with these ingredients
+                      WeWe'll find existing recipesapos;ll find existing recipes you can make with these ingredients
                     </p>
                   </div>
                 </>

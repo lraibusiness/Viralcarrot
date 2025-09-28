@@ -27,6 +27,13 @@ interface ExternalRecipe {
   description?: string;
 }
 
+interface RecipeFilters {
+  cookingTime?: string;
+  cuisine?: string;
+  mealType?: string;
+  dietaryStyle?: string;
+}
+
 interface PantryRecipe {
   id: string;
   title: string;
@@ -218,7 +225,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Fetch existing recipes from various sources
-async function fetchExistingRecipes(pantryIngredients: string[], filters: any): Promise<ExternalRecipe[]> {
+async function fetchExistingRecipes(pantryIngredients: string[], filters: RecipeFilters): Promise<ExternalRecipe[]> {
   const recipes: ExternalRecipe[] = [];
   
   try {
@@ -481,7 +488,7 @@ function removeDuplicateRecipes(recipes: ExternalRecipe[]): ExternalRecipe[] {
 }
 
 // API search functions
-async function searchTheMealDB(mainFood: string, filters: any): Promise<ExternalRecipe[]> {
+async function searchTheMealDB(mainFood: string, filters: RecipeFilters): Promise<ExternalRecipe[]> {
   try {
     const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
     if (response.data.meals) {
