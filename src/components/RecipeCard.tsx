@@ -68,11 +68,11 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
 
   return (
     <div 
-      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden border border-slate-100 hover:border-amber-200 group transform hover:-translate-y-2"
+      className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-500 cursor-pointer overflow-hidden border border-slate-100 hover:border-amber-200 group transform hover:-translate-y-1"
       onClick={onClick}
     >
-      {/* Elegant Image Section */}
-      <div className="relative h-64 w-full overflow-hidden">
+      {/* Compact Image Section */}
+      <div className="relative h-48 w-full overflow-hidden">
         <Image
           src={imageError ? getFallbackImage() : recipe.image || getFallbackImage()}
           alt={recipe.title}
@@ -82,9 +82,9 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
         />
         
         {/* Minimalist Badges */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
+        <div className="absolute top-3 left-3 flex flex-col gap-1">
           {recipe.createdBy && (
-            <div className="bg-white/90 backdrop-blur-sm text-slate-800 px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
+            <div className="bg-white/90 backdrop-blur-sm text-slate-800 px-2 py-1 rounded-full text-xs font-medium shadow-lg">
               {recipe.createdBy}
             </div>
           )}
@@ -96,12 +96,12 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
         </div>
         
         {/* Time and Rating Overlay */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-          <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+        <div className="absolute top-3 right-3 flex flex-col gap-1">
+          <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
             {formatTime(recipe.cookingTime)}
           </div>
           {recipe.rating && (
-            <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+            <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
               {getRatingStars(recipe.rating)} {recipe.rating.toFixed(1)}
             </div>
           )}
@@ -111,61 +111,61 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
-      {/* Elegant Content Section */}
-      <div className="p-8">
+      {/* Compact Content Section */}
+      <div className="p-5">
         {/* Title and Description */}
-        <h3 className="text-xl font-light text-slate-900 mb-4 line-clamp-2 group-hover:text-amber-600 transition-colors duration-300">
+        <h3 className="text-lg font-light text-slate-900 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors duration-300">
           {recipe.title}
         </h3>
         
-        <p className="text-slate-600 text-sm mb-6 line-clamp-3 leading-relaxed font-light">
+        <p className="text-slate-600 text-sm mb-4 line-clamp-2 leading-relaxed font-light">
           {recipe.description}
         </p>
         
-        {/* Refined Metadata */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+        {/* Compact Metadata */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
             {recipe.cuisine && (
-              <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full font-medium">
+              <div className="flex items-center text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-full font-medium">
                 {recipe.cuisine}
               </div>
             )}
             {recipe.mealType && (
-              <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full font-medium">
+              <div className="flex items-center text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-full font-medium">
                 {recipe.mealType}
               </div>
             )}
           </div>
           
           {recipe.difficulty && (
-            <div className={`px-3 py-1.5 rounded-full text-xs font-medium border ${getDifficultyColor(recipe.difficulty)}`}>
+            <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(recipe.difficulty)}`}>
               {recipe.difficulty}
             </div>
           )}
         </div>
         
-        {/* Refined Tags */}
+        {/* Compact Tags */}
         {recipe.tags && recipe.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {recipe.tags.slice(0, 3).map((tag, index) => (
+          <div className="flex flex-wrap gap-1 mb-4">
+            {recipe.tags.slice(0, 2).map((tag, index) => (
               <span
                 key={index}
-                className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-medium hover:bg-amber-100 transition-colors duration-300"
+                className="bg-amber-50 text-amber-700 px-2 py-1 rounded-full text-xs font-medium hover:bg-amber-100 transition-colors duration-300"
               >
                 {tag}
               </span>
             ))}
-            {recipe.tags.length > 3 && (
-              <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-medium">
-                +{recipe.tags.length - 3} more
+            {recipe.tags.length > 2 && (
+              <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs font-medium">
+                +{recipe.tags.length - 2}
               </span>
             )}
           </div>
         )}
         
-        {/* Elegant Action Button */}
-        <button className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 px-6 rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group">
-          <span className="relative z-10 flex items-center justify-center gap-2">
+        {/* Compact Action Button */}
+        <button className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group">
+          <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
             <span>View Recipe</span>
             <span className="transform group-hover:translate-x-1 transition-transform duration-300">→</span>
           </span>
@@ -174,7 +174,7 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
         
         {/* Servings Info */}
         {recipe.servings && (
-          <div className="mt-4 text-center text-sm text-slate-500 font-light">
+          <div className="mt-2 text-center text-xs text-slate-500 font-light">
             Serves {recipe.servings} people
           </div>
         )}
