@@ -3,53 +3,19 @@ import { AuthService } from '@/lib/auth';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
-export async function GET(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { recipeId: string } }
+) {
   try {
-    // Check admin authentication
+    // Check authentication
     const session = await AuthService.verifySession(request);
-    if (!session || session.user.role !== 'admin') {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Read recipes from file
-    const recipesPath = join(process.cwd(), 'data', 'recipes.json');
-    let recipes = [];
-    try {
-      const data = await readFile(recipesPath, 'utf8');
-      recipes = JSON.parse(data);
-    } catch (error) {
-      console.error('Error reading recipes:', error);
-      return NextResponse.json({ success: false, error: 'Failed to read recipes' }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      recipes: recipes
-    });
-
-  } catch (error) {
-    console.error('Admin recipes API error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch recipes' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    // Check admin authentication
-    const session = await AuthService.verifySession(request);
-    if (!session || session.user.role !== 'admin') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const recipeId = params.recipeId;
     const updates = await request.json();
-    const { id, ...recipeUpdates } = updates;
-
-    if (!id) {
-      return NextResponse.json({ success: false, error: 'Recipe ID is required' }, { status: 400 });
-    }
 
     // Read current recipes
     const recipesPath = join(process.cwd(), 'data', 'recipes.json');
@@ -63,15 +29,20 @@ export async function PUT(request: NextRequest) {
     }
 
     // Find and update recipe
-    const recipeIndex = recipes.findIndex((r: any) => r.id === id);
+    const recipeIndex = recipes.findIndex((r: any) => r.id === recipeId);
     if (recipeIndex === -1) {
       return NextResponse.json({ success: false, error: 'Recipe not found' }, { status: 404 });
+    }
+
+    // Check if user owns this recipe
+    if (recipes[recipeIndex].createdBy !== session.user.email) {
+      return NextResponse.json({ success: false, error: 'Not authorized to edit this recipe' }, { status: 403 });
     }
 
     // Update recipe
     recipes[recipeIndex] = {
       ...recipes[recipeIndex],
-      ...recipeUpdates,
+      ...updates,
       updatedAt: new Date().toISOString()
     };
 
@@ -92,20 +63,18 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { recipeId: string } }
+) {
   try {
-    // Check admin authentication
+    // Check authentication
     const session = await AuthService.verifySession(request);
-    if (!session || session.user.role !== 'admin') {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const recipeId = searchParams.get('id');
-
-    if (!recipeId) {
-      return NextResponse.json({ success: false, error: 'Recipe ID is required' }, { status: 400 });
-    }
+    const recipeId = params.recipeId;
 
     // Read current recipes
     const recipesPath = join(process.cwd(), 'data', 'recipes.json');
@@ -118,12 +87,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Failed to read recipes' }, { status: 500 });
     }
 
-    // Find and remove recipe
+    // Find recipe
     const recipeIndex = recipes.findIndex((r: any) => r.id === recipeId);
     if (recipeIndex === -1) {
       return NextResponse.json({ success: false, error: 'Recipe not found' }, { status: 404 });
     }
 
+    // Check if user owns this recipe
+    if (recipes[recipeIndex].createdBy !== session.user.email) {
+      return NextResponse.json({ success: false, error: 'Not authorized to delete this recipe' }, { status: 403 });
+    }
+
+    // Remove recipe
     recipes.splice(recipeIndex, 1);
 
     // Save updated recipes
