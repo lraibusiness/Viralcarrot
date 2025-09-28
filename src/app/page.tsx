@@ -77,12 +77,24 @@ const COMMON_INGREDIENTS = [
   'carrot', 'celery', 'potato', 'rice', 'pasta', 'bread'
 ];
 
+// Common pantry ingredients for pantry wizard
+const COMMON_PANTRY_INGREDIENTS = [
+  'chicken', 'beef', 'pork', 'fish', 'shrimp', 'eggs',
+  'rice', 'pasta', 'bread', 'potato', 'onion', 'garlic',
+  'tomato', 'cheese', 'butter', 'olive oil', 'salt', 'black pepper',
+  'lemon', 'herbs', 'mushrooms', 'bell pepper', 'carrot', 'celery',
+  'broccoli', 'spinach', 'lettuce', 'cucumber', 'avocado', 'apple',
+  'banana', 'orange', 'milk', 'yogurt', 'flour', 'sugar',
+  'honey', 'vinegar', 'soy sauce', 'ketchup', 'mustard'
+];
+
 export default function Home() {
   const [appMode, setAppMode] = useState<AppMode>('generator');
   const [mainFood, setMainFood] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [pantryIngredients, setPantryIngredients] = useState('');
+  const [selectedPantryIngredients, setSelectedPantryIngredients] = useState<string[]>([]);
   const [cookingTime, setCookingTime] = useState('');
   const [cuisine, setCuisine] = useState('');
   const [mealType, setMealType] = useState('');
@@ -140,6 +152,14 @@ export default function Home() {
     }
   };
 
+  const handlePantryIngredientClick = (ingredient: string) => {
+    if (selectedPantryIngredients.includes(ingredient)) {
+      setSelectedPantryIngredients(prev => prev.filter(ing => ing !== ingredient));
+    } else {
+      setSelectedPantryIngredients(prev => [...prev, ingredient]);
+    }
+  };
+
   const handleGenerateRecipes = async () => {
     if (!mainFood.trim()) {
       setError('Please enter a main food item');
@@ -191,13 +211,16 @@ export default function Home() {
   };
 
   const handlePantrySearch = async () => {
-    if (!pantryIngredients.trim()) {
+    if (!pantryIngredients.trim() && selectedPantryIngredients.length === 0) {
       setError('Please enter at least one pantry ingredient');
       return;
     }
 
     setLoading(true);
     setError('');
+
+    // Combine selected pantry ingredients with manually typed ones
+    const allPantryIngredients = [...selectedPantryIngredients, ...pantryIngredients.split(',').map(ing => ing.trim()).filter(ing => ing)];
 
     try {
       const response = await fetch('/api/pantryWizard', {
@@ -206,7 +229,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          pantryIngredients: pantryIngredients.split(',').map(ing => ing.trim()).filter(ing => ing),
+          pantryIngredients: allPantryIngredients,
           filters: {
             cookingTime,
             cuisine,
@@ -491,16 +514,58 @@ export default function Home() {
                 <label className="block text-lg font-medium text-slate-800 mb-3">
                   What&apos;s in your pantry?
                 </label>
-                <textarea
-                  value={pantryIngredients}
-                  onChange={(e) => setPantryIngredients(e.target.value)}
-                  placeholder="Enter all your available ingredients (comma separated)... e.g., chicken, rice, onions, garlic, tomatoes, cheese"
-                  className="w-full max-w-xl mx-auto p-3 text-base border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400"
-                  rows={2}
-                />
-                <p className="text-sm text-slate-500 mt-1">
-                  We&apos;ll find existing recipes you can make with these ingredients
-                </p>
+                
+                {/* Quick pantry ingredient selection bubbles */}
+                <div className="mb-3">
+                  <p className="text-sm text-slate-500 mb-2">Quick select pantry ingredients:</p>
+                  <div className="flex flex-wrap gap-2 justify-center max-w-4xl mx-auto">
+                    {COMMON_PANTRY_INGREDIENTS.map((ingredient) => (
+                      <button
+                        key={ingredient}
+                        onClick={() => handlePantryIngredientClick(ingredient)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ${
+                          selectedPantryIngredients.includes(ingredient)
+                            ? 'bg-amber-500 text-white shadow-md'
+                            : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700'
+                        }`}
+                      >
+                        {ingredient}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Manual pantry ingredient input */}
+                <div>
+                  <p className="text-sm text-slate-500 mb-2">Or type additional ingredients:</p>
+                  <textarea
+                    value={pantryIngredients}
+                    onChange={(e) => setPantryIngredients(e.target.value)}
+                    placeholder="Enter all your available ingredients (comma separated)... e.g., chicken, rice, onions, garlic, tomatoes, cheese"
+                    className="w-full max-w-xl mx-auto p-3 text-base border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400"
+                    rows={2}
+                  />
+                  <p className="text-sm text-slate-500 mt-1">
+                    We&apos;ll find existing recipes you can make with these ingredients
+                  </p>
+                </div>
+
+                {/* Selected pantry ingredients display */}
+                {selectedPantryIngredients.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm text-slate-600 mb-2">Selected pantry ingredients:</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {selectedPantryIngredients.map((ingredient) => (
+                        <span
+                          key={ingredient}
+                          className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-sm"
+                        >
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
