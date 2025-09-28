@@ -71,13 +71,41 @@ interface NutritionData {
   fat: number;
 }
 
+interface MealDBRecipe {
+  strMeal: string;
+  strInstructions: string;
+  strMealThumb: string;
+  strCategory: string;
+  strArea: string;
+  [key: string]: string;
+}
+
+interface RecipePuppyRecipe {
+  title: string;
+  ingredients: string;
+  thumbnail: string;
+}
+
+interface ScrapeSource {
+  name: string;
+  baseUrl: string;
+  searchUrl: string;
+  selectors: {
+    title: string;
+    ingredients: string;
+    instructions: string;
+    time: string;
+    image: string;
+  };
+}
+
 // Enhanced API endpoints
 const MEALDB_BASE = 'https://www.themealdb.com/api/json/v1/1';
 const RECIPE_PUPPY_BASE = 'http://www.recipepuppy.com/api';
 const UNSPLASH_BASE = 'https://api.unsplash.com/search/photos';
 
 // Web scraping sources
-const SCRAPE_SOURCES = [
+const SCRAPE_SOURCES: ScrapeSource[] = [
   {
     name: 'AllRecipes',
     baseUrl: 'https://www.allrecipes.com',
@@ -210,7 +238,7 @@ export async function POST(request: NextRequest) {
     ]);
     
     const allRecipes = [...apiRecipes, ...scrapedRecipes];
-    console.log(`�� API: Found ${allRecipes.length} total recipes (${apiRecipes.length} API, ${scrapedRecipes.length} scraped)`);
+    console.log(`📊 API: Found ${allRecipes.length} total recipes (${apiRecipes.length} API, ${scrapedRecipes.length} scraped)`);
 
     // Step 3: Enhanced recipe processing and synthesis
     const synthesizedRecipes = await processRecipesWithEnhancedLogic(
@@ -365,7 +393,7 @@ async function scrapeWebRecipes(searchQuery: string): Promise<ExternalRecipe[]> 
 }
 
 // Scrape a specific source
-async function scrapeSource(source: any, searchQuery: string): Promise<ExternalRecipe[]> {
+async function scrapeSource(source: ScrapeSource, searchQuery: string): Promise<ExternalRecipe[]> {
   try {
     const searchUrl = `${source.searchUrl}${encodeURIComponent(searchQuery)}`;
     console.log(`🔍 Scraping ${source.name}: ${searchUrl}`);
@@ -414,7 +442,7 @@ async function scrapeSource(source: any, searchQuery: string): Promise<ExternalR
 }
 
 // Scrape individual recipe page
-async function scrapeRecipePage(url: string, source: any): Promise<ExternalRecipe | null> {
+async function scrapeRecipePage(url: string, source: ScrapeSource): Promise<ExternalRecipe | null> {
   try {
     const response = await axios.get(url, {
       timeout: 10000,
@@ -641,7 +669,7 @@ function mergeIngredientsEnhanced(baseRecipes: ExternalRecipe[], mainFood: strin
 }
 
 // Enhanced step generation
-function generateEnhancedSteps(mainFood: string, baseRecipes: ExternalRecipe[], ingredients: string[], index: number): string[] {
+function generateEnhancedSteps(mainFood: string, baseRecipes: ExternalRecipe[], ingredients: string[], _index: number): string[] {
   const steps: string[] = [];
   
   // Preparation step
@@ -873,11 +901,11 @@ function determineDifficulty(baseRecipes: ExternalRecipe[]): string {
 }
 
 // API search functions
-async function searchTheMealDB(mainFood: string, filters: RecipeFilters): Promise<ExternalRecipe[]> {
+async function searchTheMealDB(mainFood: string, _filters: RecipeFilters): Promise<ExternalRecipe[]> {
   try {
     const response = await axios.get(`${MEALDB_BASE}/search.php?s=${encodeURIComponent(mainFood)}`);
     if (response.data.meals) {
-      return response.data.meals.slice(0, 5).map((meal: any) => ({
+      return response.data.meals.slice(0, 5).map((meal: MealDBRecipe) => ({
         title: meal.strMeal,
         ingredients: extractMealDBIngredients(meal),
         steps: meal.strInstructions ? meal.strInstructions.split('\n').filter((step: string) => step.trim()) : [],
@@ -905,7 +933,7 @@ async function searchRecipePuppy(mainFood: string, ingredients: string[]): Promi
     const response = await axios.get(url, { timeout: 5000 });
     
     if (response.data && response.data.results) {
-      return response.data.results.slice(0, 5).map((recipe: any) => ({
+      return response.data.results.slice(0, 5).map((recipe: RecipePuppyRecipe) => ({
         title: recipe.title,
         ingredients: recipe.ingredients ? recipe.ingredients.split(', ') : [],
         steps: [],
@@ -924,7 +952,7 @@ async function searchRecipePuppy(mainFood: string, ingredients: string[]): Promi
   return [];
 }
 
-function extractMealDBIngredients(meal: any): string[] {
+function extractMealDBIngredients(meal: MealDBRecipe): string[] {
   const ingredients: string[] = [];
   for (let i = 1; i <= 20; i++) {
     const ingredient = meal[`strIngredient${i}`];
@@ -936,7 +964,7 @@ function extractMealDBIngredients(meal: any): string[] {
   return ingredients;
 }
 
-async function fetchNutritionData(mainFood: string): Promise<NutritionData> {
+async function fetchNutritionData(_mainFood: string): Promise<NutritionData> {
   // Return default nutrition data
   return {
     calories: 200 + Math.floor(Math.random() * 300),
