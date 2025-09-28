@@ -299,17 +299,21 @@ export default function Home() {
                 <>
                   <div className="mb-6">
                     <label className="block text-xl font-light text-slate-800 mb-4">
-                      WhatWhat's in your pantry?apos;s in your pantry?
-                    </label>
-                    <textarea
-                      value={pantryIngredients}
-                      onChange={(e) => setPantryIngredients(e.target.value)}
-                      placeholder="Enter all your available ingredients (comma separated)... e.g., chicken, rice, onions, garlic, tomatoes, cheese"
-                      className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
-                      rows={3}
-                    />
-                    <p className="text-sm text-slate-500 mt-2">
-                      WeWe'll find existing recipesapos;ll find existing recipes you can make with these ingredients
+                    <div className="mb-6">
+                      <label className="block text-xl font-light text-slate-800 mb-4">
+                        What&apos;s in your pantry?
+                      </label>
+                      <textarea
+                        value={pantryIngredients}
+                        onChange={(e) => setPantryIngredients(e.target.value)}
+                        placeholder="Enter all your available ingredients (comma separated)... e.g., chicken, rice, onions, garlic, tomatoes, cheese"
+                        className="w-full max-w-xl mx-auto p-4 text-lg border-0 border-b-2 border-slate-300 focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-transparent placeholder-slate-400 font-light"
+                        rows={3}
+                      />
+                      <p className="text-sm text-slate-500 mt-2">
+                        We&apos;ll find existing recipes you can make with these ingredients
+                      </p>
+                    </div>
                     </p>
                   </div>
                 </>
