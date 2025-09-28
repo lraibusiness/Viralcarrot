@@ -53,239 +53,232 @@ export interface UserRecipe {
   updatedAt: Date;
 }
 
-// File-based persistent storage
-const DATA_DIR = path.join(process.cwd(), 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-const RECIPES_FILE = path.join(DATA_DIR, 'recipes.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+export interface AuthSession {
+  user: User;
+  token: string;
 }
 
-// Load data from files
+// File paths
+const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
+const RECIPES_FILE = path.join(process.cwd(), 'data', 'recipes.json');
+
+// Helper functions for file operations
 function loadUsers(): User[] {
   try {
-    if (fs.existsSync(USERS_FILE)) {
-      const data = fs.readFileSync(USERS_FILE, 'utf8');
-      return JSON.parse(data).map((user: any) => ({
-        ...user,
-        createdAt: new Date(user.createdAt),
-        updatedAt: new Date(user.updatedAt)
-      }));
+    if (!fs.existsSync(USERS_FILE)) {
+      return [];
     }
+    const data = fs.readFileSync(USERS_FILE, 'utf8');
+    const users = JSON.parse(data);
+    // Convert date strings back to Date objects
+    return users.map((user: any) => ({
+      ...user,
+      createdAt: new Date(user.createdAt),
+      updatedAt: new Date(user.updatedAt)
+    }));
   } catch (error) {
     console.error('Error loading users:', error);
+    return [];
   }
-  return [];
 }
 
-function loadRecipes(): UserRecipe[] {
-  try {
-    if (fs.existsSync(RECIPES_FILE)) {
-      const data = fs.readFileSync(RECIPES_FILE, 'utf8');
-      return JSON.parse(data).map((recipe: any) => ({
-        ...recipe,
-        createdAt: new Date(recipe.createdAt),
-        updatedAt: new Date(recipe.updatedAt)
-      }));
-    }
-  } catch (error) {
-    console.error('Error loading recipes:', error);
-  }
-  return [];
-}
-
-// Save data to files
 function saveUsers(users: User[]): void {
   try {
+    // Ensure data directory exists
+    const dataDir = path.dirname(USERS_FILE);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
   } catch (error) {
     console.error('Error saving users:', error);
   }
 }
 
+function loadRecipes(): UserRecipe[] {
+  try {
+    if (!fs.existsSync(RECIPES_FILE)) {
+      return [];
+    }
+    const data = fs.readFileSync(RECIPES_FILE, 'utf8');
+    const recipes = JSON.parse(data);
+    // Convert date strings back to Date objects
+    return recipes.map((recipe: any) => ({
+      ...recipe,
+      createdAt: new Date(recipe.createdAt),
+      updatedAt: new Date(recipe.updatedAt)
+    }));
+  } catch (error) {
+    console.error('Error loading recipes:', error);
+    return [];
+  }
+}
+
 function saveRecipes(recipes: UserRecipe[]): void {
   try {
+    // Ensure data directory exists
+    const dataDir = path.dirname(RECIPES_FILE);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
     fs.writeFileSync(RECIPES_FILE, JSON.stringify(recipes, null, 2));
   } catch (error) {
     console.error('Error saving recipes:', error);
   }
 }
 
+// Simple token generation (in production, use JWT)
+function generateToken(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// Simple password hashing (in production, use bcrypt)
+function hashPassword(password: string): string {
+  // This is a simple hash for demo purposes
+  // In production, use bcrypt or similar
+  return Buffer.from(password).toString('base64');
+}
+
+function verifyPassword(password: string, hashedPassword: string): boolean {
+  return hashPassword(password) === hashedPassword;
+}
+
 export class AuthService {
-  // Register new user
   static async register(email: string, password: string, name: string): Promise<{ user: User; token: string }> {
     const users = loadUsers();
     
     // Check if user already exists
-    const existingUser = users.find(u => u.email === email);
-    if (existingUser) {
+    if (users.find(u => u.email === email)) {
       throw new Error('User already exists');
     }
 
-    // Create new user
     const user: User = {
-      id: `user_${Date.now()}`,
+      id: generateToken(),
       email,
       name,
       role: 'user',
-      subscription: {
-        plan: 'free',
-        status: 'active'
-      },
-      profile: {
-        preferences: {
-          cuisine: [],
-          dietaryRestrictions: [],
-          cookingSkill: 'beginner'
-        }
-      },
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    users.push(user);
+    // In a real app, you'd hash the password
+    const token = generateToken();
+    
+    // Store user with hashed password
+    const userWithPassword = {
+      ...user,
+      password: hashPassword(password),
+      token
+    };
+    
+    users.push(userWithPassword as any);
     saveUsers(users);
 
-    // Generate token (in production, use JWT)
-    const token = `token_${user.id}_${Date.now()}`;
-
-    console.log(`✅ User registered: ${email} (ID: ${user.id})`);
+    console.log(`✅ User registered: ${email}`);
     return { user, token };
   }
 
-  // Login user
   static async login(email: string, password: string): Promise<{ user: User; token: string }> {
     const users = loadUsers();
     const user = users.find(u => u.email === email);
     
-    if (!user) {
-      console.log(`❌ Login failed: User not found for email: ${email}`);
+    if (!user || !verifyPassword(password, (user as any).password)) {
       throw new Error('Invalid credentials');
     }
 
-    // In production, verify password hash
-    console.log(`✅ User logged in: ${email} (ID: ${user.id})`);
-    const token = `token_${user.id}_${Date.now()}`;
+    const token = generateToken();
+    
+    // Update user with new token
+    (user as any).token = token;
+    user.updatedAt = new Date();
+    saveUsers(users);
 
+    console.log(`✅ User logged in: ${email}`);
     return { user, token };
   }
 
-  // Get user by token (FIXED: Correct token parsing)
   static async getUserByToken(token: string): Promise<User | null> {
-    if (!token) {
-      console.log('❌ No token provided');
-      return null;
-    }
-    
-    // Parse token: token_userId_timestamp
-    // Token format: token_user_1234567890_1234567890
-    if (!token.startsWith('token_')) {
-      console.log('❌ Invalid token format - must start with "token_"');
-      return null;
-    }
-    
-    // Remove "token_" prefix and split by "_"
-    const tokenBody = token.substring(6); // Remove "token_"
-    const parts = tokenBody.split('_');
-    
-    if (parts.length < 2) {
-      console.log('❌ Invalid token format - not enough parts');
-      return null;
-    }
-    
-    // The user ID is everything except the last part (timestamp)
-    const userId = parts.slice(0, -1).join('_');
-    const timestamp = parts[parts.length - 1];
-    
-    console.log('🔍 Token body:', tokenBody);
-    console.log('🔍 Parts:', parts);
-    console.log('🔍 User ID:', userId);
-    console.log('�� Timestamp:', timestamp);
-    
-    if (!userId) {
-      console.log('❌ No user ID in token');
-      return null;
-    }
-    
     const users = loadUsers();
-    const user = users.find(u => u.id === userId);
-    
-    if (user) {
-      console.log(`✅ Token validated for user: ${user.email} (ID: ${user.id})`);
-    } else {
-      console.log(`❌ Token validation failed - user not found for ID: ${userId}`);
-      console.log('Available users:', users.map(u => u.id));
-    }
-    
+    const user = users.find(u => (u as any).token === token);
     return user || null;
   }
 
-  // Update user profile
+  static async verifySession(request: NextRequest): Promise<{ user: User; token: string } | null> {
+    try {
+      const token = request.cookies.get('auth-token')?.value;
+      if (!token) {
+        console.log('❌ No auth token found in cookies');
+        return null;
+      }
+
+      console.log('🔍 Checking token:', token);
+      const user = await this.getUserByToken(token);
+      if (!user) {
+        console.log('❌ Invalid auth token');
+        return null;
+      }
+
+      console.log('✅ User authenticated:', user.email);
+      return { user, token };
+    } catch (error) {
+      console.error('❌ Session verification error:', error);
+      return null;
+    }
+  }
+
   static async updateProfile(userId: string, updates: Partial<User['profile']>): Promise<User> {
     const users = loadUsers();
     const user = users.find(u => u.id === userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
-
+    if (!user) throw new Error('User not found');
+    
     user.profile = { ...user.profile, ...updates };
     user.updatedAt = new Date();
-    
     saveUsers(users);
+    
     return user;
   }
 
-  // Update subscription
   static async updateSubscription(userId: string, subscription: User['subscription']): Promise<User> {
     const users = loadUsers();
     const user = users.find(u => u.id === userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
-
+    if (!user) throw new Error('User not found');
+    
     user.subscription = subscription;
     user.updatedAt = new Date();
-    
     saveUsers(users);
+    
     return user;
   }
 
-  // Add user recipe
   static async addUserRecipe(userId: string, recipe: Omit<UserRecipe, 'id' | 'userId' | 'views' | 'likes' | 'createdAt' | 'updatedAt'>): Promise<UserRecipe> {
     const recipes = loadRecipes();
-    
-    const userRecipe: UserRecipe = {
-      id: `recipe_${Date.now()}`,
-      userId,
+    const newRecipe: UserRecipe = {
       ...recipe,
+      id: generateToken(),
+      userId,
       views: 0,
       likes: 0,
       createdAt: new Date(),
       updatedAt: new Date()
     };
-
-    recipes.push(userRecipe);
+    
+    recipes.push(newRecipe);
     saveRecipes(recipes);
     
-    console.log(`✅ Recipe added: ${userRecipe.title} by user ${userId}`);
-    return userRecipe;
+    console.log(`✅ Recipe added: ${newRecipe.title}`);
+    return newRecipe;
   }
 
-  // Get user recipes
   static async getUserRecipes(userId: string): Promise<UserRecipe[]> {
     const recipes = loadRecipes();
     return recipes.filter(r => r.userId === userId);
   }
 
-  // Get all public recipes
   static async getPublicRecipes(): Promise<UserRecipe[]> {
     const recipes = loadRecipes();
     return recipes.filter(r => r.isPublic && r.isApproved);
   }
 
-  // Get trending recipes
   static async getTrendingRecipes(): Promise<UserRecipe[]> {
     const recipes = loadRecipes();
     return recipes
@@ -294,7 +287,6 @@ export class AuthService {
       .slice(0, 10);
   }
 
-  // Get newly posted recipes
   static async getNewlyPostedRecipes(): Promise<UserRecipe[]> {
     const recipes = loadRecipes();
     return recipes
@@ -303,23 +295,18 @@ export class AuthService {
       .slice(0, 10);
   }
 
-  // Search recipes by ingredients
   static async searchRecipesByIngredients(ingredients: string[]): Promise<UserRecipe[]> {
     const recipes = loadRecipes();
-    const publicRecipes = recipes.filter(r => r.isPublic && r.isApproved);
-    
-    return publicRecipes.filter(recipe => {
-      const recipeIngredients = recipe.ingredients.map(ing => ing.toLowerCase());
-      return ingredients.some(ingredient => 
-        recipeIngredients.some(recipeIng => 
-          recipeIng.includes(ingredient.toLowerCase()) || 
-          ingredient.toLowerCase().includes(recipeIng)
+    return recipes.filter(r => 
+      r.isPublic && r.isApproved &&
+      ingredients.some(ingredient => 
+        r.ingredients.some(recipeIngredient => 
+          recipeIngredient.toLowerCase().includes(ingredient.toLowerCase())
         )
-      );
-    });
+      )
+    );
   }
 
-  // Admin functions
   static async getAllRecipes(): Promise<UserRecipe[]> {
     return loadRecipes();
   }
@@ -337,10 +324,10 @@ export class AuthService {
 
   static async deleteRecipe(recipeId: string): Promise<void> {
     const recipes = loadRecipes();
-    const index = recipes.findIndex(r => r.id === recipeId);
-    if (index !== -1) {
-      const recipe = recipes[index];
-      recipes.splice(index, 1);
+    const recipeIndex = recipes.findIndex(r => r.id === recipeId);
+    if (recipeIndex !== -1) {
+      const recipe = recipes[recipeIndex];
+      recipes.splice(recipeIndex, 1);
       saveRecipes(recipes);
       console.log(`✅ Recipe deleted: ${recipe.title}`);
     }

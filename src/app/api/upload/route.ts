@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import { AuthService } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📤 Upload API: Starting image upload');
     
-    // Check authentication
-    const session = await AuthService.verifySession(request);
-    if (!session) {
-      console.log('❌ Upload API: Unauthorized - no session');
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log('✅ Upload API: User authenticated:', session.user.email);
-
+    // Get form data
     const formData = await request.formData();
     const file = formData.get('image') as File;
     
@@ -72,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Return the public URL
     const imageUrl = `/uploads/${fileName}`;
 
-    console.log('�� Upload API: Returning URL:', imageUrl);
+    console.log('🔗 Upload API: Returning URL:', imageUrl);
 
     return NextResponse.json({
       success: true,

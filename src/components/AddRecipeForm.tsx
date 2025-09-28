@@ -51,19 +51,40 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
       });
 
       console.log('📤 Client: Upload response status:', response.status);
+      console.log('📤 Client: Upload response headers:', Object.fromEntries(response.headers.entries()));
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Client: Upload failed:', errorData);
-        throw new Error(errorData.error || `Upload failed with status ${response.status}`);
+      const responseText = await response.text();
+      console.log('📤 Client: Raw response:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('📤 Client: Parsed response:', data);
+      } catch (parseError) {
+        console.error('❌ Client: Failed to parse response as JSON:', parseError);
+        throw new Error(`Server returned invalid JSON: ${responseText}`);
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        console.error('❌ Client: Upload failed with status:', response.status);
+        console.error('❌ Client: Error data:', data);
+        throw new Error(data.error || `Upload failed with status ${response.status}`);
+      }
+
+      if (!data.success) {
+        console.error('❌ Client: Upload failed:', data);
+        throw new Error(data.error || 'Upload failed');
+      }
+
       console.log('✅ Client: Upload successful:', data);
       return data.imageUrl;
     } catch (error) {
       console.error('❌ Client: Upload error:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error('Unknown upload error occurred');
+      }
     }
   };
 
@@ -83,7 +104,8 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
           console.log('✅ Client: Image uploaded successfully:', imageUrl);
         } catch (error) {
           console.error('❌ Client: Image upload failed:', error);
-          alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          alert(`Failed to upload image: ${errorMessage}`);
           return;
         } finally {
           setUploading(false);
