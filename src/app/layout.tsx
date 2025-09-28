@@ -13,32 +13,51 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'ViralCarrot - Smart Recipe Discovery Platform',
+  title: {
+    default: 'ViralCarrot - Smart Recipe Discovery Platform | AI Recipes & Ingredient Matching',
+    template: '%s | ViralCarrot'
+  },
   description: 'Discover amazing recipes with ViralCarrot. Get AI-generated recipes and popular recipes from the web with ingredient matching. Find what you can cook with your available ingredients.',
-  keywords: 'recipe discovery, smart cooking, ingredient matching, AI recipes, popular recipes, cooking platform, recipe generator, pantry wizard',
-  authors: [{ name: 'ViralCarrot Team' }],
+  keywords: [
+    'recipe discovery',
+    'smart cooking',
+    'ingredient matching',
+    'AI recipes',
+    'popular recipes',
+    'cooking platform',
+    'recipe generator',
+    'pantry wizard',
+    'cooking app',
+    'food recipes',
+    'cooking tips',
+    'meal planning',
+    'recipe finder',
+    'cooking assistant',
+    'food discovery'
+  ],
+  authors: [{ name: 'ViralCarrot Team', url: 'https://viralcarrot.com' }],
   creator: 'ViralCarrot',
-  publisher: 'ViralCarrot',
+  publisher: 'ViralCarrot Inc.',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://viralcarrot.vercel.app'),
+  metadataBase: new URL('https://viralcarrot.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'ViralCarrot - Smart Recipe Discovery Platform',
     description: 'Discover amazing recipes with ViralCarrot. Get AI-generated recipes and popular recipes from the web with ingredient matching.',
-    url: 'https://viralcarrot.vercel.app',
+    url: 'https://viralcarrot.com',
     siteName: 'ViralCarrot',
     images: [
       {
         url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=1200&h=630&fit=crop',
         width: 1200,
         height: 630,
-        alt: 'ViralCarrot - Smart Recipe Discovery',
+        alt: 'ViralCarrot - Smart Recipe Discovery Platform',
       },
     ],
     locale: 'en_US',
@@ -49,6 +68,7 @@ export const metadata: Metadata = {
     title: 'ViralCarrot - Smart Recipe Discovery Platform',
     description: 'Discover amazing recipes with ViralCarrot. Get AI-generated recipes and popular recipes from the web with ingredient matching.',
     images: ['https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=1200&h=630&fit=crop'],
+    creator: '@viralcarrot',
   },
   robots: {
     index: true,
@@ -64,6 +84,30 @@ export const metadata: Metadata = {
   verification: {
     google: 'your-google-verification-code',
   },
+  category: 'Food & Cooking',
+  classification: 'Recipe Discovery Platform',
+  referrer: 'origin-when-cross-origin',
+  colorScheme: 'light',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f59e0b' },
+    { media: '(prefers-color-scheme: dark)', color: '#f59e0b' }
+  ],
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/site.webmanifest',
+  other: {
+    'msapplication-TileColor': '#f59e0b',
+    'msapplication-config': '/browserconfig.xml',
+  },
 };
 
 export default function RootLayout({
@@ -76,7 +120,7 @@ export default function RootLayout({
     '@type': 'WebApplication',
     name: 'ViralCarrot',
     description: 'Smart recipe discovery platform with AI-generated recipes and ingredient matching',
-    url: 'https://viralcarrot.vercel.app',
+    url: 'https://viralcarrot.com',
     applicationCategory: 'FoodApplication',
     operatingSystem: 'Web Browser',
     offers: {
@@ -90,11 +134,89 @@ export default function RootLayout({
       'Popular Recipe Discovery',
       'Pantry Wizard',
       'Smart Filtering',
+      'Mobile Optimized',
+      'Free to Use'
     ],
     author: {
       '@type': 'Organization',
-      name: 'ViralCarrot',
+      name: 'ViralCarrot Inc.',
+      url: 'https://viralcarrot.com',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: '123 Recipe Street',
+        addressLocality: 'Food City',
+        addressRegion: 'FC',
+        postalCode: '12345',
+        addressCountry: 'US'
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        telephone: '+1-555-123-4567',
+        contactType: 'customer service',
+        email: 'hello@viralcarrot.com'
+      }
     },
+    publisher: {
+      '@type': 'Organization',
+      name: 'ViralCarrot Inc.',
+      url: 'https://viralcarrot.com'
+    },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://viralcarrot.com/?q={search_term_string}',
+      'query-input': 'required name=search_term_string'
+    },
+    sameAs: [
+      'https://www.facebook.com/viralcarrot',
+      'https://www.instagram.com/viralcarrot',
+      'https://www.twitter.com/viralcarrot'
+    ]
+  };
+
+  const organizationStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'ViralCarrot Inc.',
+    url: 'https://viralcarrot.com',
+    logo: 'https://viralcarrot.com/logo.png',
+    description: 'Smart recipe discovery platform with AI-generated recipes and ingredient matching',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '123 Recipe Street',
+      addressLocality: 'Food City',
+      addressRegion: 'FC',
+      postalCode: '12345',
+      addressCountry: 'US'
+    },
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: '+1-555-123-4567',
+      contactType: 'customer service',
+      email: 'hello@viralcarrot.com',
+      availableLanguage: 'English'
+    },
+    sameAs: [
+      'https://www.facebook.com/viralcarrot',
+      'https://www.instagram.com/viralcarrot',
+      'https://www.twitter.com/viralcarrot'
+    ]
+  };
+
+  const websiteStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'ViralCarrot',
+    url: 'https://viralcarrot.com',
+    description: 'Smart recipe discovery platform with AI-generated recipes and ingredient matching',
+    publisher: {
+      '@type': 'Organization',
+      name: 'ViralCarrot Inc.'
+    },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://viralcarrot.com/?q={search_term_string}',
+      'query-input': 'required name=search_term_string'
+    }
   };
 
   return (
@@ -106,6 +228,22 @@ export default function RootLayout({
             __html: JSON.stringify(structuredData),
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationStructuredData),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteStructuredData),
+          }}
+        />
+        <meta name="google-site-verification" content="your-google-verification-code" />
+        <meta name="msvalidate.01" content="your-bing-verification-code" />
+        <meta name="yandex-verification" content="your-yandex-verification-code" />
+        <meta name="pinterest-site-verification" content="your-pinterest-verification-code" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

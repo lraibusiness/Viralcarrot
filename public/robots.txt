@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://viralcarrot.com/sitemap.xml
+
+# Disallow admin areas (if any)
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+
+# Allow important pages
+Allow: /
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /cookies
+Allow: /disclaimer
+Allow: /trending
+
+# Crawl delay (optional)
+Crawl-delay: 1

@@ -203,9 +203,9 @@ export default function Home() {
               <h1 className="text-2xl font-bold text-slate-800">ViralCarrot</h1>
             </div>
             <div className="hidden md:flex items-center space-x-6">
-              <a href="#about" className="text-slate-600 hover:text-amber-600 transition-colors">About</a>
-              <a href="#contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</a>
-              <a href="#privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</a>
+              <a href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</a>
+              <a href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</a>
+              <a href="/privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</a>
             </div>
           </div>
         </div>
@@ -392,6 +392,14 @@ export default function Home() {
           </div>
         </div>
 
+        {/* AdSense Ad Placement - Top */}
+        <div className="mb-8 text-center">
+          <div className="bg-slate-100 rounded-xl p-8 border-2 border-dashed border-slate-300">
+            <p className="text-slate-500 text-sm">Advertisement Space</p>
+            <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
+          </div>
+        </div>
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8">
@@ -419,6 +427,14 @@ export default function Home() {
                   onSelect={setSelectedRecipe}
                 />
               ))}
+            </div>
+
+            {/* AdSense Ad Placement - Middle */}
+            <div className="my-8 text-center">
+              <div className="bg-slate-100 rounded-xl p-8 border-2 border-dashed border-slate-300">
+                <p className="text-slate-500 text-sm">Advertisement Space</p>
+                <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
+              </div>
             </div>
 
             {/* Load More Button */}
@@ -471,6 +487,14 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* AdSense Ad Placement - Bottom */}
+        <div className="mt-8 text-center">
+          <div className="bg-slate-100 rounded-xl p-8 border-2 border-dashed border-slate-300">
+            <p className="text-slate-500 text-sm">Advertisement Space</p>
+            <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
+          </div>
+        </div>
       </main>
 
       {/* Recipe Modal */}
@@ -508,10 +532,10 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">Resources</h4>
               <ul className="space-y-2 text-sm text-slate-300">
-                <li><a href="#about" className="hover:text-amber-400 transition-colors">About</a></li>
-                <li><a href="#contact" className="hover:text-amber-400 transition-colors">Contact</a></li>
-                <li><a href="#privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
-                <li><a href="#terms" className="hover:text-amber-400 transition-colors">Terms of Service</a></li>
+                <li><a href="/about" className="hover:text-amber-400 transition-colors">About</a></li>
+                <li><a href="/contact" className="hover:text-amber-400 transition-colors">Contact</a></li>
+                <li><a href="/privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+                <li><a href="/terms" className="hover:text-amber-400 transition-colors">Terms of Service</a></li>
               </ul>
             </div>
             <div>

@@ -2,9 +2,9 @@ import React from 'react';
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Contact ViralCarrot - Get in Touch',
-  description: 'Contact ViralCarrot for support, feedback, or partnership opportunities. We love hearing from our users and are here to help with any questions.',
-  keywords: 'contact viralcarrot, support, feedback, partnership, help',
+  title: 'Contact ViralCarrot - Get in Touch | Support & Business Inquiries',
+  description: 'Contact ViralCarrot for support, feedback, or partnership opportunities. We love hearing from our users and are here to help with any questions about our recipe discovery platform.',
+  keywords: 'contact viralcarrot, support, feedback, partnership, help, business inquiries, customer service',
 };
 
 export default function ContactPage() {
@@ -93,6 +93,37 @@ export default function ContactPage() {
               </div>
             </div>
 
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">Business Information</h2>
+            <div className="bg-slate-50 rounded-xl p-6 mb-8">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">ViralCarrot Inc.</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-slate-700 mb-2">Business Address</h4>
+                  <p className="text-slate-600">
+                    123 Recipe Street<br />
+                    Food City, FC 12345<br />
+                    United States
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-700 mb-2">Contact Details</h4>
+                  <p className="text-slate-600">
+                    <strong>Phone:</strong> +1 (555) 123-4567<br />
+                    <strong>Email:</strong> hello@viralcarrot.com<br />
+                    <strong>Website:</strong> viralcarrot.com
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <h4 className="font-semibold text-slate-700 mb-2">Business Hours</h4>
+                <p className="text-slate-600">
+                  Monday - Friday: 9:00 AM - 5:00 PM EST<br />
+                  Saturday: 10:00 AM - 2:00 PM EST<br />
+                  Sunday: Closed
+                </p>
+              </div>
+            </div>
+
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Frequently Asked Questions</h2>
             
             <div className="space-y-6 mb-8">
@@ -130,6 +161,13 @@ export default function ContactPage() {
                   ViralCarrot is fully optimized for mobile browsers and works great on all devices. We&apos;re considering native mobile apps based on user demand.
                 </p>
               </div>
+
+              <div className="border-l-4 border-amber-500 pl-4">
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">How do you protect my privacy?</h3>
+                <p className="text-slate-600">
+                  We take your privacy seriously and have implemented comprehensive security measures to protect your data. Please review our Privacy Policy for detailed information about how we collect, use, and protect your information.
+                </p>
+              </div>
             </div>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Response Times</h2>
@@ -139,7 +177,36 @@ export default function ContactPage() {
                 <li><strong>Technical Support:</strong> 12-24 hours</li>
                 <li><strong>Partnership Opportunities:</strong> 3-5 business days</li>
                 <li><strong>Media & Press:</strong> 24-48 hours</li>
+                <li><strong>Bug Reports:</strong> 24-48 hours</li>
+                <li><strong>Feature Requests:</strong> 1-2 weeks</li>
               </ul>
+            </div>
+
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">Social Media</h2>
+            <div className="bg-slate-50 rounded-xl p-6 mb-8">
+              <p className="text-slate-600 mb-4">
+                Follow us on social media for the latest updates, cooking tips, and community discussions:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span className="text-white font-bold">F</span>
+                  </div>
+                  <p className="text-sm text-slate-600">Facebook</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span className="text-white font-bold">I</span>
+                  </div>
+                  <p className="text-sm text-slate-600">Instagram</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span className="text-white font-bold">T</span>
+                  </div>
+                  <p className="text-sm text-slate-600">Twitter</p>
+                </div>
+              </div>
             </div>
 
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-8 text-white text-center">
