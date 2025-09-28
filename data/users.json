@@ -4,6 +4,8 @@
     "email": "test@test",
     "name": "test@test",
     "role": "user",
+    "password": "dGVzdA==",
+    "token": "test_token_1",
     "subscription": {
       "plan": "free",
       "status": "active"
@@ -23,6 +25,8 @@
     "email": "sajithakahandwala@outlook.com",
     "name": "Sajitha kahandawala",
     "role": "admin",
+    "password": "c2FqaXRoYQ==",
+    "token": "admin_token_1",
     "subscription": {
       "plan": "free",
       "status": "active"
@@ -42,6 +46,8 @@
     "email": "test@example.com",
     "name": "Test User",
     "role": "user",
+    "password": "dGVzdA==",
+    "token": "test_token_2",
     "subscription": {
       "plan": "free",
       "status": "active"
@@ -61,6 +67,8 @@
     "email": "sugar420@gmail.com",
     "name": "sugar420",
     "role": "user",
+    "password": "c3VnYXI0MjA=",
+    "token": "sugar_token_1",
     "subscription": {
       "plan": "free",
       "status": "active"
@@ -80,6 +88,8 @@
     "email": "test@testt",
     "name": "test@testt",
     "role": "user",
+    "password": "dGVzdA==",
+    "token": "test_token_3",
     "subscription": {
       "plan": "free",
       "status": "active"
@@ -99,6 +109,8 @@
     "email": "admin@viralcarrot.com",
     "name": "Admin User",
     "role": "admin",
+    "password": "YWRtaW4=",
+    "token": "admin_token_2",
     "subscription": {
       "plan": "pro",
       "status": "active"
@@ -118,6 +130,8 @@
     "email": "rich@rich",
     "name": "rich@rich",
     "role": "user",
+    "password": "cmljaA==",
+    "token": "rich_token_1",
     "subscription": {
       "plan": "free",
       "status": "active"
