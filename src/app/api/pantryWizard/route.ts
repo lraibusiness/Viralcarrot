@@ -233,26 +233,19 @@ async function fetchExistingRecipes(pantryIngredients: string[], filters: Recipe
     const mainIngredients = extractMainIngredients(pantryIngredients);
     
     // Run searches for each main ingredient
-    const searchPromises = mainIngredients.map(ingredient => 
-      Promise.allSettled([
-        searchTheMealDB(ingredient, filters),
-        searchRecipePuppy(ingredient, pantryIngredients)
-      ])
-    );
-
-    const allResults = await Promise.all(searchPromises);
-    
-    allResults.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        const [mealDBResult, recipePuppyResult] = result.value;
-        if (mealDBResult.status === 'fulfilled') {
-          recipes.push(...mealDBResult.value);
-        }
-        if (recipePuppyResult.status === 'fulfilled') {
-          recipes.push(...recipePuppyResult.value);
-        }
+    for (const ingredient of mainIngredients) {
+      try {
+        const [mealDBRecipes, recipePuppyRecipes] = await Promise.all([
+          searchTheMealDB(ingredient, filters),
+          searchRecipePuppy(ingredient, pantryIngredients)
+        ]);
+        
+        recipes.push(...mealDBRecipes);
+        recipes.push(...recipePuppyRecipes);
+      } catch (error) {
+        console.error(`❌ Error fetching recipes for ${ingredient}:`, error);
       }
-    });
+    }
 
     // Filter and deduplicate
     const filteredRecipes = recipes
