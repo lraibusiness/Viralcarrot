@@ -453,6 +453,9 @@ async function generateEnhancedRecipe(
   // Calculate match score (FIXED: Proper ingredient matching)
   const matchScore = calculateMatchScore(mergedIngredients, ingredients);
   
+  // Calculate ingredient match percentage (FIXED)
+  const ingredientMatch = calculateIngredientMatch(mergedIngredients, ingredients);
+  
   // Generate tags
   const tags = generateRecipeTags(mainFood, cuisine, mealType, filters);
 
@@ -480,27 +483,52 @@ async function generateEnhancedRecipe(
       fat: nutritionData.fat + Math.floor(Math.random() * 15)
     },
     seoDescription: `${title} - A delicious ${cuisine} ${mealType} recipe featuring ${mainFood}. Perfect for any occasion.`,
-    ingredientMatch: {
-      availableIngredients: ingredients.filter(ing => 
-        mergedIngredients.some(recipeIng => 
-          recipeIng.toLowerCase().includes(ing.toLowerCase()) ||
-          ing.toLowerCase().includes(recipeIng.toLowerCase())
-        )
-      ),
-      missingIngredients: ingredients.filter(ing => 
-        !mergedIngredients.some(recipeIng => 
-          recipeIng.toLowerCase().includes(ing.toLowerCase()) ||
-          ing.toLowerCase().includes(recipeIng.toLowerCase())
-        )
-      ),
-      matchPercentage: Math.round((ingredients.filter(ing => 
-        mergedIngredients.some(recipeIng => 
-          recipeIng.toLowerCase().includes(ing.toLowerCase()) ||
-          ing.toLowerCase().includes(recipeIng.toLowerCase())
-        )
-      ).length / Math.max(ingredients.length, 1)) * 100)
-    },
+    ingredientMatch,
     isExternal: false
+  };
+}
+
+// Calculate ingredient match percentage (FIXED)
+function calculateIngredientMatch(recipeIngredients: string[], userIngredients: string[]): {
+  availableIngredients: string[];
+  missingIngredients: string[];
+  matchPercentage: number;
+} {
+  if (userIngredients.length === 0) {
+    return {
+      availableIngredients: [],
+      missingIngredients: [],
+      matchPercentage: 0
+    };
+  }
+
+  const availableIngredients: string[] = [];
+  const missingIngredients: string[] = [];
+
+  // Check each user ingredient against recipe ingredients
+  userIngredients.forEach(userIng => {
+    const normalizedUserIng = userIng.toLowerCase().trim();
+    const found = recipeIngredients.some(recipeIng => {
+      const normalizedRecipeIng = recipeIng.toLowerCase().trim();
+      return normalizedRecipeIng.includes(normalizedUserIng) || 
+             normalizedUserIng.includes(normalizedRecipeIng) ||
+             normalizedRecipeIng.includes(normalizedUserIng.split(' ')[0]) ||
+             normalizedUserIng.includes(normalizedRecipeIng.split(' ')[0]);
+    });
+    
+    if (found) {
+      availableIngredients.push(userIng);
+    } else {
+      missingIngredients.push(userIng);
+    }
+  });
+
+  const matchPercentage = Math.round((availableIngredients.length / userIngredients.length) * 100);
+
+  return {
+    availableIngredients,
+    missingIngredients,
+    matchPercentage
   };
 }
 

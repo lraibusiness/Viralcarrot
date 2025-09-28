@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import AddRecipeForm from '@/components/AddRecipeForm';
 
 interface User {
   id: string;
@@ -54,6 +55,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [redirecting, setRedirecting] = useState(false);
+  const [showAddRecipe, setShowAddRecipe] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -97,6 +99,11 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const handleRecipeAdded = () => {
+    // Refresh recipes after adding a new one
+    fetchUserData();
   };
 
   // Show loading or redirecting state
@@ -211,7 +218,10 @@ export default function Dashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800">My Recipes</h2>
-              <button className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors">
+              <button 
+                onClick={() => setShowAddRecipe(true)}
+                className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors"
+              >
                 Add New Recipe
               </button>
             </div>
@@ -236,6 +246,21 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
+              {recipes.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">🍽️</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">No recipes yet</h3>
+                  <p className="text-slate-600 mb-4">Start sharing your delicious recipes with the community!</p>
+                  <button 
+                    onClick={() => setShowAddRecipe(true)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-xl transition-colors"
+                  >
+                    Add Your First Recipe
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -331,6 +356,14 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Add Recipe Modal */}
+      {showAddRecipe && (
+        <AddRecipeForm
+          onClose={() => setShowAddRecipe(false)}
+          onSuccess={handleRecipeAdded}
+        />
+      )}
     </div>
   );
 }
