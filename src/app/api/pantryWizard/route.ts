@@ -242,7 +242,7 @@ async function fetchExistingRecipes(pantryIngredients: string[], filters: Recipe
 
     const allResults = await Promise.all(searchPromises);
     
-    allResults.forEach((result, index) => {
+    allResults.forEach((result, _index) => {
       if (result.status === 'fulfilled') {
         const [mealDBResult, recipePuppyResult] = result.value;
         if (mealDBResult.status === 'fulfilled') {
