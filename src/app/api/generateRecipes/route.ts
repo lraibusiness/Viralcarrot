@@ -453,8 +453,8 @@ async function generateEnhancedRecipe(
   // Calculate match score (FIXED: Proper ingredient matching)
   const matchScore = calculateMatchScore(mergedIngredients, ingredients);
   
-  // Calculate ingredient match percentage (FIXED)
-  const ingredientMatch = calculateIngredientMatch(mergedIngredients, ingredients);
+  // Calculate ingredient match percentage (FIXED: Handle empty ingredients)
+  const ingredientMatch = calculateIngredientMatch(mergedIngredients, ingredients, mainFood);
   
   // Generate tags
   const tags = generateRecipeTags(mainFood, cuisine, mealType, filters);
@@ -488,17 +488,23 @@ async function generateEnhancedRecipe(
   };
 }
 
-// Calculate ingredient match percentage (FIXED)
-function calculateIngredientMatch(recipeIngredients: string[], userIngredients: string[]): {
+// Calculate ingredient match percentage (FIXED: Handle empty ingredients)
+function calculateIngredientMatch(recipeIngredients: string[], userIngredients: string[], mainFood: string): {
   availableIngredients: string[];
   missingIngredients: string[];
   matchPercentage: number;
 } {
+  // If no user ingredients provided, show high match for main food
   if (userIngredients.length === 0) {
+    const mainFoodMatch = recipeIngredients.some(ing => 
+      ing.toLowerCase().includes(mainFood.toLowerCase()) || 
+      mainFood.toLowerCase().includes(ing.toLowerCase())
+    );
+    
     return {
-      availableIngredients: [],
+      availableIngredients: mainFoodMatch ? [mainFood] : [],
       missingIngredients: [],
-      matchPercentage: 0
+      matchPercentage: mainFoodMatch ? 85 : 0
     };
   }
 

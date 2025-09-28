@@ -108,7 +108,11 @@ export class AuthService {
 
   // Get user by token
   static async getUserByToken(token: string): Promise<User | null> {
+    if (!token) return null;
+    
     const userId = token.split('_')[1];
+    if (!userId) return null;
+    
     return users.find(u => u.id === userId) || null;
   }
 
