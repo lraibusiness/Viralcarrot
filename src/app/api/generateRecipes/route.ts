@@ -88,6 +88,41 @@ const MEALDB_BASE = 'https://www.themealdb.com/api/json/v1/1';
 const RECIPE_PUPPY_BASE = 'http://www.recipepuppy.com/api';
 const UNSPLASH_BASE = 'https://api.unsplash.com/search/photos';
 
+// Curated food images for fallback
+const FALLBACK_IMAGES = {
+  'chicken': [
+    'https://images.unsplash.com/photo-1604503468500-a3c769998f12?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1562967914-608f82629710?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop&crop=center'
+  ],
+  'beef': [
+    'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1574484284002-952d92456975?w=400&h=300&fit=crop&crop=center'
+  ],
+  'fish': [
+    'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1574484284002-952d92456975?w=400&h=300&fit=crop&crop=center'
+  ],
+  'pasta': [
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1574484284002-952d92456975?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1604503468500-a3c769998f12?w=400&h=300&fit=crop&crop=center'
+  ],
+  'vegetables': [
+    'https://images.unsplash.com/photo-1574484284002-952d92456975?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1604503468500-a3c769998f12?w=400&h=300&fit=crop&crop=center'
+  ],
+  'default': [
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1574484284002-952d92456975?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1604503468500-a3c769998f12?w=400&h=300&fit=crop&crop=center',
+    'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop&crop=center'
+  ]
+};
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🍳 Smart Recipe Composer v2: Starting enhanced recipe synthesis');
@@ -178,8 +213,7 @@ async function searchExternalRecipesEnhanced(
     const searchPromises = [
       searchTheMealDBEnhanced(mainFood, _filters),
       searchRecipePuppyEnhanced(mainFood, ingredients),
-      scrapeRecipeSitesSmart(mainFood, _filters),
-      searchEdamamFallback(mainFood, ingredients) // New fallback API
+      scrapeRecipeSitesSmart(mainFood, _filters)
     ];
 
     const results = await Promise.allSettled(searchPromises);
@@ -257,7 +291,7 @@ async function searchRecipePuppyEnhanced(mainFood: string, ingredients: string[]
         cookingTime: 30,
         cuisine: 'International',
         mealType: 'dinner',
-        image: recipe.thumbnail || '',
+        image: recipe.thumbnail || getFallbackImage(mainFood),
         source: 'RecipePuppy',
         rating: 4.0,
         description: `A delicious ${mainFood} recipe from RecipePuppy`
@@ -315,7 +349,7 @@ async function scrapeAllRecipesSmart(mainFood: string): Promise<ExternalRecipe[]
     
     $('.mntl-card-list-items .card__content, .recipe-summary__item').slice(0, 4).each((_, element) => {
       const title = $(element).find('.card__title, .recipe-summary__item-title').text().trim();
-      const image = $(element).find('img').attr('src') || '';
+      const image = $(element).find('img').attr('src') || getFallbackImage(mainFood);
       const cookingTime = extractCookingTime($(element).text());
       const rating = extractRating($(element).text());
       const description = $(element).find('.card__summary, .recipe-summary__item-summary').text().trim();
@@ -360,7 +394,7 @@ async function scrapeFoodNetworkSmart(mainFood: string): Promise<ExternalRecipe[
     
     $('.m-MediaBlock__m-MediaWrap, .o-RecipeResult').slice(0, 3).each((_, element) => {
       const title = $(element).find('.m-MediaBlock__a-HeadlineText, .o-RecipeResult__a-Title').text().trim();
-      const image = $(element).find('img').attr('src') || '';
+      const image = $(element).find('img').attr('src') || getFallbackImage(mainFood);
       const description = $(element).find('.m-MediaBlock__a-Description, .o-RecipeResult__a-Description').text().trim();
       
       if (title && title.toLowerCase().includes(mainFood.toLowerCase())) {
@@ -403,7 +437,7 @@ async function scrapeBBCGoodFoodSmart(mainFood: string): Promise<ExternalRecipe[
     
     $('.card__content, .teaser-item__content').slice(0, 3).each((_, element) => {
       const title = $(element).find('.card__title, .teaser-item__title').text().trim();
-      const image = $(element).find('img').attr('src') || '';
+      const image = $(element).find('img').attr('src') || getFallbackImage(mainFood);
       const description = $(element).find('.card__summary, .teaser-item__summary').text().trim();
       
       if (title && title.toLowerCase().includes(mainFood.toLowerCase())) {
@@ -446,7 +480,7 @@ async function scrapeEpicuriousSmart(mainFood: string): Promise<ExternalRecipe[]
     
     $('.recipe-content-card, .recipe-item').slice(0, 2).each((_, element) => {
       const title = $(element).find('.recipe-content-card__title, .recipe-item__title').text().trim();
-      const image = $(element).find('img').attr('src') || '';
+      const image = $(element).find('img').attr('src') || getFallbackImage(mainFood);
       const description = $(element).find('.recipe-content-card__summary, .recipe-item__summary').text().trim();
       
       if (title && title.toLowerCase().includes(mainFood.toLowerCase())) {
@@ -473,18 +507,6 @@ async function scrapeEpicuriousSmart(mainFood: string): Promise<ExternalRecipe[]
   }
 }
 
-// New: Edamam fallback API (free tier)
-async function searchEdamamFallback(mainFood: string, ingredients: string[]): Promise<ExternalRecipe[]> {
-  try {
-    // Note: This would require Edamam API key
-    // For now, return empty array but structure is ready
-    return [];
-  } catch (error) {
-    console.error('❌ Edamam fallback search error:', error);
-    return [];
-  }
-}
-
 // Smart recipe synthesis with context-aware generation
 async function synthesizeRecipesSmart(
   externalRecipes: ExternalRecipe[],
@@ -505,7 +527,7 @@ async function synthesizeRecipesSmart(
     const synthesizedRecipe: SynthesizedRecipe = {
       id: `viral-smart-${Date.now()}-${index}`,
       title: enhanceRecipeTitle(recipe.title, mainFood),
-      image: recipe.image || await getUnsplashImage(mainFood, cuisine),
+      image: recipe.image || getFallbackImage(mainFood),
       description: generateSmartDescription(recipe.title, mainFood, cuisine, mealType),
       ingredients: generateSmartIngredients(recipe.ingredients, ingredients, mainFood),
       steps: generateSmartSteps(mainFood, cuisine, mealType, recipe.ingredients),
@@ -535,7 +557,7 @@ async function synthesizeRecipesSmart(
     synthesizedRecipes.push({
       id: `viral-generated-smart-${Date.now()}-${index}`,
       title: generateCreativeTitle(mainFood, cuisine, mealType),
-      image: await getUnsplashImage(mainFood, cuisine),
+      image: getFallbackImage(mainFood),
       description: generateSmartDescription(`${mainFood} ${cuisine} recipe`, mainFood, cuisine, mealType),
       ingredients: generateSmartIngredients([], ingredients, mainFood),
       steps: generateSmartSteps(mainFood, cuisine, mealType, ingredients),
@@ -554,6 +576,16 @@ async function synthesizeRecipesSmart(
   }
   
   return synthesizedRecipes;
+}
+
+// Improved fallback image system
+function getFallbackImage(mainFood: string): string {
+  const foodKey = Object.keys(FALLBACK_IMAGES).find(key => 
+    mainFood.toLowerCase().includes(key.toLowerCase())
+  ) || 'default';
+  
+  const images = FALLBACK_IMAGES[foodKey as keyof typeof FALLBACK_IMAGES];
+  return images[Math.floor(Math.random() * images.length)];
 }
 
 // Context-aware step generation engine
@@ -792,27 +824,6 @@ function calculateRelevanceScore(recipe: ExternalRecipe, mainFood: string, ingre
   return Math.min(score, 10.0);
 }
 
-// Image selection with Unsplash API
-async function getUnsplashImage(mainFood: string, cuisine: string): Promise<string> {
-  try {
-    const query = `food ${mainFood} ${cuisine}`;
-    const response = await axios.get(`${UNSPLASH_BASE}?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
-      headers: {
-        'Authorization': `Client-ID ${process.env.UNSPLASH_ACCESS_KEY || 'demo'}` // You'll need to add this to your env
-      }
-    });
-    
-    if (response.data.results && response.data.results.length > 0) {
-      return response.data.results[0].urls.regular;
-    }
-  } catch (error) {
-    console.error('❌ Unsplash image fetch error:', error);
-  }
-  
-  // Fallback to placeholder
-  return `https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center`;
-}
-
 // Additional utility functions
 function determineCuisineFromTitle(title: string): string {
   const cuisines = {
@@ -941,7 +952,7 @@ function createEnhancedMealDBRecipe(meal: MealDBRecipe): ExternalRecipe {
     cookingTime: extractCookingTime(meal.strInstructions || ''),
     cuisine: meal.strArea || 'International',
     mealType: 'dinner',
-    image: meal.strMealThumb,
+    image: meal.strMealThumb || getFallbackImage('default'),
     source: 'TheMealDB',
     rating: 4.2,
     difficulty: 'Medium',
