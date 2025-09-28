@@ -235,7 +235,7 @@ async function fetchExistingRecipes(pantryIngredients: string[], filters: Recipe
     // Run searches for each main ingredient
     const searchPromises = mainIngredients.map(ingredient => 
       Promise.allSettled([
-        searchTheMealDB(ingredient, _filters),
+        searchTheMealDB(ingredient, filters),
         searchRecipePuppy(ingredient, pantryIngredients)
       ])
     );
