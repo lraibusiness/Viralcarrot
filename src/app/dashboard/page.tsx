@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [recipes, setRecipes] = useState<UserRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -69,6 +70,11 @@ export default function Dashboard() {
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setUser(userData.user);
+      } else {
+        // User not authenticated, redirect to login
+        setRedirecting(true);
+        router.push('/auth/login');
+        return;
       }
 
       if (recipesResponse.ok) {
@@ -77,6 +83,8 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+      setRedirecting(true);
+      router.push('/auth/login');
     } finally {
       setLoading(false);
     }
@@ -91,20 +99,36 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  // Show loading or redirecting state
+  if (loading || redirecting) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading your dashboard...</p>
+          <p className="text-slate-600">
+            {redirecting ? 'Redirecting to login...' : 'Loading your dashboard...'}
+          </p>
         </div>
       </div>
     );
   }
 
+  // If no user after loading, show login prompt
   if (!user) {
-    router.push('/auth/login');
-    return null;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">Authentication Required</h2>
+          <p className="text-slate-600 mb-6">Please log in to access your dashboard.</p>
+          <button
+            onClick={() => router.push('/auth/login')}
+            className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-xl transition-colors"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

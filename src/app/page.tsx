@@ -89,6 +89,7 @@ export default function Home() {
   const [totalRecipes, setTotalRecipes] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
 
   useEffect(() => {
     fetchUserData();
@@ -104,6 +105,8 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+    } finally {
+      setUserLoading(false);
     }
   };
 
@@ -279,7 +282,9 @@ export default function Home() {
               <Link href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</Link>
               <Link href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</Link>
               <Link href="/privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</Link>
-              {user ? (
+              {userLoading ? (
+                <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+              ) : user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-slate-600">Welcome, {user.name}</span>
                   <Link href="/dashboard" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors">
