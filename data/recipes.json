@@ -1,0 +1,27 @@
+[
+  {
+    "id": "recipe_1759072675199",
+    "userId": "user_1759072568023",
+    "title": "Chicken ",
+    "description": "Chicken past",
+    "ingredients": [
+      "chicken",
+      "bread"
+    ],
+    "steps": [
+      "cook chicken "
+    ],
+    "cookingTime": 30,
+    "cuisine": "american",
+    "mealType": "breakfast",
+    "dietaryStyle": "",
+    "image": "",
+    "website": "https://www.viralcarrot.com/",
+    "sourceUrl": "",
+    "isPublic": true,
+    "views": 0,
+    "likes": 0,
+    "createdAt": "2025-09-28T15:17:55.199Z",
+    "updatedAt": "2025-09-28T15:17:55.199Z"
+  }
+]

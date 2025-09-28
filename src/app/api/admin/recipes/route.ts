@@ -3,8 +3,8 @@ import { AuthService, requireAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const admin = await requireAdmin(request);
-    if (!admin) {
+    const user = await requireAdmin(request);
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Admin access required' },
         { status: 403 }
@@ -27,10 +27,43 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const user = await requireAdmin(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    const { recipeId, action } = await request.json();
+    
+    if (action === 'approve') {
+      await AuthService.approveRecipe(recipeId);
+    } else if (action === 'reject') {
+      // For now, we'll just not approve it
+      // In a real app, you might want to add a 'rejected' status
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Recipe ${action}d successfully`
+    });
+
+  } catch (error) {
+    console.error('Admin recipe update error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update recipe' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
-    const admin = await requireAdmin(request);
-    if (!admin) {
+    const user = await requireAdmin(request);
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Admin access required' },
         { status: 403 }
@@ -38,8 +71,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const recipeId = searchParams.get('id');
-
+    const recipeId = searchParams.get('recipeId');
+    
     if (!recipeId) {
       return NextResponse.json(
         { success: false, error: 'Recipe ID is required' },
@@ -55,7 +88,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Recipe deletion error:', error);
+    console.error('Admin recipe delete error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete recipe' },
       { status: 500 }

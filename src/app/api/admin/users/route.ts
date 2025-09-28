@@ -3,8 +3,8 @@ import { AuthService, requireAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const admin = await requireAdmin(request);
-    if (!admin) {
+    const user = await requireAdmin(request);
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Admin access required' },
         { status: 403 }
@@ -15,14 +15,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      users: users.map(user => ({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        subscription: user.subscription,
-        createdAt: user.createdAt
-      }))
+      users
     });
 
   } catch (error) {
@@ -36,8 +29,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const admin = await requireAdmin(request);
-    if (!admin) {
+    const user = await requireAdmin(request);
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Admin access required' },
         { status: 403 }
@@ -45,14 +38,6 @@ export async function PUT(request: NextRequest) {
     }
 
     const { userId, role } = await request.json();
-
-    if (!userId || !role) {
-      return NextResponse.json(
-        { success: false, error: 'User ID and role are required' },
-        { status: 400 }
-      );
-    }
-
     await AuthService.updateUserRole(userId, role);
 
     return NextResponse.json({
@@ -61,9 +46,46 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('User role update error:', error);
+    console.error('Admin user update error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update user role' },
+      { success: false, error: 'Failed to update user' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await requireAdmin(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Delete user and all their recipes
+    await AuthService.deleteUser(userId);
+
+    return NextResponse.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Admin user delete error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete user' },
       { status: 500 }
     );
   }

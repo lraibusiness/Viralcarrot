@@ -331,6 +331,7 @@ export class AuthService {
       recipe.isApproved = true;
       recipe.updatedAt = new Date();
       saveRecipes(recipes);
+      console.log(`✅ Recipe approved: ${recipe.title}`);
     }
   }
 
@@ -338,8 +339,10 @@ export class AuthService {
     const recipes = loadRecipes();
     const index = recipes.findIndex(r => r.id === recipeId);
     if (index !== -1) {
+      const recipe = recipes[index];
       recipes.splice(index, 1);
       saveRecipes(recipes);
+      console.log(`✅ Recipe deleted: ${recipe.title}`);
     }
   }
 
@@ -354,7 +357,28 @@ export class AuthService {
       user.role = role;
       user.updatedAt = new Date();
       saveUsers(users);
+      console.log(`✅ User role updated: ${user.email} -> ${role}`);
     }
+  }
+
+  static async deleteUser(userId: string): Promise<void> {
+    const users = loadUsers();
+    const recipes = loadRecipes();
+    
+    // Delete user
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+      const user = users[userIndex];
+      users.splice(userIndex, 1);
+      saveUsers(users);
+      console.log(`✅ User deleted: ${user.email}`);
+    }
+    
+    // Delete all user's recipes
+    const userRecipes = recipes.filter(r => r.userId === userId);
+    const remainingRecipes = recipes.filter(r => r.userId !== userId);
+    saveRecipes(remainingRecipes);
+    console.log(`✅ Deleted ${userRecipes.length} recipes for user ${userId}`);
   }
 }
 

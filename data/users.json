@@ -55,5 +55,62 @@
     },
     "createdAt": "2025-09-28T14:58:02.604Z",
     "updatedAt": "2025-09-28T14:58:02.604Z"
+  },
+  {
+    "id": "user_1759071777203",
+    "email": "sugar420@gmail.com",
+    "name": "sugar420",
+    "role": "user",
+    "subscription": {
+      "plan": "free",
+      "status": "active"
+    },
+    "profile": {
+      "preferences": {
+        "cuisine": [],
+        "dietaryRestrictions": [],
+        "cookingSkill": "beginner"
+      }
+    },
+    "createdAt": "2025-09-28T15:02:57.203Z",
+    "updatedAt": "2025-09-28T15:02:57.203Z"
+  },
+  {
+    "id": "user_1759072568023",
+    "email": "test@testt",
+    "name": "test@testt",
+    "role": "user",
+    "subscription": {
+      "plan": "free",
+      "status": "active"
+    },
+    "profile": {
+      "preferences": {
+        "cuisine": [],
+        "dietaryRestrictions": [],
+        "cookingSkill": "beginner"
+      }
+    },
+    "createdAt": "2025-09-28T15:16:08.023Z",
+    "updatedAt": "2025-09-28T15:16:08.023Z"
+  },
+  {
+    "id": "user_1759072960195",
+    "email": "admin@viralcarrot.com",
+    "name": "Admin User",
+    "role": "admin",
+    "subscription": {
+      "plan": "pro",
+      "status": "active"
+    },
+    "profile": {
+      "preferences": {
+        "cuisine": [],
+        "dietaryRestrictions": [],
+        "cookingSkill": "advanced"
+      }
+    },
+    "createdAt": "2025-09-28T15:22:40.195Z",
+    "updatedAt": "2025-09-28T15:22:40.196Z"
   }
 ]
