@@ -3,7 +3,7 @@ import { AuthService, requireAdmin } from '@/lib/auth';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const user = await requireAdmin(request);
@@ -14,7 +14,7 @@ export async function PUT(
       );
     }
 
-    const { userId } = params;
+    const { userId } = await params;
     const { role } = await request.json();
     
     await AuthService.updateUserRole(userId, role);

@@ -32,7 +32,7 @@ interface Recipe {
   sourceUrl?: string;
   isPublic: boolean;
   status: string;
-  createdAt: string;
+  createdAt?: string;
   views?: number;
   likes?: number;
 }

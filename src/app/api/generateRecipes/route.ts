@@ -400,7 +400,7 @@ export async function POST(request: NextRequest) {
     const viralCarrotRecipes = await generateViralCarrotRecipes(mainFood, ingredients, filters, nutritionData, 6);
 
     // Combine and rank recipes (User recipes first, then ViralCarrot, then external)
-    const allRecipes = [...userRecipes, ...viralCarrotRecipes, ...externalRecipes];
+    const allRecipes = [...userRecipes, ...viralCarrotRecipes, ...externalRecipes.map(recipe => ({...recipe, id: recipe.id || Math.random().toString(36).substr(2, 9), tags: [], createdBy: "external", matchScore: 0, image: recipe.image || "", cuisine: recipe.cuisine || "International", mealType: recipe.mealType || "Main Course", dietaryStyle: recipe.dietaryStyle || "Regular", website: "", sourceUrl: recipe.source || "", isPublic: true, isApproved: true, views: 0, likes: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()})) as SynthesizedRecipe[]];
     const rankedRecipes = rankRecipesByRelevance(allRecipes, mainFood, ingredients);
 
     // Paginate results

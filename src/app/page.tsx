@@ -12,6 +12,9 @@ import { useRouter } from 'next/navigation';
 type AppMode = 'generator' | 'pantry';
 
 interface Recipe {
+  views: number;
+  likes: number;
+  createdAt: string;
   id: string;
   title: string;
   image: string;
@@ -45,6 +48,25 @@ interface Recipe {
 }
 
 interface TrendingRecipe {
+  tags: string[];
+  createdBy: string;
+  matchScore: number;
+  rating?: number;
+  difficulty?: string;
+  servings?: number;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
+  seoDescription?: string;
+  ingredientMatch?: {
+    availableIngredients: string[];
+    missingIngredients: string[];
+    matchPercentage: number;
+  };
+  isExternal?: boolean;
   id: string;
   title: string;
   image: string;
@@ -347,7 +369,10 @@ export default function Home() {
       },
       seoDescription: trendingRecipe.description,
       isExternal: false,
-      sourceUrl: trendingRecipe.sourceUrl
+      sourceUrl: trendingRecipe.sourceUrl,
+      views: trendingRecipe.views,
+      likes: trendingRecipe.likes,
+      createdAt: trendingRecipe.createdAt
     };
     setSelectedRecipe(recipe);
   };
@@ -724,7 +749,7 @@ export default function Home() {
                 <RecipeCard
                   key={recipe.id}
                   recipe={recipe}
-                  onSelect={setSelectedRecipe}
+                  onSelect={(recipe) => setSelectedRecipe(recipe as any)}
                 />
               ))}
             </div>
@@ -780,7 +805,7 @@ export default function Home() {
                     rating: 4.5,
                     difficulty: 'Medium',
                     servings: 4,
-                    nutrition: {
+      nutrition: {
                       calories: 200 + Math.floor(Math.random() * 300),
                       protein: 15 + Math.floor(Math.random() * 20),
                       carbs: 20 + Math.floor(Math.random() * 30),
@@ -833,7 +858,7 @@ export default function Home() {
       {/* Recipe Modal */}
       {selectedRecipe && (
         <RecipeModal
-          recipe={selectedRecipe}
+          recipe={selectedRecipe as any}
           onClose={closeModal}
         />
       )}

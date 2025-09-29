@@ -5,7 +5,7 @@ import { join } from 'path';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { recipeId: string } }
+  { params }: { params: Promise<{ recipeId: string }> }
 ) {
   try {
     // Check authentication
@@ -14,7 +14,7 @@ export async function PUT(
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const recipeId = params.recipeId;
+    const { recipeId } = await params;
     const updates = await request.json();
 
     // Read current recipes
@@ -65,7 +65,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { recipeId: string } }
+  { params }: { params: Promise<{ recipeId: string }> }
 ) {
   try {
     // Check authentication
@@ -74,7 +74,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const recipeId = params.recipeId;
+    const { recipeId } = await params;
 
     // Read current recipes
     const recipesPath = join(process.cwd(), 'data', 'recipes.json');

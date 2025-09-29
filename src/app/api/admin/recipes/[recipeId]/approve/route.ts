@@ -3,7 +3,7 @@ import { AuthService, requireAdmin } from '@/lib/auth';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { recipeId: string } }
+  { params }: { params: Promise<{ recipeId: string }> }
 ) {
   try {
     const user = await requireAdmin(request);
@@ -14,7 +14,7 @@ export async function PUT(
       );
     }
 
-    const { recipeId } = params;
+    const { recipeId } = await params;
     await AuthService.approveRecipe(recipeId);
 
     return NextResponse.json({

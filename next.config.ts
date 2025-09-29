@@ -71,12 +71,9 @@ const nextConfig: NextConfig = {
   // Enable compression
   compress: true,
   
-  // Optimize for production
-  swcMinify: true,
-  
-  // Enable experimental features for better performance
+  // Disable experimental features that might cause issues
   experimental: {
-    optimizeCss: true,
+    // Remove optimizeCss to avoid critters dependency
   },
 };
 

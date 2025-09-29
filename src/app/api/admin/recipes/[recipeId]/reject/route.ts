@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService, requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { recipeId: string } }
+  { params }: { params: Promise<{ recipeId: string }> }
 ) {
   try {
     const user = await requireAdmin(request);
@@ -14,7 +14,7 @@ export async function PUT(
       );
     }
 
-    const { recipeId } = params;
+    const { recipeId } = await params;
     // For now, we'll just not approve it
     // In a real app, you might want to add a 'rejected' status
 

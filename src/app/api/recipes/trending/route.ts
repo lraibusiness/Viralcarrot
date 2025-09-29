@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       if (fs.existsSync(recipesPath)) {
         const recipesData = JSON.parse(fs.readFileSync(recipesPath, 'utf8'));
         // Filter for approved recipes - check both status and isApproved fields
-        userRecipes = recipesData.filter(recipe => 
+        userRecipes = recipesData.filter((recipe: any) => 
           recipe.status === 'approved' || recipe.isApproved === true
         );
         console.log(`📋 Found ${userRecipes.length} approved user recipes`);
@@ -251,11 +251,11 @@ export async function GET(request: NextRequest) {
     
     // Sort user recipes by creation date (newest first)
     const sortedUserRecipes = userRecipes
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     // Sort community recipes by creation date (newest first)
     const sortedCommunityRecipes = communityRecipes
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     // Combine with user recipes first, then community recipes
     const allRecipes = [...sortedUserRecipes, ...sortedCommunityRecipes];
