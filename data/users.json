@@ -47,7 +47,7 @@
     "name": "Admin User",
     "role": "admin",
     "password": "YWRtaW4=",
-    "token": "pc9l6nbqavmg4hqwo9",
+    "token": "fxnihn1sr9omg4hzyzp",
     "subscription": {
       "plan": "pro",
       "status": "active"
@@ -60,7 +60,7 @@
       }
     },
     "createdAt": "2025-09-28T15:22:40.195Z",
-    "updatedAt": "2025-09-29T02:10:01.065Z"
+    "updatedAt": "2025-09-29T02:17:03.973Z"
   },
   {
     "id": "9ztv6ersp2dmg3zipet",

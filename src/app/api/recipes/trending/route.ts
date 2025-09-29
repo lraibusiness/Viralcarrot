@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
       const recipesPath = path.join(process.cwd(), 'data', 'recipes.json');
       if (fs.existsSync(recipesPath)) {
         const recipesData = JSON.parse(fs.readFileSync(recipesPath, 'utf8'));
-        userRecipes = recipesData.filter(recipe => recipe.status === 'approved');
+        // Filter for approved recipes - check both status and isApproved fields
+        userRecipes = recipesData.filter(recipe => 
+          recipe.status === 'approved' || recipe.isApproved === true
+        );
         console.log(`📋 Found ${userRecipes.length} approved user recipes`);
       }
     } catch (error) {

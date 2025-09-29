@@ -265,5 +265,41 @@
     "views": 0,
     "likes": 0,
     "updatedAt": "2025-09-28T18:00:00.000Z"
+  },
+  {
+    "title": "fish ",
+    "description": "fish ",
+    "ingredients": [
+      "fish ",
+      "fish ",
+      "fish ",
+      "fish "
+    ],
+    "steps": [
+      "fish ",
+      "fish ",
+      "fish "
+    ],
+    "cookingTime": "30",
+    "cuisine": "",
+    "mealType": "",
+    "dietaryStyle": "",
+    "image": "/uploads/1759112211616-kku5a690kt.jpeg",
+    "website": "https://www.viralcarrot.com/",
+    "sourceUrl": "https://www.viralcarrot.com/",
+    "isPublic": true,
+    "id": "18t1a76i6ptmg4hzpnd",
+    "userId": "9ztv6ersp2dmg3zipet",
+    "views": 0,
+    "likes": 0,
+    "createdAt": "2025-09-29T02:16:51.865Z",
+    "updatedAt": "2025-09-29T02:17:18.709Z",
+    "isApproved": true,
+    "createdBy": "test@2",
+    "status": "approved",
+    "tags": [
+      "User Submitted"
+    ],
+    "matchScore": 95
   }
 ]
