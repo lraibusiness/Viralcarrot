@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [error, setError] = useState('');
+  const [usage, setUsage] = useState<{ used: number; max: number; remaining: number; canGenerate: boolean } | null>(null);
   const router = useRouter();
 
   const fetchUserData = useCallback(async () => {
@@ -78,10 +79,24 @@ export default function Dashboard() {
     }
   }, []);
 
+
+  const fetchUsage = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user/usage');
+      if (response.ok) {
+        const data = await response.json();
+        setUsage(data.usage);
+      }
+    } catch (error) {
+      console.error('Error fetching usage:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchUserData();
     fetchUserRecipes();
-  }, [fetchUserData, fetchUserRecipes]);
+    fetchUsage();
+  }, [fetchUserData, fetchUserRecipes, fetchUsage]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -90,6 +105,11 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  }, [router]);
+  useEffect(() => {
+    fetchUserData();
+    fetchUserRecipes();
+    fetchUsage();
   }, [router]);
 
   const handleDeleteRecipe = useCallback(async (recipeId: string) => {
@@ -111,18 +131,18 @@ export default function Dashboard() {
     }
   }, []);
 
-  const handleEditRecipe = useCallback((recipe: Recipe) => {
-    setEditingRecipe(recipe);
-  }, []);
+
 
   const handleSaveRecipe = useCallback((updatedRecipe: Recipe) => {
     setEditingRecipe(null);
     fetchUserRecipes();
+    fetchUsage();
   }, [fetchUserRecipes]);
 
   const handleAddRecipe = useCallback(() => {
     setShowAddForm(false);
     fetchUserRecipes();
+    fetchUsage();
   }, [fetchUserRecipes]);
 
   // Memoized user stats
@@ -193,6 +213,50 @@ export default function Dashboard() {
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-slate-800 mb-2">Welcome back, {user.name}!</h2>
           <p className="text-slate-600">Manage your recipes and profile</p>
+
+        {/* Recipe Usage Counter & Premium Upgrade for Free Users */}
+        {user && user.role !== 'premium' && user.role !== 'admin' && usage && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Recipe Generation Limit</h3>
+                <p className="text-slate-600 mt-1">
+                  You've used <span className="font-bold text-amber-600">{usage.used}/{usage.max}</span> of your free recipes
+                </p>
+              </div>
+              <div className="text-4xl font-bold text-amber-500">{usage.remaining}</div>
+            </div>
+            
+            {usage.remaining === 0 && (
+              <div className="bg-white rounded-xl p-4 mb-4">
+                <p className="text-slate-700 font-medium">You've reached your recipe limit!</p>
+                <p className="text-slate-600 text-sm mt-1">Upgrade to premium for unlimited recipes and blog access.</p>
+              </div>
+            )}
+
+            <Link 
+              href="/premium"
+              className="block w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-xl text-center shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              ✨ Upgrade to Premium - $4.99/month
+            </Link>
+            
+            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center text-slate-600">
+                <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                </svg>
+                Unlimited Recipes
+              </div>
+              <div className="flex items-center text-slate-600">
+                <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                </svg>
+                Blog Writing Access
+              </div>
+            </div>
+          </div>
+        )}
         </div>
 
         {/* User Stats */}
@@ -231,7 +295,7 @@ export default function Dashboard() {
               >
                 Add New Recipe
               </button>
-              {user.role === 'premium' && (
+              {(user.role === 'premium' || user.role === 'admin') && (
                 <Link href="/blog/write" className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl transition-colors font-semibold">
                   Write Blog Post
                 </Link>

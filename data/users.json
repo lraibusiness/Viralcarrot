@@ -68,9 +68,10 @@
     "name": "test@2",
     "role": "premium",
     "createdAt": "2025-09-28T17:39:45.317Z",
-    "updatedAt": "2025-09-29T04:10:29.105Z",
+    "updatedAt": "2025-09-29T19:17:34.713Z",
     "password": "dGVzdEAy",
-    "token": "flf3rptm2amg4m1tv5"
+    "token": "flf3rptm2amg4m1tv5",
+    "totalRecipesGenerated": 1
   },
   {
     "id": "jpz4bouutlmg4jgs4m",

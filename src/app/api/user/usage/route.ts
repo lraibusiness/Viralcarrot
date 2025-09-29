@@ -1,64 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService, requireAuth } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth(request);
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
+    
+    // For free users, limit to 3 recipes total
+    const maxRecipes = user.role === 'premium' || user.role === 'admin' ? Infinity : 3;
+    
+    // Get user's recipe count from their submitted recipes
+    const fs = require('fs');
+    const path = require('path');
+    const recipesPath = path.join(process.cwd(), 'data', 'recipes.json');
+    
+    let userRecipes = [];
+    if (fs.existsSync(recipesPath)) {
+      const recipes = JSON.parse(fs.readFileSync(recipesPath, 'utf8'));
+      userRecipes = recipes.filter((recipe: any) => recipe.createdBy === user.id);
     }
-
-    const usage = await AuthService.checkTotalUsage(user.id);
+    
+    const usedRecipes = userRecipes.length;
+    const canGenerate = usedRecipes < maxRecipes;
+    const remaining = Math.max(0, maxRecipes - usedRecipes);
     
     return NextResponse.json({
       success: true,
-      usage
+      usage: {
+        used: usedRecipes,
+        max: maxRecipes,
+        remaining: remaining,
+        canGenerate: canGenerate
+      }
     });
-
   } catch (error) {
-    console.error('Usage check error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to check usage' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const user = await requireAuth(request);
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user can generate recipes
-    const usage = await AuthService.checkTotalUsage(user.id);
-    if (!usage.canGenerate) {
-      return NextResponse.json(
-        { success: false, error: 'Daily limit reached' },
-        { status: 429 }
-      );
-    }
-
-    // Increment usage
-    await AuthService.incrementTotalUsage(user.id);
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Usage incremented'
-    });
-
-  } catch (error) {
-    console.error('Usage increment error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to increment usage' },
-      { status: 500 }
+      { success: false, error: 'Authentication required' },
+      { status: 401 }
     );
   }
 }

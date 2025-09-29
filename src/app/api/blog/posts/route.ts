@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       coverImage: coverImage || '',
       authorId: user.id,
       authorName: user.name,
-      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
+      tags: tags ? String(tags).split(',').map(tag => tag.trim()).filter(tag => tag) : [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isPublished: false, // Posts need admin approval before publishing

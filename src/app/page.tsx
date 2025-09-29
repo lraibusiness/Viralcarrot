@@ -356,6 +356,10 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-slate-800">ViralCarrot</h1>
             </Link>
             <div className="flex items-center space-x-4">
+                  <Link href="/blog" className="text-slate-600 hover:text-amber-600 transition-colors">Blog</Link>
+                  <Link href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</Link>
+                  <Link href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</Link>
+                  <Link href="/privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</Link>
               {user ? (
                 <>
                   <Link href="/dashboard" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors">
@@ -670,14 +674,6 @@ export default function HomePage() {
               ) : (
                 <RegisterForm onSuccess={handleAuthSuccess} />
               )}
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                  className="text-amber-600 hover:text-amber-700 font-medium"
-                >
-                  {authMode === 'login' ? 'Need an account? Register' : 'Already have an account? Login'}
-                </button>
-              </div>
             </div>
           </div>
         )}
