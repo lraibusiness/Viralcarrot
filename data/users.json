@@ -47,7 +47,7 @@
     "name": "Admin User",
     "role": "admin",
     "password": "YWRtaW4=",
-    "token": "74q8c8pefs5mg4iya3e",
+    "token": "lb5q1ehyssrmg4jhhue",
     "subscription": {
       "plan": "pro",
       "status": "active"
@@ -60,7 +60,7 @@
       }
     },
     "createdAt": "2025-09-28T15:22:40.195Z",
-    "updatedAt": "2025-09-29T02:43:44.666Z"
+    "updatedAt": "2025-09-29T02:58:41.174Z"
   },
   {
     "id": "9ztv6ersp2dmg3zipet",
@@ -71,5 +71,15 @@
     "updatedAt": "2025-09-29T02:11:08.450Z",
     "password": "dGVzdEAy",
     "token": "45xbbwjfez4mg4hsco2"
+  },
+  {
+    "id": "jpz4bouutlmg4jgs4m",
+    "email": "r@r",
+    "name": "r@r",
+    "role": "user",
+    "createdAt": "2025-09-29T02:58:07.846Z",
+    "updatedAt": "2025-09-29T02:58:07.846Z",
+    "password": "cnI=",
+    "token": "2hmt08b5kyymg4jgs4m"
   }
 ]
