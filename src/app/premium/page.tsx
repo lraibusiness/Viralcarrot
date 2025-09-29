@@ -3,10 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-export const metadata = {
-  title: 'Go Premium - ViralCarrot Pro | Unlimited Recipes & Premium Features',
-  description: 'Upgrade to ViralCarrot Pro for unlimited recipe generations, premium tools, and exclusive features.',
-};
 
 export default function PremiumPage() {
   const [user, setUser] = useState<any>(null);

@@ -4,10 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export const metadata = {
-  title: 'Write Blog Post - ViralCarrot | Share Your Food Thoughts',
-  description: 'Share your cooking tips, recipe ideas, and food stories with the ViralCarrot community.',
-};
 
 export default function WriteBlogPage() {
   const [user, setUser] = useState<any>(null);

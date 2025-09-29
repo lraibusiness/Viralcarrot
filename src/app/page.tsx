@@ -849,6 +849,14 @@ export default function Home() {
             ) : (
               <RegisterForm 
                 onSuccess={handleAuthSuccess}
+                
+                onSwitchToLogin={() => setAuthMode('login')}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Daily Limit Popup */}
       {showLimitPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

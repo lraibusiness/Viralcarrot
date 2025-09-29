@@ -1,5 +1,10 @@
-    const viralCarrotRecipes = await generateViralCarrotRecipes(mainFood, ingredients, filters, nutritionData, 6);
+              <RegisterForm 
+                onSuccess={handleAuthSuccess}
+                onSwitchToLogin={() => setAuthMode('login')}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
-    // Combine and rank recipes (User recipes first, then ViralCarrot, then external)
-    const allRecipes = [...userRecipes, ...viralCarrotRecipes, ...externalRecipes.map(recipe => ({...recipe, tags: [], createdBy: "external", matchScore: 0}))];
-    const rankedRecipes = rankRecipesByRelevance(allRecipes, mainFood, ingredients);
+      {/* Daily Limit Popup */}

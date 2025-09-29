@@ -4,10 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export const metadata = {
-  title: 'Food Thoughts Blog - ViralCarrot | Cooking Tips & Recipes',
-  description: 'Discover cooking tips, recipe ideas, and food stories from the ViralCarrot community.',
-};
 
 interface BlogPost {
   id: string;
