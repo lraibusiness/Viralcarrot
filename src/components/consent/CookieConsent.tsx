@@ -25,13 +25,13 @@ export default function CookieConsent() {
     // Enable Google AdSense and Analytics
     if (typeof window !== 'undefined') {
       // Enable Google AdSense
-      (window as any).gtag = (window as any).gtag || function() {
-        ((window as any).gtag.q = (window as any).gtag.q || []).push(arguments);
+      (window as unknown).gtag = (window as unknown).gtag || function() {
+        ((window as unknown).gtag.q = (window as unknown).gtag.q || []).push(arguments);
       };
       
       // Enable Google Analytics
-      if ((window as any).gtag) {
-        (window as any).gtag('consent', 'update', {
+      if ((window as unknown).gtag) {
+        (window as unknown).gtag('consent', 'update', {
           'ad_storage': 'granted',
           'analytics_storage': 'granted',
           'personalization_storage': 'granted',
@@ -48,8 +48,8 @@ export default function CookieConsent() {
     setConsentGiven(false);
     
     // Disable Google AdSense and Analytics
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('consent', 'update', {
+    if (typeof window !== 'undefined' && (window as unknown).gtag) {
+      (window as unknown).gtag('consent', 'update', {
         'ad_storage': 'denied',
         'analytics_storage': 'denied',
         'personalization_storage': 'denied',

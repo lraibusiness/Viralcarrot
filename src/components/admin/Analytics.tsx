@@ -38,12 +38,12 @@ export default function Analytics() {
         const recipesData = await recipesResponse.json();
         
         const recipes = recipesData.recipes || [];
-        const approvedRecipes = recipes.filter((r: any) => r.isApproved);
-        const pendingRecipes = recipes.filter((r: any) => !r.isApproved);
+        const approvedRecipes = recipes.filter((r: unknown) => r.isApproved);
+        const pendingRecipes = recipes.filter((r: unknown) => !r.isApproved);
         
         // Calculate popular cuisines
         const cuisineCount: { [key: string]: number } = {};
-        recipes.forEach((recipe: any) => {
+        recipes.forEach((recipe: unknown) => {
           if (recipe.cuisine) {
             cuisineCount[recipe.cuisine] = (cuisineCount[recipe.cuisine] || 0) + 1;
           }

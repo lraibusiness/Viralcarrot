@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     let userRecipes = [];
     if (fs.existsSync(recipesPath)) {
       const recipes = JSON.parse(fs.readFileSync(recipesPath, 'utf8'));
-      userRecipes = recipes.filter((recipe: any) => recipe.createdBy === user.id);
+      userRecipes = recipes.filter((recipe: unknown) => recipe.createdBy === user.id);
     }
     
     const usedRecipes = userRecipes.length;

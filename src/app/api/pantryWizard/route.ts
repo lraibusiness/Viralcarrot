@@ -612,7 +612,7 @@ function calculatePantryMatch(recipe: ExternalRecipe, pantryIngredients: string[
 }
 
 // Extract ingredients from TheMealDB meal object
-function extractMealDBIngredients(meal: any): string[] {
+function extractMealDBIngredients(meal: unknown): string[] {
   const ingredients: string[] = [];
   
   for (let i = 1; i <= 20; i++) {

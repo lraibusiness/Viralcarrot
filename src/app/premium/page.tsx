@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 
 export default function PremiumPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -219,8 +219,8 @@ export default function PremiumPage() {
           <h2 className="text-2xl font-bold text-slate-800 text-center mb-8">Frequently Asked Questions</h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h3 className="font-semibold text-slate-800 mb-2">Can I cancel anytime?</h3>
-              <p className="text-slate-600">Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.</p>
+              <h3 className="font-semibold text-slate-800 mb-2">Can I cancel unknowntime?</h3>
+              <p className="text-slate-600">Yes, you can cancel your subscription at unknown time. You'll continue to have access until the end of your billing period.</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-lg">
               <h3 className="font-semibold text-slate-800 mb-2">What payment methods do you accept?</h3>

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       if (fs.existsSync(recipesPath)) {
         const recipesData = JSON.parse(fs.readFileSync(recipesPath, 'utf8'));
         // Filter for approved recipes - check both status and isApproved fields
-        userRecipes = recipesData.filter((recipe: any) => 
+        userRecipes = recipesData.filter((recipe: unknown) => 
           recipe.status === 'approved' || recipe.isApproved === true
         );
         console.log(`📋 Found ${userRecipes.length} approved user recipes`);
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
         id: 'community-5',
         title: 'Classic New York Cheesecake',
         image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=800&q=80',
-        description: 'Creamy and rich New York-style cheesecake with a graham cracker crust. The perfect dessert for any occasion.',
+        description: 'Creamy and rich New York-style cheesecake with a graham cracker crust. The perfect dessert for unknown occasion.',
         ingredients: [
           '2 cups graham cracker crumbs',
           '1/2 cup butter, melted',
@@ -251,11 +251,11 @@ export async function GET(request: NextRequest) {
     
     // Sort user recipes by creation date (newest first)
     const sortedUserRecipes = userRecipes
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a: unknown, b: unknown) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     // Sort community recipes by creation date (newest first)
     const sortedCommunityRecipes = communityRecipes
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a: unknown, b: unknown) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     // Combine with user recipes first, then community recipes
     const allRecipes = [...sortedUserRecipes, ...sortedCommunityRecipes];

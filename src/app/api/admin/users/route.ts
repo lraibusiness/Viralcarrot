@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Find and update user
-    const userIndex = users.findIndex((u: any) => u.id === id);
+    const userIndex = users.findIndex((u: unknown) => u.id === id);
     if (userIndex === -1) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
@@ -124,7 +124,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Find and remove user
-    const userIndex = users.findIndex((u: any) => u.id === userId);
+    const userIndex = users.findIndex((u: unknown) => u.id === userId);
     if (userIndex === -1) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
@@ -147,7 +147,7 @@ export async function DELETE(request: NextRequest) {
     // Remove recipes created by this user
     const userEmail = users[userIndex]?.email;
     if (userEmail) {
-      recipes = recipes.filter((r: any) => r.createdBy !== userEmail);
+      recipes = recipes.filter((r: unknown) => r.createdBy !== userEmail);
       await writeFile(recipesPath, JSON.stringify(recipes, null, 2));
     }
 

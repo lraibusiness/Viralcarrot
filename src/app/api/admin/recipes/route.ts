@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Find and update recipe
-    const recipeIndex = recipes.findIndex((r: any) => r.id === id);
+    const recipeIndex = recipes.findIndex((r: unknown) => r.id === id);
     if (recipeIndex === -1) {
       return NextResponse.json({ success: false, error: 'Recipe not found' }, { status: 404 });
     }
@@ -119,7 +119,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Find and remove recipe
-    const recipeIndex = recipes.findIndex((r: any) => r.id === recipeId);
+    const recipeIndex = recipes.findIndex((r: unknown) => r.id === recipeId);
     if (recipeIndex === -1) {
       return NextResponse.json({ success: false, error: 'Recipe not found' }, { status: 404 });
     }

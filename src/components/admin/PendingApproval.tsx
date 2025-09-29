@@ -30,7 +30,7 @@ export default function PendingApproval() {
       const response = await fetch('/api/admin/recipes');
       if (response.ok) {
         const data = await response.json();
-        const pending = (data.recipes || []).filter((recipe: any) => !recipe.isApproved);
+        const pending = (data.recipes || []).filter((recipe: unknown) => !recipe.isApproved);
         setPendingRecipes(pending);
       }
     } catch (error) {

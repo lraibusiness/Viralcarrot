@@ -256,7 +256,7 @@ export default function RecipeModeration() {
       {/* Recipe Editor Modal */}
       {editingRecipe && (
         <RecipeEditor
-          recipe={editingRecipe as any}
+          recipe={editingRecipe as unknown}
           onSave={handleSaveEdit}
           onCancel={handleCancelEdit}
         />

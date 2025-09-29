@@ -42,10 +42,10 @@ export default function AdminDashboard() {
         setStats({
           totalUsers: usersData.users?.length || 0,
           totalRecipes: recipesData.recipes?.length || 0,
-          pendingRecipes: recipesData.recipes?.filter((r: any) => !r.isApproved)?.length || 0,
-          approvedRecipes: recipesData.recipes?.filter((r: any) => r.isApproved)?.length || 0,
+          pendingRecipes: recipesData.recipes?.filter((r: unknown) => !r.isApproved)?.length || 0,
+          approvedRecipes: recipesData.recipes?.filter((r: unknown) => r.isApproved)?.length || 0,
           totalBlogPosts: blogData.posts?.length || 0,
-          pendingBlogPosts: blogData.posts?.filter((p: any) => !p.isPublished)?.length || 0
+          pendingBlogPosts: blogData.posts?.filter((p: unknown) => !p.isPublished)?.length || 0
         });
       }
     } catch (error) {

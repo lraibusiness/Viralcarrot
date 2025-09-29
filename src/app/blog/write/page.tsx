@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 
 export default function WriteBlogPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
