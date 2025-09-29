@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import CookieConsent from '@/components/consent/CookieConsent';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -222,6 +223,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -240,16 +242,42 @@ export default function RootLayout({
             __html: JSON.stringify(websiteStructuredData),
           }}
         />
+        
+        {/* Search Engine Verification */}
         <meta name="google-site-verification" content="your-google-verification-code" />
         <meta name="msvalidate.01" content="your-bing-verification-code" />
         <meta name="yandex-verification" content="your-yandex-verification-code" />
         <meta name="pinterest-site-verification" content="your-pinterest-verification-code" />
+        
+        {/* AdSense Compliance Meta Tags */}
+        <meta name="google-adsense-account" content="ca-pub-XXXXXXXXXX" />
+        <meta name="google-adsense-platform-account" content="ca-host-pub-XXXXXXXXXX" />
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="rating" content="General" />
+        <meta name="distribution" content="Global" />
+        <meta name="language" content="English" />
+        <meta name="geo.region" content="US" />
+        <meta name="geo.placename" content="United States" />
+        <meta name="geo.position" content="39.8283;-98.5795" />
+        <meta name="ICBM" content="39.8283, -98.5795" />
+        
+        {/* Security Headers */}
+        <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
+        <meta httpEquiv="X-Frame-Options" content="SAMEORIGIN" />
+        <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
+        
+        {/* AdSense Content Policy Compliance */}
+        <meta name="content-rating" content="General" />
+        <meta name="audience" content="all" />
+        <meta name="target-audience" content="cooking enthusiasts, food lovers, recipe seekers" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

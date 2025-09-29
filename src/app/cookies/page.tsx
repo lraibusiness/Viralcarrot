@@ -48,105 +48,88 @@ export default function CookiePolicyPage() {
               Cookies are small text files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work more efficiently and to provide information to website owners. Cookies allow a website to recognize a user&apos;s device and remember information about their visit.
             </p>
 
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">How We Use Cookies</h2>
-            <p className="text-slate-600 mb-6">
-              We use cookies and similar technologies for several purposes:
-            </p>
-            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
-              <li>To ensure our website functions properly</li>
-              <li>To remember your preferences and settings</li>
-              <li>To analyze how you use our website</li>
-              <li>To provide personalized content and advertisements</li>
-              <li>To improve our services and user experience</li>
-            </ul>
-
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Types of Cookies We Use</h2>
             
             <h3 className="text-xl font-semibold text-slate-800 mb-3">Essential Cookies</h3>
             <p className="text-slate-600 mb-4">
-              These cookies are necessary for the website to function and cannot be switched off in our systems. They are usually only set in response to actions made by you which amount to a request for services, such as setting your privacy preferences, logging in, or filling in forms.
+              These cookies are necessary for the Service to function properly. They enable basic functions like page navigation, access to secure areas, and remembering your login status.
             </p>
-            <div className="bg-slate-50 rounded-xl p-4 mb-6">
-              <p className="text-sm text-slate-600">
-                <strong>Examples:</strong> Authentication cookies, security cookies, load balancing cookies
-              </p>
-            </div>
+            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
+              <li>Authentication cookies to keep you logged in</li>
+              <li>Session cookies to maintain your preferences</li>
+              <li>Security cookies to protect against fraud</li>
+            </ul>
 
             <h3 className="text-xl font-semibold text-slate-800 mb-3">Analytics Cookies</h3>
             <p className="text-slate-600 mb-4">
-              These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.
+              These cookies help us understand how visitors interact with our Service by collecting and reporting information anonymously.
             </p>
-            <div className="bg-slate-50 rounded-xl p-4 mb-6">
-              <p className="text-sm text-slate-600">
-                <strong>Examples:</strong> Google Analytics cookies (_ga, _gid, _gat), performance monitoring cookies
+            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
+              <li>Google Analytics cookies to track page views and user behavior</li>
+              <li>Performance monitoring cookies</li>
+              <li>Error tracking cookies</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-slate-800 mb-3">Advertising Cookies (Google AdSense)</h3>
+            <p className="text-slate-600 mb-4">
+              We use Google AdSense to display advertisements on our Service. Google AdSense uses cookies to:
+            </p>
+            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
+              <li>Serve personalized advertisements based on your interests</li>
+              <li>Measure ad performance and effectiveness</li>
+              <li>Prevent fraud and ensure ad quality</li>
+              <li>Limit the number of times you see an ad</li>
+              <li>Remember your ad preferences</li>
+            </ul>
+
+            <div className="bg-amber-50 rounded-xl p-6 mb-6">
+              <h4 className="text-lg font-semibold text-slate-800 mb-3">Google AdSense Cookie Details</h4>
+              <p className="text-slate-600 mb-4">
+                Google AdSense may set the following types of cookies on our Service:
               </p>
+              <ul className="list-disc list-inside text-slate-600 space-y-2">
+                <li><strong>__gads:</strong> Used to measure ad performance and prevent fraud</li>
+                <li><strong>__gpi:</strong> Google Publisher Integration cookie</li>
+                <li><strong>IDE:</strong> Google DoubleClick cookie for ad personalization</li>
+                <li><strong>test_cookie:</strong> Used to test if the browser supports cookies</li>
+                <li><strong>_gcl_au:</strong> Google AdSense conversion tracking</li>
+              </ul>
             </div>
 
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Advertising Cookies</h3>
+            <h3 className="text-xl font-semibold text-slate-800 mb-3">Preference Cookies</h3>
             <p className="text-slate-600 mb-4">
-              These cookies may be set through our site by our advertising partners to build a profile of your interests and show you relevant adverts on other sites. They do not store directly personal information but are based on uniquely identifying your browser and internet device.
+              These cookies remember your choices and preferences to provide a more personalized experience.
             </p>
-            <div className="bg-slate-50 rounded-xl p-4 mb-6">
-              <p className="text-sm text-slate-600">
-                <strong>Examples:</strong> Google AdSense cookies, DoubleClick cookies, Facebook Pixel cookies
-              </p>
-            </div>
-
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Functional Cookies</h3>
-            <p className="text-slate-600 mb-4">
-              These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third-party providers whose services we have added to our pages.
-            </p>
-            <div className="bg-slate-50 rounded-xl p-4 mb-6">
-              <p className="text-sm text-slate-600">
-                <strong>Examples:</strong> Language preference cookies, theme selection cookies, user preference cookies
-              </p>
-            </div>
+            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
+              <li>Language and region preferences</li>
+              <li>Dietary preferences and cooking skill level</li>
+              <li>Display preferences and theme settings</li>
+            </ul>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Third-Party Cookies</h2>
             <p className="text-slate-600 mb-4">
-              We use several third-party services that may set cookies on your device:
-            </p>
-            
-            <div className="space-y-4 mb-6">
-              <div className="bg-blue-50 rounded-xl p-4">
-                <h4 className="font-semibold text-blue-800 mb-2">Google Analytics</h4>
-                <p className="text-sm text-blue-700">
-                  We use Google Analytics to understand how visitors interact with our website. Google Analytics uses cookies to collect information about your use of our website.
-                </p>
-              </div>
-              
-              <div className="bg-green-50 rounded-xl p-4">
-                <h4 className="font-semibold text-green-800 mb-2">Google AdSense</h4>
-                <p className="text-sm text-green-700">
-                  We use Google AdSense to display advertisements on our website. Google AdSense uses cookies to serve ads based on your prior visits to our website or other websites.
-                </p>
-              </div>
-              
-              <div className="bg-purple-50 rounded-xl p-4">
-                <h4 className="font-semibold text-purple-800 mb-2">Social Media</h4>
-                <p className="text-sm text-purple-700">
-                  We may integrate social media features that allow you to share content. These features may set cookies from social media platforms.
-                </p>
-              </div>
-            </div>
-
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">Cookie Duration</h2>
-            <p className="text-slate-600 mb-4">
-              Cookies can be either &quot;session&quot; cookies or &quot;persistent&quot; cookies:
+              Our Service may contain cookies from third-party services that we use to enhance functionality:
             </p>
             <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
-              <li><strong>Session Cookies:</strong> These are temporary cookies that expire when you close your browser</li>
-              <li><strong>Persistent Cookies:</strong> These remain on your device for a set period or until you delete them</li>
+              <li><strong>Google Analytics:</strong> For website analytics and performance monitoring</li>
+              <li><strong>Google AdSense:</strong> For advertising services and revenue generation</li>
+              <li><strong>Unsplash API:</strong> For recipe images and visual content</li>
+              <li><strong>External Recipe APIs:</strong> For recipe data from third-party sources</li>
+            </ul>
+
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">Cookie Duration</h2>
+            <p className="text-slate-600 mb-4">Cookies can be either:</p>
+            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
+              <li><strong>Session Cookies:</strong> Temporary cookies that are deleted when you close your browser</li>
+              <li><strong>Persistent Cookies:</strong> Cookies that remain on your device for a set period or until you delete them</li>
             </ul>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Managing Your Cookie Preferences</h2>
-            <p className="text-slate-600 mb-4">
-              You have several options for managing cookies:
-            </p>
+            <p className="text-slate-600 mb-4">You have several options for managing cookies:</p>
             
             <h3 className="text-xl font-semibold text-slate-800 mb-3">Browser Settings</h3>
             <p className="text-slate-600 mb-4">
-              Most web browsers allow you to control cookies through their settings preferences. You can:
+              Most web browsers allow you to control cookies through their settings. You can:
             </p>
             <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
               <li>Block all cookies</li>
@@ -155,101 +138,54 @@ export default function CookiePolicyPage() {
               <li>Set up notifications when cookies are set</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Opt-Out Links</h3>
-            <div className="bg-slate-50 rounded-xl p-4 mb-6">
-              <p className="text-slate-600 mb-2">You can opt out of specific tracking:</p>
-              <ul className="list-disc list-inside text-slate-600 space-y-1">
-                <li><a href="https://tools.google.com/dlpage/gaoptout" className="text-amber-600 hover:text-amber-700">Google Analytics Opt-out</a></li>
-                <li><a href="https://www.google.com/settings/ads" className="text-amber-600 hover:text-amber-700">Google Ad Settings</a></li>
-                <li><a href="https://www.aboutads.info/choices/" className="text-amber-600 hover:text-amber-700">Digital Advertising Alliance</a></li>
-              </ul>
-            </div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-3">Opt-Out Tools</h3>
+            <p className="text-slate-600 mb-4">
+              You can opt out of certain advertising cookies:
+            </p>
+            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
+              <li><strong>Google AdSense:</strong> Visit Google&apos;s Ad Settings to manage your ad preferences</li>
+              <li><strong>Network Advertising Initiative:</strong> Use the NAI opt-out tool</li>
+              <li><strong>Digital Advertising Alliance:</strong> Use the DAA opt-out tool</li>
+            </ul>
+
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">EU User Consent Policy</h2>
+            <p className="text-slate-600 mb-4">
+              In compliance with Google&apos;s EU User Consent Policy, we obtain consent from users in the European Economic Area (EEA), United Kingdom, and Switzerland for:
+            </p>
+            <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
+              <li>Use of cookies and local storage</li>
+              <li>Collection, sharing, and use of personal data for personalization of ads</li>
+              <li>Processing of personal data for advertising purposes</li>
+            </ul>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Impact of Disabling Cookies</h2>
             <p className="text-slate-600 mb-6">
-              If you choose to disable cookies, some features of our website may not function properly. This may include:
+              If you choose to disable cookies, some features of our Service may not function properly:
             </p>
             <ul className="list-disc list-inside text-slate-600 mb-6 space-y-2">
-              <li>Inability to remember your preferences</li>
-              <li>Loss of personalized content</li>
-              <li>Reduced functionality of interactive features</li>
-              <li>Inability to save your progress</li>
+              <li>You may need to log in repeatedly</li>
+              <li>Your preferences may not be saved</li>
+              <li>Some features may not work as expected</li>
+              <li>Advertisements may be less relevant to your interests</li>
             </ul>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Updates to This Cookie Policy</h2>
             <p className="text-slate-600 mb-6">
-              We may update this Cookie Policy from time to time to reflect changes in our practices or for other operational, legal, or regulatory reasons. We will notify you of any material changes by posting the updated policy on our website.
+              We may update this Cookie Policy from time to time to reflect changes in our practices or for other operational, legal, or regulatory reasons. We will notify you of any material changes by posting the updated policy on our Service.
             </p>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Contact Us</h2>
             <p className="text-slate-600 mb-6">
-              If you have any questions about our use of cookies or this Cookie Policy, please contact us:
+              If you have any questions about this Cookie Policy or our use of cookies, please contact us at:
             </p>
-            <div className="bg-slate-50 rounded-xl p-6">
-              <p className="text-slate-600">
-                <strong>Email:</strong> privacy@viralcarrot.com<br />
-                <strong>Address:</strong> ViralCarrot Privacy Team<br />
-                <strong>Website:</strong> <a href="https://viralcarrot.com" className="text-amber-600 hover:text-amber-700">viralcarrot.com</a><br />
-                <strong>Response Time:</strong> We will respond to your inquiry within 48 hours
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-8 text-white text-center mt-8">
-              <h3 className="text-2xl font-bold mb-4">Cookie Consent Management</h3>
-              <p className="text-xl mb-6">You can manage your cookie preferences at any time through your browser settings.</p>
-              <button className="bg-white text-amber-600 font-semibold py-3 px-8 rounded-xl hover:bg-amber-50 transition-colors">
-                Manage Cookie Preferences
-              </button>
+            <div className="bg-amber-50 rounded-xl p-6">
+              <p className="text-slate-600 mb-2"><strong>Email:</strong> privacy@viralcarrot.com</p>
+              <p className="text-slate-600 mb-2"><strong>Address:</strong> ViralCarrot Inc., 123 Recipe Street, Food City, FC 12345, United States</p>
+              <p className="text-slate-600"><strong>Phone:</strong> +1-555-123-4567</p>
             </div>
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-800 text-white py-12 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">V</span>
-                </div>
-                <span className="text-xl font-bold">ViralCarrot</span>
-              </div>
-              <p className="text-slate-300 text-sm">
-                Smart recipe discovery with ingredient matching and popular recipes from the web.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Features</h4>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li>Smart Recipe Generator</li>
-                <li>Pantry Wizard</li>
-                <li>Ingredient Matching</li>
-                <li>Popular Recipes</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li><Link href="/privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="hover:text-amber-400 transition-colors">Terms of Service</Link></li>
-                <li><Link href="/cookies" className="hover:text-amber-400 transition-colors">Cookie Policy</Link></li>
-                <li><Link href="/disclaimer" className="hover:text-amber-400 transition-colors">Disclaimer</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Connect</h4>
-              <p className="text-slate-300 text-sm">
-                Get the latest recipes and cooking tips delivered to your inbox.
-              </p>
-            </div>
-          </div>
-          <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
-            <p>&copy; 2024 ViralCarrot. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
