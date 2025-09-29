@@ -5,7 +5,7 @@
     "name": "test@test",
     "role": "user",
     "password": "dGVzdA==",
-    "token": "test_token_1",
+    "token": "449vx1bndpwmg4il3af",
     "subscription": {
       "plan": "free",
       "status": "active"
@@ -18,7 +18,7 @@
       }
     },
     "createdAt": "2025-09-28T14:46:29.576Z",
-    "updatedAt": "2025-09-28T14:46:29.576Z"
+    "updatedAt": "2025-09-29T02:33:29.319Z"
   },
   {
     "id": "user_1759072568023",

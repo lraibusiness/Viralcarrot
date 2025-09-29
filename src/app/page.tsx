@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import RecipeCard from '@/components/RecipeCard';
 import RecipeModal from '@/components/RecipeModal';
+import LoginForm from '@/components/auth/LoginForm';
+import RegisterForm from '@/components/auth/RegisterForm';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -108,6 +110,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [totalRecipes, setTotalRecipes] = useState(0);
   const [showLoadMore, setShowLoadMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -309,6 +312,12 @@ export default function Home() {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuth(false);
+    // Refresh user data
+    window.location.reload();
   };
 
   // Convert trending recipe to regular recipe for modal
@@ -795,6 +804,31 @@ export default function Home() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Authentication Modal */}
+      {showAuth && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="relative">
+            <button
+              onClick={() => setShowAuth(false)}
+              className="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-gray-600 text-xl">×</span>
+            </button>
+            {authMode === 'login' ? (
+              <LoginForm 
+                onSuccess={handleAuthSuccess}
+                onSwitchToRegister={() => setAuthMode('register')}
+              />
+            ) : (
+              <RegisterForm 
+                onSuccess={handleAuthSuccess}
+                onSwitchToLogin={() => setAuthMode('login')}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Recipe Modal */}
       {selectedRecipe && (
