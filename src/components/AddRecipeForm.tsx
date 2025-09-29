@@ -4,9 +4,10 @@ import { useState } from 'react';
 
 interface AddRecipeFormProps {
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
+export default function AddRecipeForm({ onSuccess, onCancel }: AddRecipeFormProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -38,56 +39,6 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     }
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
-    console.log('📤 Client: Starting image upload for file:', file.name);
-    
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      console.log('📤 Client: Upload response status:', response.status);
-      console.log('📤 Client: Upload response headers:', Object.fromEntries(response.headers.entries()));
-
-      const responseText = await response.text();
-      console.log('📤 Client: Raw response:', responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('📤 Client: Parsed response:', data);
-      } catch (parseError) {
-        console.error('❌ Client: Failed to parse response as JSON:', parseError);
-        throw new Error(`Server returned invalid JSON: ${responseText}`);
-      }
-
-      if (!response.ok) {
-        console.error('❌ Client: Upload failed with status:', response.status);
-        console.error('❌ Client: Error data:', data);
-        throw new Error(data.error || `Upload failed with status ${response.status}`);
-      }
-
-      if (!data.success) {
-        console.error('❌ Client: Upload failed:', data);
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      console.log('✅ Client: Upload successful:', data);
-      return data.imageUrl;
-    } catch (error) {
-      console.error('❌ Client: Upload error:', error);
-      if (error instanceof Error) {
-        throw error;
-      } else {
-        throw new Error('Unknown upload error occurred');
-      }
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -95,279 +46,261 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     try {
       let imageUrl = formData.image;
 
-      // Upload image if one was selected
+      // Upload image if a file was selected
       if (imageFile) {
-        console.log('📤 Client: Uploading image file');
         setUploading(true);
-        try {
-          imageUrl = await uploadImage(imageFile);
-          console.log('✅ Client: Image uploaded successfully:', imageUrl);
-        } catch (error) {
-          console.error('❌ Client: Image upload failed:', error);
-          alert('Failed to upload image. Please try again.');
-          setSubmitting(false);
-          setUploading(false);
-          return;
-        } finally {
-          setUploading(false);
+        const uploadFormData = new FormData();
+        uploadFormData.append('image', imageFile);
+
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          imageUrl = uploadData.url;
+        } else {
+          throw new Error('Failed to upload image');
         }
+        setUploading(false);
       }
 
       // Submit recipe
-      const recipeData = {
-        ...formData,
-        image: imageUrl,
-        ingredients: formData.ingredients.split('\n').filter(ingredient => ingredient.trim()),
-        steps: formData.steps.split('\n').filter(step => step.trim())
-      };
-
-      console.log('📤 Client: Submitting recipe:', recipeData);
-
       const response = await fetch('/api/recipes/user', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(recipeData)
+        body: JSON.stringify({
+          ...formData,
+          image: imageUrl,
+          ingredients: formData.ingredients.split('\n').filter(ing => ing.trim()),
+          steps: formData.steps.split('\n').filter(step => step.trim()),
+          cookingTime: parseInt(formData.cookingTime) || 0,
+        }),
       });
 
-      console.log('📤 Client: Recipe submission response status:', response.status);
-
       if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Client: Recipe submitted successfully:', result);
-        alert('Recipe submitted successfully! It will be reviewed by our team before being published.');
-        setFormData({
-          title: '',
-          description: '',
-          ingredients: '',
-          steps: '',
-          cookingTime: '',
-          cuisine: '',
-          mealType: '',
-          dietaryStyle: '',
-          image: '',
-          website: '',
-          sourceUrl: '',
-          isPublic: true
-        });
-        setImageFile(null);
-        setImagePreview('');
-        onSuccess?.();
+        const data = await response.json();
+        if (data.success) {
+          onSuccess?.();
+        } else {
+          alert(data.error || 'Failed to submit recipe');
+        }
       } else {
-        const errorData = await response.json();
-        console.error('❌ Client: Recipe submission failed:', errorData);
-        alert(errorData.error || 'Failed to submit recipe. Please try again.');
+        throw new Error('Failed to submit recipe');
       }
     } catch (error) {
-      console.error('❌ Client: Recipe submission error:', error);
+      console.error('Error submitting recipe:', error);
       alert('Failed to submit recipe. Please try again.');
     } finally {
       setSubmitting(false);
-      setUploading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-amber-100 p-6">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">Submit Your Recipe</h2>
-      
+    <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Recipe Title *
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-              placeholder="Enter recipe title"
-              required
-            />
-          </div>
+        <div>
+          <label htmlFor="title" className="block text-base font-semibold text-slate-700 mb-2">
+            Recipe Title *
+          </label>
+          <input
+            type="text"
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+            placeholder="Enter recipe title"
+            required
+          />
+        </div>
 
+        <div>
+          <label htmlFor="description" className="block text-base font-semibold text-slate-700 mb-2">
+            Description *
+          </label>
+          <textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            rows={3}
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+            placeholder="Describe your recipe"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="ingredients" className="block text-base font-semibold text-slate-700 mb-2">
+            Ingredients * (one per line)
+          </label>
+          <textarea
+            id="ingredients"
+            value={formData.ingredients}
+            onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
+            rows={6}
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+            placeholder="1 cup flour&#10;2 eggs&#10;1/2 cup milk"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="steps" className="block text-base font-semibold text-slate-700 mb-2">
+            Instructions * (one step per line)
+          </label>
+          <textarea
+            id="steps"
+            value={formData.steps}
+            onChange={(e) => setFormData({ ...formData, steps: e.target.value })}
+            rows={8}
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+            placeholder="Step 1: Mix ingredients&#10;Step 2: Cook for 20 minutes"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="cookingTime" className="block text-base font-semibold text-slate-700 mb-2">
               Cooking Time (minutes) *
             </label>
             <input
               type="number"
+              id="cookingTime"
               value={formData.cookingTime}
               onChange={(e) => setFormData({ ...formData, cookingTime: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+              className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
               placeholder="30"
               required
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Description *
-          </label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-            rows={3}
-            placeholder="Describe your recipe..."
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Recipe Image
-          </label>
-          <div className="space-y-3">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full p-3 border border-slate-300 rounded-lg text-black"
-            />
-            {imagePreview && (
-              <div className="relative">
-                <img
-                  src={imagePreview}
-                  alt="Recipe preview"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Or enter image URL
-              </label>
-              <input
-                type="url"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Ingredients * (one per line)
-          </label>
-          <textarea
-            value={formData.ingredients}
-            onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
-            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-            rows={6}
-            placeholder="Enter ingredients, one per line..."
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Instructions * (one per line)
-          </label>
-          <textarea
-            value={formData.steps}
-            onChange={(e) => setFormData({ ...formData, steps: e.target.value })}
-            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-            rows={8}
-            placeholder="Enter cooking instructions, one per line..."
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Cuisine
+            <label htmlFor="cuisine" className="block text-base font-semibold text-slate-700 mb-2">
+              Cuisine *
             </label>
             <select
+              id="cuisine"
               value={formData.cuisine}
               onChange={(e) => setFormData({ ...formData, cuisine: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+              className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+              required
             >
-              <option value="">Select Cuisine</option>
+              <option value="">Select cuisine</option>
+              <option value="American">American</option>
               <option value="Italian">Italian</option>
               <option value="Mexican">Mexican</option>
               <option value="Asian">Asian</option>
-              <option value="Mediterranean">Mediterranean</option>
               <option value="Indian">Indian</option>
-              <option value="American">American</option>
+              <option value="Mediterranean">Mediterranean</option>
               <option value="French">French</option>
+              <option value="Chinese">Chinese</option>
+              <option value="Japanese">Japanese</option>
               <option value="Thai">Thai</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Meal Type
-            </label>
-            <select
-              value={formData.mealType}
-              onChange={(e) => setFormData({ ...formData, mealType: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-            >
-              <option value="">Select Meal Type</option>
-              <option value="Breakfast">Breakfast</option>
-              <option value="Lunch">Lunch</option>
-              <option value="Dinner">Dinner</option>
-              <option value="Dessert">Dessert</option>
-              <option value="Snack">Snack</option>
-              <option value="Appetizer">Appetizer</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Dietary Style
-            </label>
-            <select
-              value={formData.dietaryStyle}
-              onChange={(e) => setFormData({ ...formData, dietaryStyle: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-            >
-              <option value="">Select Dietary Style</option>
-              <option value="Regular">Regular</option>
-              <option value="Vegetarian">Vegetarian</option>
-              <option value="Vegan">Vegan</option>
-              <option value="Gluten-Free">Gluten-Free</option>
-              <option value="Keto">Keto</option>
-              <option value="Paleo">Paleo</option>
-              <option value="Low-Carb">Low-Carb</option>
+              <option value="Other">Other</option>
             </select>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Website (optional)
+            <label htmlFor="mealType" className="block text-base font-semibold text-slate-700 mb-2">
+              Meal Type *
             </label>
-            <input
-              type="url"
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-              placeholder="https://yourwebsite.com"
-            />
+            <select
+              id="mealType"
+              value={formData.mealType}
+              onChange={(e) => setFormData({ ...formData, mealType: e.target.value })}
+              className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+              required
+            >
+              <option value="">Select meal type</option>
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snack">Snack</option>
+              <option value="Dessert">Dessert</option>
+              <option value="Appetizer">Appetizer</option>
+              <option value="Side Dish">Side Dish</option>
+            </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Source URL (optional)
+            <label htmlFor="dietaryStyle" className="block text-base font-semibold text-slate-700 mb-2">
+              Dietary Style *
             </label>
-            <input
-              type="url"
-              value={formData.sourceUrl}
-              onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-              placeholder="https://example.com/recipe"
-            />
+            <select
+              id="dietaryStyle"
+              value={formData.dietaryStyle}
+              onChange={(e) => setFormData({ ...formData, dietaryStyle: e.target.value })}
+              className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+              required
+            >
+              <option value="">Select dietary style</option>
+              <option value="Regular">Regular</option>
+              <option value="Vegetarian">Vegetarian</option>
+              <option value="Vegan">Vegan</option>
+              <option value="Gluten-Free">Gluten-Free</option>
+              <option value="Dairy-Free">Dairy-Free</option>
+              <option value="Keto">Keto</option>
+              <option value="Paleo">Paleo</option>
+              <option value="Low-Carb">Low-Carb</option>
+              <option value="High-Protein">High-Protein</option>
+            </select>
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="image" className="block text-base font-semibold text-slate-700 mb-2">
+            Recipe Image
+          </label>
+          <input
+            type="file"
+            id="image"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
+          />
+          {imagePreview && (
+            <div className="mt-4">
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="w-32 h-32 object-cover rounded-lg border border-slate-300"
+              />
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="website" className="block text-base font-semibold text-slate-700 mb-2">
+            Website (optional)
+          </label>
+          <input
+            type="url"
+            id="website"
+            value={formData.website}
+            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+            placeholder="https://example.com"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="sourceUrl" className="block text-base font-semibold text-slate-700 mb-2">
+            Source URL (optional)
+          </label>
+          <input
+            type="url"
+            id="sourceUrl"
+            value={formData.sourceUrl}
+            onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+            placeholder="https://example.com/recipe"
+          />
         </div>
 
         <div className="flex items-center">
@@ -376,14 +309,23 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             id="isPublic"
             checked={formData.isPublic}
             onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-            className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+            className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded"
           />
-          <label htmlFor="isPublic" className="ml-2 block text-sm text-slate-700">
-            Make this recipe public (visible to other users)
+          <label htmlFor="isPublic" className="ml-2 text-base text-slate-700">
+            Make this recipe public
           </label>
         </div>
 
         <div className="flex justify-end space-x-4">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {

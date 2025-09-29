@@ -438,10 +438,10 @@ export default function Home() {
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Hero Section - Compact */}
         <div className="text-center mb-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
             ViralCarrot
           </h2>
-          <p className="text-sm text-slate-600 mb-4 max-w-xl mx-auto">
+          <p className="text-base text-slate-600 mb-4 max-w-xl mx-auto">
             Let&apos;s make something delicious with what you have! Simply tell us what ingredients you have, 
             and we&apos;ll find you the perfect recipes from our community and the web.
           </p>
@@ -496,7 +496,7 @@ export default function Home() {
               <>
                 {/* Main Ingredient Input */}
                 <div className="mb-4">
-                  <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  <label className="block text-base font-semibold text-slate-800 mb-2">
                     What&apos;s your main ingredient?
                   </label>
                   <input
@@ -504,13 +504,13 @@ export default function Home() {
                     value={mainFood}
                     onChange={(e) => setMainFood(e.target.value)}
                     placeholder="e.g., chicken, salmon, broccoli, pasta..."
-                    className="w-full p-3 text-sm border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
+                    className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
                   />
                 </div>
 
                 {/* Other Ingredients */}
                 <div className="mb-4">
-                  <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  <label className="block text-base font-semibold text-slate-800 mb-2">
                     Other ingredients you have?
                   </label>
                   
@@ -542,7 +542,7 @@ export default function Home() {
                       value={ingredients}
                       onChange={(e) => setIngredients(e.target.value)}
                       placeholder="e.g., garlic, onions, tomatoes, cheese..."
-                      className="w-full p-3 text-sm border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
+                      className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
                     />
                   </div>
 
@@ -570,7 +570,7 @@ export default function Home() {
               <>
                 {/* Pantry Ingredients */}
                 <div className="mb-4">
-                  <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  <label className="block text-base font-semibold text-slate-800 mb-2">
                     What&apos;s in your pantry?
                   </label>
                   
@@ -601,7 +601,7 @@ export default function Home() {
                       value={pantryIngredients}
                       onChange={(e) => setPantryIngredients(e.target.value)}
                       placeholder="Enter all your available ingredients (comma separated)..."
-                      className="w-full p-3 text-sm border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
+                      className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
                       rows={2}
                     />
                   </div>
@@ -628,7 +628,7 @@ export default function Home() {
 
             {/* Compact Filters Section */}
             <div className="bg-gradient-to-r from-slate-50 to-amber-50 rounded-xl p-4 mb-4">
-              <h4 className="text-sm font-semibold text-slate-800 mb-3">Refine Your Search</h4>
+              <h4 className="text-base font-semibold text-slate-800 mb-3">Refine Your Search</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Cooking Time</label>
