@@ -6,8 +6,9 @@ import UserManagement from './UserManagement';
 import RecipeModeration from './RecipeModeration';
 import PendingApproval from './PendingApproval';
 import Analytics from './Analytics';
+import BlogManagement from './BlogManagement';
 
-type TabType = 'overview' | 'users' | 'recipes' | 'pending' | 'analytics';
+type TabType = 'overview' | 'users' | 'recipes' | 'pending' | 'analytics' | 'blogs';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -15,7 +16,9 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalRecipes: 0,
     pendingRecipes: 0,
-    approvedRecipes: 0
+    approvedRecipes: 0,
+    totalBlogPosts: 0,
+    pendingBlogPosts: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -25,20 +28,24 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [usersResponse, recipesResponse] = await Promise.all([
+      const [usersResponse, recipesResponse, blogResponse] = await Promise.all([
         fetch('/api/admin/users'),
-        fetch('/api/admin/recipes')
+        fetch('/api/admin/recipes'),
+        fetch('/api/blog/posts')
       ]);
 
       if (usersResponse.ok && recipesResponse.ok) {
         const usersData = await usersResponse.json();
         const recipesData = await recipesResponse.json();
+        const blogData = blogResponse.ok ? await blogResponse.json() : { posts: [] };
         
         setStats({
           totalUsers: usersData.users?.length || 0,
           totalRecipes: recipesData.recipes?.length || 0,
           pendingRecipes: recipesData.recipes?.filter((r: any) => !r.isApproved)?.length || 0,
-          approvedRecipes: recipesData.recipes?.filter((r: any) => r.isApproved)?.length || 0
+          approvedRecipes: recipesData.recipes?.filter((r: any) => r.isApproved)?.length || 0,
+          totalBlogPosts: blogData.posts?.length || 0,
+          pendingBlogPosts: blogData.posts?.filter((p: any) => !p.isPublished)?.length || 0
         });
       }
     } catch (error) {
@@ -53,6 +60,7 @@ export default function AdminDashboard() {
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'recipes', label: 'Recipes', icon: '🍽️' },
     { id: 'pending', label: 'Pending', icon: '⏳' },
+    { id: 'blogs', label: 'Blogs', icon: '📝' },
     { id: 'analytics', label: 'Analytics', icon: '📈' }
   ];
 
@@ -92,6 +100,7 @@ export default function AdminDashboard() {
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'recipes' && <RecipeModeration />}
         {activeTab === 'pending' && <PendingApproval />}
+        {activeTab === 'blogs' && <BlogManagement />}
         {activeTab === 'analytics' && <Analytics />}
       </div>
     </div>
