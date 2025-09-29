@@ -81,5 +81,14 @@
     "updatedAt": "2025-09-29T02:58:07.846Z",
     "password": "cnI=",
     "token": "2hmt08b5kyymg4jgs4m"
+  },
+  {
+    "id": "gxthtgm9k",
+    "email": "r@1",
+    "name": "r",
+    "role": "user",
+    "totalRecipesGenerated": 0,
+    "createdAt": "2025-09-29T06:52:53.375Z",
+    "updatedAt": "2025-09-29T06:52:53.375Z"
   }
 ]
