@@ -104,34 +104,39 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
           console.log('✅ Client: Image uploaded successfully:', imageUrl);
         } catch (error) {
           console.error('❌ Client: Image upload failed:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          alert(`Failed to upload image: ${errorMessage}`);
+          alert('Failed to upload image. Please try again.');
+          setSubmitting(false);
+          setUploading(false);
           return;
         } finally {
           setUploading(false);
         }
       }
 
+      // Submit recipe
       const recipeData = {
         ...formData,
         image: imageUrl,
-        ingredients: formData.ingredients.split('\n').filter(ing => ing.trim()),
-        steps: formData.steps.split('\n').filter(step => step.trim()),
-        cookingTime: parseInt(formData.cookingTime) || 0
+        ingredients: formData.ingredients.split('\n').filter(ingredient => ingredient.trim()),
+        steps: formData.steps.split('\n').filter(step => step.trim())
       };
 
-      console.log('📝 Client: Submitting recipe data:', recipeData);
+      console.log('📤 Client: Submitting recipe:', recipeData);
 
       const response = await fetch('/api/recipes/user', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(recipeData),
+        body: JSON.stringify(recipeData)
       });
 
+      console.log('📤 Client: Recipe submission response status:', response.status);
+
       if (response.ok) {
-        alert('Recipe submitted successfully! It will be reviewed by our team.');
+        const result = await response.json();
+        console.log('✅ Client: Recipe submitted successfully:', result);
+        alert('Recipe submitted successfully! It will be reviewed by our team before being published.');
         setFormData({
           title: '',
           description: '',
@@ -177,7 +182,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
               placeholder="Enter recipe title"
               required
             />
@@ -191,7 +196,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
               type="number"
               value={formData.cookingTime}
               onChange={(e) => setFormData({ ...formData, cookingTime: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
               placeholder="30"
               required
             />
@@ -205,7 +210,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
             rows={3}
             placeholder="Describe your recipe..."
             required
@@ -221,7 +226,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
               type="file"
               accept="image/*"
               onChange={handleImageChange}
-              className="w-full p-3 border border-slate-300 rounded-lg"
+              className="w-full p-3 border border-slate-300 rounded-lg text-black"
             />
             {imagePreview && (
               <div className="relative">
@@ -240,7 +245,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
                 type="url"
                 value={formData.image}
                 onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
                 placeholder="https://example.com/image.jpg"
               />
             </div>
@@ -254,7 +259,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
           <textarea
             value={formData.ingredients}
             onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
-            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
             rows={6}
             placeholder="Enter ingredients, one per line..."
             required
@@ -268,7 +273,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
           <textarea
             value={formData.steps}
             onChange={(e) => setFormData({ ...formData, steps: e.target.value })}
-            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
             rows={8}
             placeholder="Enter cooking instructions, one per line..."
             required
@@ -283,7 +288,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             <select
               value={formData.cuisine}
               onChange={(e) => setFormData({ ...formData, cuisine: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
             >
               <option value="">Select Cuisine</option>
               <option value="Italian">Italian</option>
@@ -304,14 +309,15 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             <select
               value={formData.mealType}
               onChange={(e) => setFormData({ ...formData, mealType: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
             >
-              <option value="">Select Type</option>
+              <option value="">Select Meal Type</option>
               <option value="Breakfast">Breakfast</option>
               <option value="Lunch">Lunch</option>
               <option value="Dinner">Dinner</option>
-              <option value="Snack">Snack</option>
               <option value="Dessert">Dessert</option>
+              <option value="Snack">Snack</option>
+              <option value="Appetizer">Appetizer</option>
             </select>
           </div>
 
@@ -322,14 +328,15 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             <select
               value={formData.dietaryStyle}
               onChange={(e) => setFormData({ ...formData, dietaryStyle: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
             >
-              <option value="">Select Diet</option>
+              <option value="">Select Dietary Style</option>
               <option value="Regular">Regular</option>
               <option value="Vegetarian">Vegetarian</option>
               <option value="Vegan">Vegan</option>
-              <option value="Keto">Keto</option>
               <option value="Gluten-Free">Gluten-Free</option>
+              <option value="Keto">Keto</option>
+              <option value="Paleo">Paleo</option>
               <option value="Low-Carb">Low-Carb</option>
             </select>
           </div>
@@ -344,7 +351,7 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
               type="url"
               value={formData.website}
               onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
               placeholder="https://yourwebsite.com"
             />
           </div>
@@ -357,8 +364,8 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
               type="url"
               value={formData.sourceUrl}
               onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              placeholder="https://source.com/recipe"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
+              placeholder="https://example.com/recipe"
             />
           </div>
         </div>
@@ -369,20 +376,46 @@ export default function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             id="isPublic"
             checked={formData.isPublic}
             onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-            className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded"
+            className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
           />
           <label htmlFor="isPublic" className="ml-2 block text-sm text-slate-700">
             Make this recipe public (visible to other users)
           </label>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting || uploading}
-          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {uploading ? 'Uploading Image...' : submitting ? 'Submitting Recipe...' : 'Submit Recipe'}
-        </button>
+        <div className="flex justify-end space-x-4">
+          <button
+            type="button"
+            onClick={() => {
+              setFormData({
+                title: '',
+                description: '',
+                ingredients: '',
+                steps: '',
+                cookingTime: '',
+                cuisine: '',
+                mealType: '',
+                dietaryStyle: '',
+                image: '',
+                website: '',
+                sourceUrl: '',
+                isPublic: true
+              });
+              setImageFile(null);
+              setImagePreview('');
+            }}
+            className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Clear Form
+          </button>
+          <button
+            type="submit"
+            disabled={submitting || uploading}
+            className="px-6 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {submitting ? 'Submitting...' : uploading ? 'Uploading...' : 'Submit Recipe'}
+          </button>
+        </div>
       </form>
     </div>
   );

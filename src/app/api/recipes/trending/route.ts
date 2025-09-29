@@ -246,20 +246,26 @@ export async function GET(request: NextRequest) {
       }
     ];
     
-    // Combine user recipes with community recipes
-    const allRecipes = [...userRecipes, ...communityRecipes];
+    // Sort user recipes by creation date (newest first)
+    const sortedUserRecipes = userRecipes
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    // Sort by creation date (newest first) and take the first 6
-    const sortedRecipes = allRecipes
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 6);
+    // Sort community recipes by creation date (newest first)
+    const sortedCommunityRecipes = communityRecipes
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    console.log(`✅ Trending API: Returning ${sortedRecipes.length} recipes (${userRecipes.length} user + ${communityRecipes.length} community)`);
+    // Combine with user recipes first, then community recipes
+    const allRecipes = [...sortedUserRecipes, ...sortedCommunityRecipes];
+    
+    // Take the first 6 recipes (prioritizing user recipes)
+    const finalRecipes = allRecipes.slice(0, 6);
+    
+    console.log(`✅ Trending API: Returning ${finalRecipes.length} recipes (${sortedUserRecipes.length} user + ${sortedCommunityRecipes.length} community)`);
     
     return NextResponse.json({
       success: true,
-      recipes: sortedRecipes,
-      total: sortedRecipes.length
+      recipes: finalRecipes,
+      total: finalRecipes.length
     });
     
   } catch (error) {

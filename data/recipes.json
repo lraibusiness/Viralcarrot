@@ -39,7 +39,7 @@
     "isApproved": true,
     "views": 1247,
     "likes": 89,
-    "updatedAt": "2025-09-28T17:37:08.314Z"
+    "updatedAt": "2025-09-28T17:55:19.462Z"
   },
   {
     "id": "community-2",
@@ -225,38 +225,6 @@
     "views": 3421,
     "likes": 267,
     "updatedAt": "1970-01-01T00:00:00.000Z"
-  },
-  {
-    "title": "chicken ",
-    "description": "Chicken test ",
-    "ingredients": [
-      "test@2",
-      "test@2",
-      "test@2",
-      "test@2"
-    ],
-    "steps": [
-      "test@2",
-      "test@2",
-      "test@2",
-      "test@2",
-      "test@2"
-    ],
-    "cookingTime": 30,
-    "cuisine": "",
-    "mealType": "",
-    "dietaryStyle": "",
-    "image": "/uploads/1759081249087-1j8q2vwdwsf.jpg",
-    "website": "https://www.viralcarrot.com/",
-    "sourceUrl": "https://www.viralcarrot.com/",
-    "isPublic": true,
-    "id": "4b8hu3po80rmg3zk2t2",
-    "userId": "9ztv6ersp2dmg3zipet",
-    "views": 0,
-    "likes": 0,
-    "createdAt": "2025-09-28T17:40:49.334Z",
-    "updatedAt": "2025-09-28T17:42:53.647Z",
-    "isApproved": true
   },
   {
     "id": "user-recipe-test-1",
