@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo } from 'react';
 import Image from 'next/image';
 
 interface Recipe {
@@ -12,9 +12,12 @@ interface Recipe {
   cuisine?: string;
   mealType?: string;
   dietaryStyle?: string;
-  tags?: string[];
+  tags: string[];
   createdBy: string;
   matchScore: number;
+  views?: number;
+  likes?: number;
+  createdAt?: string;
   rating?: number;
   difficulty?: string;
   servings?: number;
@@ -36,173 +39,129 @@ interface Recipe {
 
 interface RecipeCardProps {
   recipe: Recipe;
-  onSelect: (recipe: Recipe) => void;
+  onClick: () => void;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect }) => {
-  const [imageError, setImageError] = useState(false);
-
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  const getFallbackImage = () => {
-    return 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=600&h=400&fit=crop';
-  };
-
-  const getMatchColor = (percentage: number) => {
-    if (percentage >= 80) return 'bg-green-100 text-green-800 border-green-200';
-    if (percentage >= 60) return 'bg-amber-100 text-amber-800 border-amber-200';
-    return 'bg-red-100 text-red-800 border-red-200';
-  };
-
-  // Safe array handling
+const RecipeCard = memo(({ recipe, onClick }: RecipeCardProps) => {
   const safeTags = recipe.tags || [];
   const safeAvailableIngredients = recipe.ingredientMatch?.availableIngredients || [];
   const safeMissingIngredients = recipe.ingredientMatch?.missingIngredients || [];
+  const matchPercentage = recipe.ingredientMatch?.matchPercentage || 0;
 
   return (
-    <div 
-      className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-100 hover:border-amber-200 cursor-pointer group"
-      onClick={() => onSelect(recipe)}
+    <div
+      onClick={onClick}
+      className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 overflow-hidden border border-slate-100"
     >
-      {/* Image */}
-      <div className="relative h-48 md:h-56 overflow-hidden">
+      <div className="relative h-48 w-full">
         <Image
-          src={imageError ? getFallbackImage() : recipe.image || getFallbackImage()}
+          src={recipe.image || '/placeholder-recipe.jpg'}
           alt={recipe.title}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={handleImageError}
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
-        
-        {/* Recipe Type Badge */}
-        <div className="absolute top-3 left-3">
-          {recipe.isExternal ? (
-            <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full border border-blue-200">
-              Popular Recipe
-            </span>
-          ) : (
-            <span className="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-1 rounded-full border border-amber-200">
-              ViralCarrot Original
-            </span>
-          )}
-        </div>
-
-        {/* Ingredient Match Badge */}
-        {recipe.ingredientMatch && (
-          <div className="absolute top-3 right-3">
-            <div className={`px-2 py-1 rounded-full text-xs font-semibold border ${getMatchColor(recipe.ingredientMatch.matchPercentage)}`}>
-              {recipe.ingredientMatch.matchPercentage}% Match
-            </div>
+        {recipe.isExternal && (
+          <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+            External
           </div>
         )}
-
-        {/* Cooking Time */}
-        <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs font-medium px-2 py-1 rounded-full">
-          {recipe.cookingTime} min
-        </div>
-
-        {/* Rating */}
-        {recipe.rating && (
-          <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-            <span>⭐</span>
-            <span>{recipe.rating.toFixed(1)}</span>
+        {matchPercentage > 0 && (
+          <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+            {matchPercentage}% match
           </div>
         )}
       </div>
-
-      {/* Content */}
-      <div className="p-4 md:p-5">
-        {/* Title */}
-        <h3 className="text-lg md:text-xl font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors">
+      
+      <div className="p-4">
+        <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-2">
           {recipe.title}
         </h3>
-
-        {/* Description */}
-        <p className="text-sm text-slate-600 mb-3 line-clamp-2">
+        
+        <p className="text-slate-600 text-sm mb-3 line-clamp-2">
           {recipe.description}
         </p>
-
-        {/* Tags */}
+        
+        <div className="flex items-center justify-between text-sm text-slate-500 mb-3">
+          <span className="flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {recipe.cookingTime} min
+          </span>
+          <span className="flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            {recipe.cuisine || 'Any'}
+          </span>
+        </div>
+        
         {safeTags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {safeTags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
-                className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full"
+                className="bg-amber-50 text-amber-700 px-2 py-1 rounded-full text-xs font-medium"
               >
                 {tag}
               </span>
             ))}
-          </div>
-        )}
-
-        {/* Ingredient Match Info */}
-        {recipe.ingredientMatch && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-700">Ingredient Match:</span>
-              <span className={`text-sm font-semibold ${getMatchColor(recipe.ingredientMatch.matchPercentage).split(' ')[1]}`}>
-                {recipe.ingredientMatch.matchPercentage}%
+            {safeTags.length > 3 && (
+              <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs font-medium">
+                +{safeTags.length - 3}
               </span>
+            )}
+          </div>
+        )}
+        
+        {matchPercentage > 0 && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span className="text-slate-600">Ingredient Match</span>
+              <span className="font-semibold text-green-600">{matchPercentage}%</span>
             </div>
-            
-            {/* Available Ingredients */}
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div
+                className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${matchPercentage}%` }}
+              ></div>
+            </div>
             {safeAvailableIngredients.length > 0 && (
-              <div className="mb-2">
-                <span className="text-xs text-green-600 font-medium">✓ Available: </span>
-                <span className="text-xs text-slate-600">
-                  {safeAvailableIngredients.slice(0, 3).join(', ')}
-                  {safeAvailableIngredients.length > 3 && '...'}
-                </span>
-              </div>
+              <p className="text-xs text-green-600 mt-1">
+                Available: {safeAvailableIngredients.slice(0, 3).join(', ')}
+                {safeAvailableIngredients.length > 3 && ` +${safeAvailableIngredients.length - 3} more`}
+              </p>
             )}
-
-            {/* Missing Ingredients */}
             {safeMissingIngredients.length > 0 && (
-              <div>
-                <span className="text-xs text-red-600 font-medium">✗ Missing: </span>
-                <span className="text-xs text-slate-600">
-                  {safeMissingIngredients.slice(0, 2).join(', ')}
-                  {safeMissingIngredients.length > 2 && '...'}
-                </span>
-              </div>
+              <p className="text-xs text-red-600 mt-1">
+                Missing: {safeMissingIngredients.slice(0, 3).join(', ')}
+                {safeMissingIngredients.length > 3 && ` +${safeMissingIngredients.length - 3} more`}
+              </p>
             )}
           </div>
         )}
-
-        {/* Recipe Info */}
-        <div className="flex items-center justify-between text-sm text-slate-500">
-          <div className="flex items-center gap-3">
-            <span>{recipe.cuisine}</span>
-            <span>•</span>
-            <span>{recipe.mealType}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-amber-500">👨‍🍳</span>
-            <span className="text-xs">{recipe.createdBy}</span>
-          </div>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-slate-500">
+            by {recipe.createdBy}
+          </span>
+          {recipe.views && (
+            <span className="text-xs text-slate-500 flex items-center">
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              {recipe.views}
+            </span>
+          )}
         </div>
-
-        {/* External Recipe Link */}
-        {recipe.isExternal && recipe.sourceUrl && (
-          <div className="mt-3 pt-3 border-t border-slate-100">
-            <a
-              href={recipe.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>View on {recipe.createdBy}</span>
-              <span>↗</span>
-            </a>
-          </div>
-        )}
       </div>
     </div>
   );
-};
+});
+
+RecipeCard.displayName = 'RecipeCard';
 
 export default RecipeCard;

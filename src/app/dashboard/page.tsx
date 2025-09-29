@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AddRecipeForm from '@/components/AddRecipeForm';
 import UserRecipeEditor from '@/components/UserRecipeEditor';
 
@@ -11,9 +11,11 @@ interface User {
   email: string;
   name: string;
   role: string;
+  totalRecipesGenerated?: number;
   subscription?: {
     plan: string;
     status: string;
+    expiresAt?: string;
   };
 }
 
@@ -28,53 +30,32 @@ interface Recipe {
   mealType: string;
   dietaryStyle: string;
   image: string;
-  website?: string;
-  sourceUrl?: string;
-  isPublic: boolean;
+  createdBy: string;
   status: string;
-  createdAt?: string;
+  isApproved: boolean;
+  createdAt: string;
+  isPublic: boolean;
   views?: number;
   likes?: number;
-}
-
-interface BlogPost {
-  id: string;
-  title: string;
-  content: string;
-  coverImage: string;
-  authorName: string;
-  tags: string[];
-  createdAt: string;
-  status: string;
-  isPublished: boolean;
+  tags?: string[];
 }
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [userRecipes, setUserRecipes] = useState<Recipe[]>([]);
-  const [userBlogPosts, setUserBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showBlogForm, setShowBlogForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<'recipes' | 'blogs'>('recipes');
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  useEffect(() => {
-    fetchUserData();
-    fetchUserRecipes();
-    if (user?.role === 'premium') {
-      fetchUserBlogPosts();
-    }
-  }, [user]);
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       const response = await fetch('/api/user/profile');
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
-      } else if (response.status === 401) {
+      } else {
         router.push('/auth/login');
       }
     } catch (error) {
@@ -83,35 +64,35 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const fetchUserRecipes = async () => {
+  const fetchUserRecipes = useCallback(async () => {
     try {
       const response = await fetch('/api/recipes/user');
       if (response.ok) {
         const data = await response.json();
-        setUserRecipes(data.recipes);
+        setUserRecipes(data.recipes || []);
       }
     } catch (error) {
       console.error('Error fetching user recipes:', error);
     }
-  };
+  }, []);
 
-  const fetchUserBlogPosts = async () => {
+  useEffect(() => {
+    fetchUserData();
+    fetchUserRecipes();
+  }, [fetchUserData, fetchUserRecipes]);
+
+  const handleLogout = useCallback(async () => {
     try {
-      const response = await fetch('/api/blog/posts');
-      if (response.ok) {
-        const data = await response.json();
-        // Filter posts by current user
-        const userPosts = data.posts.filter((post: BlogPost) => post.authorName === user?.name);
-        setUserBlogPosts(userPosts);
-      }
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/');
     } catch (error) {
-      console.error('Error fetching user blog posts:', error);
+      console.error('Logout error:', error);
     }
-  };
+  }, [router]);
 
-  const handleDeleteRecipe = async (recipeId: string) => {
+  const handleDeleteRecipe = useCallback(async (recipeId: string) => {
     if (!confirm('Are you sure you want to delete this recipe?')) return;
 
     try {
@@ -122,32 +103,43 @@ export default function Dashboard() {
       if (response.ok) {
         setUserRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
       } else {
-        alert('Failed to delete recipe');
+        setError('Failed to delete recipe');
       }
     } catch (error) {
       console.error('Error deleting recipe:', error);
-      alert('Failed to delete recipe');
+      setError('Failed to delete recipe');
     }
-  };
+  }, []);
 
-  const handleDeleteBlogPost = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this blog post?')) return;
+  const handleEditRecipe = useCallback((recipe: Recipe) => {
+    setEditingRecipe(recipe);
+  }, []);
 
-    try {
-      const response = await fetch(`/api/blog/posts/${postId}`, {
-        method: 'DELETE',
-      });
+  const handleSaveRecipe = useCallback((updatedRecipe: Recipe) => {
+    setEditingRecipe(null);
+    fetchUserRecipes();
+  }, [fetchUserRecipes]);
 
-      if (response.ok) {
-        setUserBlogPosts(prev => prev.filter(post => post.id !== postId));
-      } else {
-        alert('Failed to delete blog post');
-      }
-    } catch (error) {
-      console.error('Error deleting blog post:', error);
-      alert('Failed to delete blog post');
-    }
-  };
+  const handleAddRecipe = useCallback(() => {
+    setShowAddForm(false);
+    fetchUserRecipes();
+  }, [fetchUserRecipes]);
+
+  // Memoized user stats
+  const userStats = useMemo(() => {
+    if (!user) return null;
+    
+    const totalRecipes = userRecipes.length;
+    const approvedRecipes = userRecipes.filter(r => r.isApproved || r.status === 'approved').length;
+    const pendingRecipes = userRecipes.filter(r => !r.isApproved && r.status !== 'approved').length;
+    
+    return {
+      totalRecipes,
+      approvedRecipes,
+      pendingRecipes,
+      totalGenerated: user.totalRecipesGenerated || 0
+    };
+  }, [user, userRecipes]);
 
   if (loading) {
     return (
@@ -161,17 +153,7 @@ export default function Dashboard() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-800 mb-4">Access Denied</h1>
-          <p className="text-slate-600 mb-6">Please log in to access your dashboard.</p>
-          <Link href="/auth/login" className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg transition-colors">
-            Login
-          </Link>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -184,16 +166,19 @@ export default function Dashboard() {
               <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-xl">V</span>
               </div>
-              <h1 className="text-2xl font-bold text-slate-800">ViralCarrot</h1>
+              <h1 className="text-2xl font-bold text-slate-800">ViralCarrot Dashboard</h1>
             </Link>
             <div className="flex items-center space-x-4">
-              <Link href="/" className="text-slate-600 hover:text-amber-600 transition-colors">Home</Link>
-              <Link href="/blog" className="text-slate-600 hover:text-amber-600 transition-colors">Blog</Link>
+              <Link href="/" className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition-colors">
+                Home
+              </Link>
+              {user.role === 'admin' && (
+                <Link href="/admin" className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-colors">
+                  Admin
+                </Link>
+              )}
               <button
-                onClick={() => {
-                  fetch('/api/auth/logout', { method: 'POST' });
-                  router.push('/');
-                }}
+                onClick={handleLogout}
                 className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition-colors"
               >
                 Logout
@@ -203,402 +188,191 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-amber-100 p-8 mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">Welcome back, {user.name}!</h2>
+          <p className="text-slate-600">Manage your recipes and profile</p>
+        </div>
+
+        {/* User Stats */}
+        {userStats && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-amber-100">
+              <div className="text-3xl font-bold text-amber-600 mb-2">{userStats.totalRecipes}</div>
+              <div className="text-slate-600">Total Recipes</div>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-green-100">
+              <div className="text-3xl font-bold text-green-600 mb-2">{userStats.approvedRecipes}</div>
+              <div className="text-slate-600">Approved Recipes</div>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-yellow-100">
+              <div className="text-3xl font-bold text-yellow-600 mb-2">{userStats.pendingRecipes}</div>
+              <div className="text-slate-600">Pending Recipes</div>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100">
+              <div className="text-3xl font-bold text-blue-600 mb-2">{userStats.totalGenerated}</div>
+              <div className="text-slate-600">Recipes Generated</div>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="bg-white rounded-xl shadow-lg border border-amber-100 p-6 mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome back, {user.name}!</h1>
-              <p className="text-slate-600">
-                {user.role === 'premium' ? 'Premium User' : 'Free User'} • Manage your recipes and content
-              </p>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Recipe Management</h3>
+              <p className="text-slate-600">Add new recipes or manage existing ones</p>
             </div>
-            <div className="text-right">
-              <div className="bg-amber-50 text-amber-700 px-4 py-2 rounded-lg font-semibold">
-                {user.role === 'premium' ? 'Premium Member' : 'Free Plan'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-2xl shadow-lg border border-amber-100 p-6 mb-8">
-          <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
-            <button
-              onClick={() => setActiveTab('recipes')}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-                activeTab === 'recipes'
-                  ? 'bg-white text-amber-600 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              My Recipes
-            </button>
-            {user.role === 'premium' && (
-              <button
-                onClick={() => setActiveTab('blogs')}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-                  activeTab === 'blogs'
-                    ? 'bg-white text-amber-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                My Blog Posts
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Content Area */}
-        {activeTab === 'recipes' && (
-          <div className="bg-white rounded-2xl shadow-lg border border-amber-100 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Your Recipes</h2>
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => setShowAddForm(true)}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors font-semibold"
               >
                 Add New Recipe
               </button>
+              {user.role === 'premium' && (
+                <Link href="/blog/write" className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl transition-colors font-semibold">
+                  Write Blog Post
+                </Link>
+              )}
             </div>
+          </div>
+        </div>
 
+        {/* User Recipes */}
+        <div className="bg-white rounded-xl shadow-lg border border-amber-100">
+          <div className="p-6 border-b border-slate-200">
+            <h3 className="text-xl font-bold text-slate-800">Your Recipes</h3>
+          </div>
+          <div className="p-6">
             {userRecipes.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🍳</div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">No recipes yet</h3>
-                <p className="text-slate-600 mb-6">Start by adding your first recipe!</p>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  </svg>
+                </div>
+                <h4 className="text-lg font-semibold text-slate-800 mb-2">No recipes yet</h4>
+                <p className="text-slate-600 mb-4">Start by adding your first recipe!</p>
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors font-semibold"
                 >
-                  Create Your First Recipe
+                  Add Your First Recipe
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-4">
                 {userRecipes.map((recipe) => (
-                  <div key={recipe.id} className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 line-clamp-2">{recipe.title}</h3>
-                      <div className="flex space-x-2 ml-4">
+                  <div key={recipe.id} className="border border-slate-200 rounded-xl p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-slate-800 mb-1">{recipe.title}</h4>
+                        <p className="text-slate-600 text-sm mb-2">{recipe.description}</p>
+                        <div className="flex items-center gap-4 text-sm text-slate-500">
+                          <span className="flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            {recipe.cookingTime} min
+                          </span>
+                          <span className="flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            {recipe.cuisine}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            recipe.isApproved || recipe.status === 'approved'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {recipe.isApproved || recipe.status === 'approved' ? 'Approved' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
                         <button
-                          onClick={() => setEditingRecipe(recipe)}
-                          className="text-amber-600 hover:text-amber-700 p-1"
-                          title="Edit"
+                          onClick={() => handleEditRecipe(recipe)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-semibold transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                          </svg>
+                          Edit
                         </button>
                         <button
                           onClick={() => handleDeleteRecipe(recipe.id)}
-                          className="text-red-600 hover:text-red-700 p-1"
-                          title="Delete"
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-semibold transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
+                          Delete
                         </button>
                       </div>
-                    </div>
-                    <p className="text-slate-600 text-sm mb-3 line-clamp-2">{recipe.description}</p>
-                    <div className="flex items-center justify-between text-sm text-slate-500">
-                      <span>{recipe.cookingTime} min</span>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        recipe.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {recipe.status}
-                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {activeTab === 'blogs' && user.role === 'premium' && (
-          <div className="bg-white rounded-2xl shadow-lg border border-amber-100 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Your Blog Posts</h2>
-              <button
-                onClick={() => setShowBlogForm(true)}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                Write New Post
-              </button>
-            </div>
-
-            {userBlogPosts.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">📝</div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">No blog posts yet</h3>
-                <p className="text-slate-600 mb-6">Share your culinary knowledge with the community!</p>
-                <button
-                  onClick={() => setShowBlogForm(true)}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  Write Your First Post
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userBlogPosts.map((post) => (
-                  <div key={post.id} className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 line-clamp-2">{post.title}</h3>
-                      <div className="flex space-x-2 ml-4">
-                        <button
-                          onClick={() => handleDeleteBlogPost(post.id)}
-                          className="text-red-600 hover:text-red-700 p-1"
-                          title="Delete"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-slate-500 mb-3">
-                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        post.isPublished ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {post.isPublished ? 'Published' : 'Pending Review'}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {post.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="bg-amber-50 text-amber-700 px-2 py-1 rounded text-xs">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Add Recipe Form Modal */}
-        {showAddForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-slate-800">Add New Recipe</h2>
-                  <button
-                    onClick={() => setShowAddForm(false)}
-                    className="text-slate-400 hover:text-slate-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <AddRecipeForm
-                  onSave={(updatedRecipe) => {
-                    setShowAddForm(false);
-                    fetchUserRecipes();
-                  }}
-                  onCancel={() => setShowAddForm(false)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Blog Post Form Modal */}
-        {showBlogForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-slate-800">Write New Blog Post</h2>
-                  <button
-                    onClick={() => setShowBlogForm(false)}
-                    className="text-slate-400 hover:text-slate-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <BlogPostForm
-                  onSave={(updatedRecipe) => {
-                    setShowBlogForm(false);
-                    fetchUserBlogPosts();
-                  }}
-                  onCancel={() => setShowBlogForm(false)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Recipe Modal */}
-        {editingRecipe && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-slate-800">Edit Recipe</h2>
-                  <button
-                    onClick={() => setEditingRecipe(null)}
-                    className="text-slate-400 hover:text-slate-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <UserRecipeEditor
-                  recipe={editingRecipe}
-                  onSave={(updatedRecipe) => {
-                    setEditingRecipe(null);
-                    fetchUserRecipes();
-                  }}
-                  onCancel={() => setEditingRecipe(null)}
-                />
-              </div>
-            </div>
+        {/* Error Message */}
+        {error && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-red-600 text-center text-sm font-medium">{error}</p>
           </div>
         )}
       </main>
-    </div>
-  );
-}
 
-// Blog Post Form Component
-function BlogPostForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [tags, setTags] = useState('');
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('content', content);
-      formData.append('tags', tags);
-      if (coverImage) {
-        formData.append('coverImage', coverImage);
-      }
-
-      const response = await fetch('/api/blog/posts', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        onSuccess();
-      } else {
-        setError(data.error || 'Failed to create blog post');
-      }
-    } catch (err) {
-      setError('Failed to create blog post');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="title" className="block text-base font-semibold text-slate-700 mb-2">
-          Title
-        </label>
-        <input
-          type="text"
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-          placeholder="Enter blog post title"
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="coverImage" className="block text-base font-semibold text-slate-700 mb-2">
-          Cover Image
-        </label>
-        <input
-          type="file"
-          id="coverImage"
-          accept="image/*"
-          onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
-          className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="content" className="block text-base font-semibold text-slate-700 mb-2">
-          Content
-        </label>
-        <textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={12}
-          className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-          placeholder="Write your blog post content here..."
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="tags" className="block text-base font-semibold text-slate-700 mb-2">
-          Tags (comma-separated)
-        </label>
-        <input
-          type="text"
-          id="tags"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-black"
-          placeholder="e.g., cooking, nutrition, healthy"
-        />
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-          <p className="text-red-600 text-sm">{error}</p>
+      {/* Add Recipe Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-slate-800">Add New Recipe</h2>
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+              <AddRecipeForm
+                onSuccess={handleAddRecipe}
+                onCancel={() => setShowAddForm(false)}
+              />
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="flex space-x-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Publishing...' : 'Publish Post'}
-        </button>
-      </div>
-    </form>
+      {/* Edit Recipe Modal */}
+      {editingRecipe && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-slate-800">Edit Recipe</h2>
+                <button
+                  onClick={() => setEditingRecipe(null)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+              <UserRecipeEditor
+                recipe={editingRecipe}
+                onSave={handleSaveRecipe}
+                onCancel={() => setEditingRecipe(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

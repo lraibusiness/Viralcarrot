@@ -70,7 +70,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, content, coverImage, tags } = await request.json();
+    // Handle both JSON and FormData
+    let title, content, coverImage, tags;
+    
+    const contentType = request.headers.get('content-type');
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      title = formData.get('title') as string;
+      content = formData.get('content') as string;
+      coverImage = formData.get('coverImage') as string;
+      tags = formData.get('tags') as string;
+    } else {
+      const body = await request.json();
+      title = body.title;
+      content = body.content;
+      coverImage = body.coverImage;
+      tags = body.tags;
+    }
 
     if (!title || !content) {
       return NextResponse.json(
@@ -87,7 +103,7 @@ export async function POST(request: NextRequest) {
       coverImage: coverImage || '',
       authorId: user.id,
       authorName: user.name,
-      tags: tags || [],
+      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isPublished: false, // Posts need admin approval before publishing

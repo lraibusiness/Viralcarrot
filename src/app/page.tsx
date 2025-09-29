@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import RecipeCard from '@/components/RecipeCard';
 import RecipeModal from '@/components/RecipeModal';
 import LoginForm from '@/components/auth/LoginForm';
@@ -48,25 +48,6 @@ interface Recipe {
 }
 
 interface TrendingRecipe {
-  tags: string[];
-  createdBy: string;
-  matchScore: number;
-  rating?: number;
-  difficulty?: string;
-  servings?: number;
-  nutrition?: {
-    calories?: number;
-    protein?: number;
-    carbs?: number;
-    fat?: number;
-  };
-  seoDescription?: string;
-  ingredientMatch?: {
-    availableIngredients: string[];
-    missingIngredients: string[];
-    matchPercentage: number;
-  };
-  isExternal?: boolean;
   id: string;
   title: string;
   image: string;
@@ -77,48 +58,20 @@ interface TrendingRecipe {
   cuisine: string;
   mealType: string;
   dietaryStyle: string;
+  tags: string[];
+  createdBy: string;
+  matchScore: number;
   views: number;
   likes: number;
   createdAt: string;
-  website?: string;
-  sourceUrl?: string;
 }
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  subscription?: {
-    plan: string;
-    status: string;
-  };
-}
-
-// Common ingredients for quick selection
-const COMMON_INGREDIENTS = [
-  'garlic', 'onion', 'tomato', 'cheese', 'butter', 'olive oil', 
-  'salt', 'black pepper', 'lemon', 'herbs', 'mushrooms', 'bell pepper',
-  'carrot', 'celery', 'potato', 'rice', 'pasta', 'bread'
-];
-
-// Common pantry ingredients for pantry wizard
-const COMMON_PANTRY_INGREDIENTS = [
-  'chicken', 'beef', 'pork', 'fish', 'shrimp', 'eggs',
-  'rice', 'pasta', 'bread', 'potato', 'onion', 'garlic',
-  'tomato', 'cheese', 'butter', 'olive oil', 'salt', 'black pepper',
-  'lemon', 'herbs', 'mushrooms', 'bell pepper', 'carrot', 'celery',
-  'broccoli', 'spinach', 'lettuce', 'cucumber', 'avocado', 'apple',
-  'banana', 'orange', 'milk', 'yogurt', 'flour', 'sugar',
-  'honey', 'vinegar', 'soy sauce', 'ketchup', 'mustard'
-];
-
-export default function Home() {
+export default function HomePage() {
   const [appMode, setAppMode] = useState<AppMode>('generator');
   const [mainFood, setMainFood] = useState('');
   const [ingredients, setIngredients] = useState('');
-  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [pantryIngredients, setPantryIngredients] = useState('');
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [selectedPantryIngredients, setSelectedPantryIngredients] = useState<string[]>([]);
   const [cookingTime, setCookingTime] = useState('');
   const [cuisine, setCuisine] = useState('');
@@ -126,76 +79,101 @@ export default function Home() {
   const [dietaryStyle, setDietaryStyle] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [trendingRecipes, setTrendingRecipes] = useState<TrendingRecipe[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [totalUsage, setDailyUsage] = useState<{ canGenerate: boolean; remaining: number } | null>(null);
-  const [showLimitPopup, setShowLimitPopup] = useState(false);
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [usage, setUsage] = useState<{ canGenerate: boolean; remaining: number; limit: number } | null>(null);
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
   const [totalRecipes, setTotalRecipes] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [showLoadMore, setShowLoadMore] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
   const router = useRouter();
 
-  // Fetch user data and trending recipes
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      } finally {
-        setUserLoading(false);
-      }
-    };
+  // Memoized common ingredients
+  const commonIngredients = useMemo(() => [
+    'onion', 'garlic', 'tomato', 'potato', 'carrot', 'bell pepper', 'mushroom',
+    'chicken', 'beef', 'pork', 'fish', 'shrimp', 'egg', 'cheese', 'milk',
+    'rice', 'pasta', 'bread', 'flour', 'sugar', 'salt', 'pepper', 'oil'
+  ], []);
 
-    const fetchTrendingRecipes = async () => {
-      try {
-        const response = await fetch('/api/recipes/trending');
-        if (response.ok) {
-          const data = await response.json();
-          setTrendingRecipes(data.recipes);
-        }
-      } catch (error) {
-        console.error('Error fetching trending recipes:', error);
-      }
-    };
+  const commonPantryIngredients = useMemo(() => [
+    'rice', 'pasta', 'bread', 'flour', 'sugar', 'salt', 'pepper', 'oil',
+    'onion', 'garlic', 'tomato', 'potato', 'carrot', 'bell pepper',
+    'chicken', 'beef', 'pork', 'fish', 'shrimp', 'egg', 'cheese', 'milk',
+    'canned beans', 'canned tomatoes', 'frozen vegetables', 'spices'
+  ], []);
 
-    fetchUser();
-    fetchTrendingRecipes();
-  }, []);
-
-  const handleIngredientClick = (ingredient: string) => {
+  // Memoized ingredient selection handlers
+  const handleIngredientSelect = useCallback((ingredient: string) => {
     setSelectedIngredients(prev => 
       prev.includes(ingredient) 
         ? prev.filter(ing => ing !== ingredient)
         : [...prev, ingredient]
     );
-  };
+  }, []);
 
-  const handlePantryIngredientClick = (ingredient: string) => {
+  const handlePantryIngredientSelect = useCallback((ingredient: string) => {
     setSelectedPantryIngredients(prev => 
       prev.includes(ingredient) 
         ? prev.filter(ing => ing !== ingredient)
         : [...prev, ingredient]
     );
-  };
+  }, []);
 
-  const handleGenerateRecipes = async () => {
-    // Check daily usage limits
-    if (totalUsage && !totalUsage.canGenerate) {
-      setShowLimitPopup(true);
+  // Optimized fetch functions
+  const fetchUserData = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        // Fetch total usage after user data is loaded
+        const usageResponse = await fetch('/api/user/usage');
+        if (usageResponse.ok) {
+          const usageData = await usageResponse.json();
+          setUsage(usageData.usage);
+        }
+      } else if (response.status === 401) {
+        router.push('/auth/login');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      router.push('/auth/login');
+    } finally {
+      setUserLoading(false);
+    }
+  }, [router]);
+
+  const fetchTrendingRecipes = useCallback(async () => {
+    try {
+      const response = await fetch('/api/recipes/trending');
+      if (response.ok) {
+        const data = await response.json();
+        setTrendingRecipes(data.recipes || []);
+      }
+    } catch (error) {
+      console.error('Error fetching trending recipes:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUserData();
+    fetchTrendingRecipes();
+  }, [fetchUserData, fetchTrendingRecipes]);
+
+  const handleGenerateRecipes = useCallback(async () => {
+    if (!mainFood.trim()) {
+      setError('Please enter a main ingredient');
       return;
     }
-    if (!mainFood.trim() && selectedIngredients.length === 0 && !ingredients.trim()) {
-      setError('Please enter at least one ingredient');
+
+    if (user && usage && !usage.canGenerate) {
+      setShowLimitPopup(true);
+      setLoading(false);
       return;
     }
 
@@ -240,9 +218,9 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mainFood, ingredients, selectedIngredients, cookingTime, cuisine, mealType, dietaryStyle, user, usage]);
 
-  const handlePantrySearch = async () => {
+  const handlePantrySearch = useCallback(async () => {
     if (!pantryIngredients.trim() && selectedPantryIngredients.length === 0) {
       setError('Please enter at least one pantry ingredient');
       return;
@@ -287,9 +265,9 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pantryIngredients, selectedPantryIngredients, cookingTime, cuisine, mealType, dietaryStyle]);
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (loading) return;
 
     setLoading(true);
@@ -321,91 +299,65 @@ export default function Home() {
 
       if (data.success) {
         setRecipes(prev => [...prev, ...data.recipes]);
-        setShowLoadMore(recipes.length + data.recipes.length < totalRecipes);
+        setShowLoadMore(data.total > (currentPage + 1) * 6);
       }
     } catch (err) {
       console.error('Error loading more recipes:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, currentPage, selectedIngredients, ingredients, mainFood, cookingTime, cuisine, mealType, dietaryStyle]);
 
-  const closeModal = () => {
+  const handleRecipeClick = useCallback((recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
     setSelectedRecipe(null);
-  };
+  }, []);
 
-  const handleLogout = async () => {
+  const handleAuthSuccess = useCallback(() => {
+    setShowAuth(false);
+    fetchUserData();
+  }, [fetchUserData]);
+
+  const handleLogout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
+      setUsage(null);
+      router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
     }
-  };
+  }, [router]);
 
-  const handleAuthSuccess = () => {
-    setShowAuth(false);
-    // Refresh user data
-    window.location.reload();
-  };
-
-  // Convert trending recipe to regular recipe for modal
-  const handleLatestRecipeClick = (trendingRecipe: TrendingRecipe) => {
-    const recipe: Recipe = {
-      id: trendingRecipe.id,
-      title: trendingRecipe.title,
-      image: trendingRecipe.image,
-      description: trendingRecipe.description,
-      ingredients: trendingRecipe.ingredients,
-      steps: trendingRecipe.steps,
-      cookingTime: trendingRecipe.cookingTime,
-      cuisine: trendingRecipe.cuisine,
-      mealType: trendingRecipe.mealType,
-      dietaryStyle: trendingRecipe.dietaryStyle,
-      tags: [trendingRecipe.cuisine, trendingRecipe.mealType, trendingRecipe.dietaryStyle],
-      createdBy: 'Community Member',
-      matchScore: 0.9,
-      rating: 4.5,
-      difficulty: 'Medium',
-      servings: 4,
-      nutrition: {
-        calories: 200 + Math.floor(Math.random() * 300),
-        protein: 15 + Math.floor(Math.random() * 20),
-        carbs: 20 + Math.floor(Math.random() * 30),
-        fat: 5 + Math.floor(Math.random() * 15)
-      },
-      seoDescription: trendingRecipe.description,
-      isExternal: false,
-      sourceUrl: trendingRecipe.sourceUrl,
-      views: trendingRecipe.views,
-      likes: trendingRecipe.likes,
-      createdAt: trendingRecipe.createdAt
-    };
-    setSelectedRecipe(recipe);
-  };
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-amber-100 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <Link href="/" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-xl">V</span>
               </div>
               <h1 className="text-2xl font-bold text-slate-800">ViralCarrot</h1>
-            </div>
-            <div className="flex items-center space-x-6">
-              <Link href="/blog" className="text-slate-600 hover:text-amber-600 transition-colors">Blog</Link>
-              <Link href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</Link>
-              <Link href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</Link>
-              <Link href="/privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</Link>
-              {userLoading ? (
-                <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-              ) : user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-slate-600">Welcome, {user.name}</span>
+            </Link>
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <>
                   <Link href="/dashboard" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors">
                     Dashboard
                   </Link>
@@ -420,7 +372,7 @@ export default function Home() {
                   >
                     Logout
                   </button>
-                </div>
+                </>
               ) : (
                 <button
                   onClick={() => setShowAuth(true)}
@@ -434,263 +386,198 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content - Compact for single viewport */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {/* Hero Section - Compact */}
-        <div className="text-center mb-4">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
-            ViralCarrot
+            Viral Carrot
           </h2>
           <p className="text-base text-slate-600 mb-4 max-w-xl mx-auto">
-            Let&apos;s make something delicious with what you have! Simply tell us what ingredients you have, 
-            and we&apos;ll find you the perfect recipes from our community and the web.
+            Let's make something delicious with what you have!
           </p>
+        </div>
 
-          {/* Mode Selection - Compact */}
-          <div className="flex justify-center mb-4">
-            <div className="bg-white rounded-xl p-1 shadow-lg border border-amber-100">
-              <button
-                onClick={() => setAppMode('generator')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm ${
-                  appMode === 'generator'
-                    ? 'bg-amber-500 text-white shadow-md'
-                    : 'text-slate-600 hover:text-amber-600'
-                }`}
-              >
-                Recipe Generator
-              </button>
-              <button
-                onClick={() => setAppMode('pantry')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm ${
-                  appMode === 'pantry'
-                    ? 'bg-amber-500 text-white shadow-md'
-                    : 'text-slate-600 hover:text-amber-600'
-                }`}
-              >
-                Pantry Wizard
-              </button>
-            </div>
+        {/* Mode Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setAppMode('generator')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm ${
+                appMode === 'generator'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              Smart Recipe Generator
+            </button>
+            <button
+              onClick={() => setAppMode('pantry')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm ${
+                appMode === 'pantry'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              Pantry Wizard
+            </button>
           </div>
         </div>
 
-        {/* Beautiful Input Section - Compact */}
-        <div className="bg-white rounded-2xl shadow-lg border border-amber-100 overflow-hidden mb-4">
+        {/* Main Content */}
+        <div className="bg-white rounded-2xl shadow-lg border border-amber-100 overflow-hidden">
           {/* Header with gradient */}
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-white">
-                {appMode === 'generator' ? 'Smart Recipe Generator' : 'Pantry Wizard'}
-              </h3>
-              <p className="text-amber-100 text-xs mt-1">
-                {appMode === 'generator' 
-                  ? 'Tell us your main ingredient and we\'ll create amazing recipes'
-                  : 'Enter your pantry ingredients and find what you can cook'
-                }
-              </p>
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {appMode === 'generator' ? 'Smart Recipe Generator' : 'Pantry Wizard'}
+                </h3>
+                <p className="text-amber-100 text-xs">
+                  {appMode === 'generator' 
+                    ? 'Tell us your main ingredient and we\'ll create amazing recipes'
+                    : 'Enter your pantry ingredients and find what you can cook'
+                  }
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Content - Compact */}
-          <div className="p-4">
-            {appMode === 'generator' && (
+          <div className="p-8">
+            {appMode === 'generator' ? (
               <>
-                {/* Main Ingredient Input */}
-                <div className="mb-4">
+                <div className="mb-6">
                   <label className="block text-base font-semibold text-slate-800 mb-2">
-                    What&apos;s your main ingredient?
+                    Main Ingredient *
                   </label>
                   <input
                     type="text"
                     value={mainFood}
                     onChange={(e) => setMainFood(e.target.value)}
-                    placeholder="e.g., chicken, salmon, broccoli, pasta..."
                     className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
+                    placeholder="e.g., chicken, salmon, tofu, mushrooms"
                   />
                 </div>
 
-                {/* Other Ingredients */}
-                <div className="mb-4">
+                <div className="mb-6">
                   <label className="block text-base font-semibold text-slate-800 mb-2">
-                    Other ingredients you have?
+                    Other Ingredients
                   </label>
-                  
-                  {/* Quick ingredient selection bubbles */}
-                  <div className="mb-3">
-                    <p className="text-xs text-slate-600 mb-2 font-medium">Quick select:</p>
-                    <div className="flex flex-wrap gap-1 justify-center max-w-3xl mx-auto">
-                      {COMMON_INGREDIENTS.map((ingredient) => (
-                        <button
-                          key={ingredient}
-                          onClick={() => handleIngredientClick(ingredient)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                            selectedIngredients.includes(ingredient)
-                              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                              : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700 hover:shadow-md'
-                          }`}
-                        >
-                          {ingredient}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {commonIngredients.map((ingredient) => (
+                      <button
+                        key={ingredient}
+                        onClick={() => handleIngredientSelect(ingredient)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ${
+                          selectedIngredients.includes(ingredient)
+                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                            : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700 hover:shadow-md'
+                        }`}
+                      >
+                        {ingredient}
+                      </button>
+                    ))}
                   </div>
-
-                  {/* Manual ingredient input */}
-                  <div>
-                    <p className="text-xs text-slate-600 mb-2 font-medium">Or type additional:</p>
-                    <input
-                      type="text"
-                      value={ingredients}
-                      onChange={(e) => setIngredients(e.target.value)}
-                      placeholder="e.g., garlic, onions, tomatoes, cheese..."
-                      className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
-                    />
-                  </div>
-
-                  {/* Selected ingredients display */}
-                  {selectedIngredients.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs text-slate-600 mb-1 font-medium">Selected:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedIngredients.map((ingredient) => (
-                          <span
-                            key={ingredient}
-                            className="px-2 py-1 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-full text-xs font-medium border border-amber-200"
-                          >
-                            {ingredient}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <textarea
+                    value={ingredients}
+                    onChange={(e) => setIngredients(e.target.value)}
+                    className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
+                    rows={3}
+                    placeholder="Add more ingredients (comma-separated)"
+                  />
                 </div>
               </>
-            )}
-
-            {appMode === 'pantry' && (
-              <>
-                {/* Pantry Ingredients */}
-                <div className="mb-4">
-                  <label className="block text-base font-semibold text-slate-800 mb-2">
-                    What&apos;s in your pantry?
-                  </label>
-                  
-                  {/* Quick pantry ingredient selection bubbles */}
-                  <div className="mb-3">
-                    <p className="text-xs text-slate-600 mb-2 font-medium">Quick select:</p>
-                    <div className="flex flex-wrap gap-1 justify-center max-w-4xl mx-auto">
-                      {COMMON_PANTRY_INGREDIENTS.map((ingredient) => (
-                        <button
-                          key={ingredient}
-                          onClick={() => handlePantryIngredientClick(ingredient)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                            selectedPantryIngredients.includes(ingredient)
-                              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                              : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700 hover:shadow-md'
-                          }`}
-                        >
-                          {ingredient}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Manual pantry ingredient input */}
-                  <div>
-                    <p className="text-xs text-slate-600 mb-2 font-medium">Or type additional:</p>
-                    <textarea
-                      value={pantryIngredients}
-                      onChange={(e) => setPantryIngredients(e.target.value)}
-                      placeholder="Enter all your available ingredients (comma separated)..."
-                      className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none resize-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
-                      rows={2}
-                    />
-                  </div>
-
-                  {/* Selected pantry ingredients display */}
-                  {selectedPantryIngredients.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs text-slate-600 mb-1 font-medium">Selected:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedPantryIngredients.map((ingredient) => (
-                          <span
-                            key={ingredient}
-                            className="px-2 py-1 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-full text-xs font-medium border border-amber-200"
-                          >
-                            {ingredient}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            ) : (
+              <div className="mb-6">
+                <label className="block text-base font-semibold text-slate-800 mb-2">
+                  What's in Your Pantry?
+                </label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {commonPantryIngredients.map((ingredient) => (
+                    <button
+                      key={ingredient}
+                      onClick={() => handlePantryIngredientSelect(ingredient)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ${
+                        selectedPantryIngredients.includes(ingredient)
+                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                          : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700 hover:shadow-md'
+                      }`}
+                    >
+                      {ingredient}
+                    </button>
+                  ))}
                 </div>
-              </>
+                <textarea
+                  value={pantryIngredients}
+                  onChange={(e) => setPantryIngredients(e.target.value)}
+                  className="w-full p-3 text-base border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-slate-800 bg-slate-50 placeholder-slate-400 transition-all duration-200 focus:bg-white"
+                  rows={3}
+                  placeholder="Add more pantry ingredients (comma-separated)"
+                />
+              </div>
             )}
 
-            {/* Compact Filters Section */}
-            <div className="bg-gradient-to-r from-slate-50 to-amber-50 rounded-xl p-4 mb-4">
+            {/* Filters */}
+            <div className="mb-6">
               <h4 className="text-base font-semibold text-slate-800 mb-3">Refine Your Search</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Cooking Time</label>
+                  <label className="block text-sm text-slate-600 mb-1">Cooking Time</label>
                   <select
                     value={cookingTime}
                     onChange={(e) => setCookingTime(e.target.value)}
-                    className="w-full p-2 border-2 border-slate-200 rounded-lg text-slate-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white transition-all duration-200 text-xs"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                   >
-                    <option value="">Any Time</option>
-                    <option value="15">15 minutes</option>
-                    <option value="30">30 minutes</option>
-                    <option value="60">1 hour</option>
-                    <option value="120">2+ hours</option>
+                    <option value="">Any time</option>
+                    <option value="15">Under 15 min</option>
+                    <option value="30">Under 30 min</option>
+                    <option value="60">Under 1 hour</option>
+                    <option value="120">Under 2 hours</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Cuisine</label>
+                  <label className="block text-sm text-slate-600 mb-1">Cuisine</label>
                   <select
                     value={cuisine}
                     onChange={(e) => setCuisine(e.target.value)}
-                    className="w-full p-2 border-2 border-slate-200 rounded-lg text-slate-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white transition-all duration-200 text-xs"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                   >
-                    <option value="">Any Cuisine</option>
-                    <option value="italian">Italian</option>
-                    <option value="mexican">Mexican</option>
-                    <option value="asian">Asian</option>
-                    <option value="mediterranean">Mediterranean</option>
-                    <option value="indian">Indian</option>
-                    <option value="american">American</option>
+                    <option value="">Any cuisine</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Mexican">Mexican</option>
+                    <option value="Asian">Asian</option>
+                    <option value="American">American</option>
+                    <option value="Indian">Indian</option>
+                    <option value="Mediterranean">Mediterranean</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Meal Type</label>
+                  <label className="block text-sm text-slate-600 mb-1">Meal Type</label>
                   <select
                     value={mealType}
                     onChange={(e) => setMealType(e.target.value)}
-                    className="w-full p-2 border-2 border-slate-200 rounded-lg text-slate-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white transition-all duration-200 text-xs"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                   >
-                    <option value="">Any Meal</option>
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="snack">Snack</option>
-                    <option value="dessert">Dessert</option>
+                    <option value="">Any meal</option>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                    <option value="Snack">Snack</option>
+                    <option value="Dessert">Dessert</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Dietary Style</label>
+                  <label className="block text-sm text-slate-600 mb-1">Dietary Style</label>
                   <select
                     value={dietaryStyle}
                     onChange={(e) => setDietaryStyle(e.target.value)}
-                    className="w-full p-2 border-2 border-slate-200 rounded-lg text-slate-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white transition-all duration-200 text-xs"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                   >
-                    <option value="">Any Diet</option>
-                    <option value="vegetarian">Vegetarian</option>
-                    <option value="vegan">Vegan</option>
-                    <option value="keto">Keto</option>
-                    <option value="gluten-free">Gluten-Free</option>
-                    <option value="low-carb">Low-Carb</option>
+                    <option value="">Any style</option>
+                    <option value="Vegetarian">Vegetarian</option>
+                    <option value="Vegan">Vegan</option>
+                    <option value="Gluten-Free">Gluten-Free</option>
+                    <option value="Keto">Keto</option>
+                    <option value="Low-Carb">Low-Carb</option>
                   </select>
                 </div>
               </div>
@@ -703,196 +590,130 @@ export default function Home() {
                 disabled={loading}
                 className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm transform hover:scale-105"
               >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Generating...</span>
-                  </div>
-                ) : (
-                  appMode === 'generator' ? 'Generate Smart Recipes' : 'Find Pantry Recipes'
-                )}
+                {loading ? 'Generating...' : appMode === 'generator' ? 'Generate Smart Recipes' : 'Find Pantry Recipes'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* AdSense Ad Placement - Top */}
-        <div className="mb-4 text-center">
-          <div className="bg-slate-100 rounded-lg p-4 border-2 border-dashed border-slate-300">
-            <p className="text-slate-500 text-xs">Advertisement Space</p>
-            <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
-          </div>
-        </div>
-
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3 mb-4">
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-red-600 text-center text-sm font-medium">{error}</p>
           </div>
         )}
 
-        {/* Results Section */}
+        {/* Results */}
         {recipes.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-slate-800">
-                {appMode === 'generator' ? 'Smart Recipes' : 'Pantry Recipes'}
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-800">
+                {appMode === 'generator' ? 'Generated Recipes' : 'Pantry Recipes'} ({recipes.length})
               </h3>
-              <div className="bg-gradient-to-r from-amber-100 to-orange-100 px-3 py-1 rounded-full">
-                <span className="text-xs font-semibold text-amber-800">
-                  {recipes.length} of {totalRecipes} recipes
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recipes.map((recipe) => (
-                <RecipeCard
-                  key={recipe.id}
-                  recipe={recipe}
-                  onSelect={(recipe) => setSelectedRecipe(recipe as any)}
-                />
-              ))}
-            </div>
-
-            {/* AdSense Ad Placement - Middle */}
-            <div className="my-4 text-center">
-              <div className="bg-slate-100 rounded-lg p-4 border-2 border-dashed border-slate-300">
-                <p className="text-slate-500 text-xs">Advertisement Space</p>
-                <p className="text-slate-400 text-xs">Google AdSense will display relevant ads here</p>
-              </div>
-            </div>
-
-            {/* Load More Button */}
-            {showLoadMore && (
-              <div className="text-center mt-4">
+              {showLoadMore && (
                 <button
                   onClick={handleLoadMore}
                   disabled={loading}
                   className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
-                  {loading ? 'Loading...' : 'Load More Recipes'}
+                  {loading ? 'Loading...' : 'Load More'}
                 </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Latest Community Recipes Section */}
-        <div className="mt-8">
-          <h3 className="text-xl font-bold text-slate-800 mb-4">
-            Latest Community Recipes
-          </h3>
-          
-          {trendingRecipes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {trendingRecipes.map((recipe) => (
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recipes.map((recipe) => (
                 <RecipeCard
                   key={recipe.id}
-                  recipe={{
-                    id: recipe.id,
-                    title: recipe.title,
-                    image: recipe.image,
-                    description: recipe.description,
-                    ingredients: recipe.ingredients,
-                    steps: recipe.steps,
-                    cookingTime: recipe.cookingTime,
-                    cuisine: recipe.cuisine,
-                    mealType: recipe.mealType,
-                    dietaryStyle: recipe.dietaryStyle,
-                    tags: [recipe.cuisine, recipe.mealType, recipe.dietaryStyle],
-                    createdBy: 'Community Member',
-                    matchScore: 0.9,
-                    rating: 4.5,
-                    difficulty: 'Medium',
-                    servings: 4,
-      nutrition: {
-                      calories: 200 + Math.floor(Math.random() * 300),
-                      protein: 15 + Math.floor(Math.random() * 20),
-                      carbs: 20 + Math.floor(Math.random() * 30),
-                      fat: 5 + Math.floor(Math.random() * 15)
-                    },
-                    seoDescription: recipe.description,
-                    isExternal: false,
-                    sourceUrl: recipe.sourceUrl
-                  }}
-                  onSelect={handleLatestRecipeClick}
+                  recipe={recipe}
+                  onClick={() => handleRecipeClick(recipe)}
                 />
               ))}
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-slate-600">No community recipes available yet</p>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <Footer />
-
-      {/* Authentication Modal */}
-      {showAuth && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="relative">
-            <button
-              onClick={() => setShowAuth(false)}
-              className="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
-            >
-              <span className="text-gray-600 text-xl">×</span>
-            </button>
-            {authMode === 'login' ? (
-              <LoginForm 
-                onSuccess={handleAuthSuccess}
-                onSwitchToRegister={() => setAuthMode('register')}
-              />
-            ) : (
-              <RegisterForm 
-                onSuccess={handleAuthSuccess}
-                
-                onSwitchToLogin={() => setAuthMode('login')}
-              />
-            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Daily Limit Popup */}
-      {showLimitPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🍲</div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-4">Lifetime Limit Reached</h2>
-              <p className="text-slate-600 mb-6">
-                You've reached your lifetime recipe limit of 3 recipes! Upgrade to ViralCarrot Pro for unlimited recipes and premium tools.
-              </p>
-              <div className="flex space-x-4">
+        {/* Latest Community Recipes */}
+        {trendingRecipes.length > 0 && (
+          <div className="mt-12">
+            <h3 className="text-xl font-bold text-slate-800 mb-6">Latest Community Recipes</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trendingRecipes.slice(0, 6).map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  onClick={() => handleRecipeClick(recipe)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Auth Modal */}
+        {showAuth && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  {authMode === 'login' ? 'Login' : 'Register'}
+                </h2>
                 <button
-                  onClick={() => setShowLimitPopup(false)}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
+                  onClick={() => setShowAuth(false)}
+                  className="text-slate-400 hover:text-slate-600"
                 >
-                  Maybe Later
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
                 </button>
-                <Link
-                  href="/premium"
-                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-center"
+              </div>
+              {authMode === 'login' ? (
+                <LoginForm onSuccess={handleAuthSuccess} />
+              ) : (
+                <RegisterForm onSuccess={handleAuthSuccess} />
+              )}
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                  className="text-amber-600 hover:text-amber-700 font-medium"
                 >
-                  Go Premium
-                </Link>
+                  {authMode === 'login' ? 'Need an account? Register' : 'Already have an account? Login'}
+                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Lifetime Limit Popup */}
+        {showLimitPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center relative">
+              <button
+                onClick={() => setShowLimitPopup(false)}
+                className="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-gray-600 text-xl">×</span>
+              </button>
+              <h2 className="text-3xl font-bold text-slate-800 mb-4">You've reached your lifetime recipe limit 🍲</h2>
+              <p className="text-slate-600 mb-6">
+                You've generated {usage?.limit} recipes. Upgrade to ViralCarrot Pro for unlimited recipes and premium tools.
+              </p>
+              <Link href="/premium" className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
+                Go Premium
+              </Link>
+            </div>
+          </div>
+        )}
+      </main>
 
       {/* Recipe Modal */}
       {selectedRecipe && (
         <RecipeModal
-          recipe={selectedRecipe as any}
-          onClose={closeModal}
+          recipe={selectedRecipe}
+          onClose={handleCloseModal}
         />
       )}
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
