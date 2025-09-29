@@ -1,0 +1,52 @@
+  static async checkDailyUsage(userId: string): Promise<{ canGenerate: boolean; remaining: number }> {
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) throw new Error('User not found');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const isPremium = user.role === 'premium' || user.subscription?.plan === 'premium';
+    
+    if (isPremium) {
+      return { canGenerate: true, remaining: -1 }; // Unlimited
+    }
+    
+    const dailyUsage = user.dailyUsage;
+    if (!dailyUsage || dailyUsage.date !== today) {
+      return { canGenerate: true, remaining: 3 };
+    }
+    
+    const remaining = Math.max(0, 3 - dailyUsage.recipeCount);
+    return { canGenerate: remaining > 0, remaining };
+  }
+
+  static async incrementDailyUsage(userId: string): Promise<void> {
+    const users = loadUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) throw new Error('User not found');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const user = users[userIndex];
+    
+    if (!user.dailyUsage || user.dailyUsage.date !== today) {
+      user.dailyUsage = { date: today, recipeCount: 1 };
+    } else {
+      user.dailyUsage.recipeCount += 1;
+    }
+    
+    user.updatedAt = new Date();
+    saveUsers(users);
+  }
+
+  static async updateUserSubscription(userId: string, subscription: User['subscription']): Promise<User> {
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) throw new Error('User not found');
+    
+    user.subscription = subscription;
+    user.role = subscription?.plan === 'premium' ? 'premium' : 'user';
+    user.updatedAt = new Date();
+    saveUsers(users);
+    
+    return user;
+  }
+}

@@ -1,0 +1,14 @@
+          {/* Header with gradient */}
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-white">
+                {appMode === 'generator' ? 'Smart Recipe Generator' : 'Pantry Wizard'}
+              </h3>
+              <p className="text-amber-100 text-xs mt-1">
+                {appMode === 'generator' 
+                  ? 'Tell us your main ingredient and we\'ll create amazing recipes'
+                  : 'Enter your pantry ingredients and find what you can cook'
+                }
+              </p>
+            </div>
+          </div>

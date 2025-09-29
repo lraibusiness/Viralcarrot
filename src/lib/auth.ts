@@ -8,6 +8,10 @@ export interface User {
   email: string;
   name: string;
   role: 'user' | 'admin' | 'premium';
+  totalRecipesGenerated?: number;
+    date: string;
+    recipeCount: number;
+  };
   subscription?: {
     plan: 'free' | 'premium' | 'pro';
     status: 'active' | 'cancelled' | 'expired';
@@ -383,6 +387,57 @@ export async function requireAuth(request: NextRequest): Promise<User | null> {
     console.log('❌ Invalid auth token');
   }
   
+  static async checkTotalUsage(userId: string): Promise<{ canGenerate: boolean; remaining: number }> {
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) throw new Error('User not found');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const isPremium = user.role === 'premium' || user.subscription?.plan === 'premium';
+    
+    if (isPremium) {
+      return { canGenerate: true, remaining: -1 }; // Unlimited
+    }
+    
+    const totalRecipes = user.totalRecipesGenerated || 0;
+    if (!dailyUsage || dailyUsage.date !== today) {
+      return { canGenerate: true, remaining: 3 - totalRecipes };
+    }
+    
+    const remaining = Math.max(0, 3 - dailyUsage.recipeCount);
+    return { canGenerate: remaining > 0, remaining };
+  }
+
+  static async incrementTotalUsage(userId: string): Promise<void> {
+    const users = loadUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) throw new Error('User not found');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const user = users[userIndex];
+    
+    if (!user.dailyUsage || user.dailyUsage.date !== today) {
+      user.totalRecipesGenerated = 1;
+    } else {
+      user.totalRecipesGenerated += 1;
+    }
+    
+    user.updatedAt = new Date();
+    saveUsers(users);
+  }
+
+  static async updateUserSubscription(userId: string, subscription: User['subscription']): Promise<User> {
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) throw new Error('User not found');
+    
+    user.subscription = subscription;
+    user.role = subscription?.plan === 'premium' ? 'premium' : 'user';
+    user.updatedAt = new Date();
+    saveUsers(users);
+    
+    return user;
+  }
   return user;
 }
 

@@ -128,6 +128,8 @@ export default function Home() {
   const [trendingRecipes, setTrendingRecipes] = useState<TrendingRecipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [totalUsage, setDailyUsage] = useState<{ canGenerate: boolean; remaining: number } | null>(null);
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [userLoading, setUserLoading] = useState(true);
@@ -187,6 +189,11 @@ export default function Home() {
   };
 
   const handleGenerateRecipes = async () => {
+    // Check daily usage limits
+    if (totalUsage && !totalUsage.canGenerate) {
+      setShowLimitPopup(true);
+      return;
+    }
     if (!mainFood.trim() && selectedIngredients.length === 0 && !ingredients.trim()) {
       setError('Please enter at least one ingredient');
       return;
@@ -390,6 +397,7 @@ export default function Home() {
               <h1 className="text-2xl font-bold text-slate-800">ViralCarrot</h1>
             </div>
             <div className="flex items-center space-x-6">
+              <Link href="/blog" className="text-slate-600 hover:text-amber-600 transition-colors">Blog</Link>
               <Link href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</Link>
               <Link href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</Link>
               <Link href="/privacy" className="text-slate-600 hover:text-amber-600 transition-colors">Privacy</Link>
@@ -469,23 +477,16 @@ export default function Home() {
         <div className="bg-white rounded-2xl shadow-lg border border-amber-100 overflow-hidden mb-4">
           {/* Header with gradient */}
           <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                <span className="text-lg font-bold text-white">
-                  {appMode === 'generator' ? 'G' : 'P'}
-                </span>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  {appMode === 'generator' ? 'Smart Recipe Generator' : 'Pantry Wizard'}
-                </h3>
-                <p className="text-amber-100 text-xs">
-                  {appMode === 'generator' 
-                    ? 'Tell us your main ingredient and we\'ll create amazing recipes'
-                    : 'Enter your pantry ingredients and find what you can cook'
-                  }
-                </p>
-              </div>
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-white">
+                {appMode === 'generator' ? 'Smart Recipe Generator' : 'Pantry Wizard'}
+              </h3>
+              <p className="text-amber-100 text-xs mt-1">
+                {appMode === 'generator' 
+                  ? 'Tell us your main ingredient and we\'ll create amazing recipes'
+                  : 'Enter your pantry ingredients and find what you can cook'
+                }
+              </p>
             </div>
           </div>
 
@@ -848,6 +849,34 @@ export default function Home() {
             ) : (
               <RegisterForm 
                 onSuccess={handleAuthSuccess}
+      {/* Daily Limit Popup */}
+      {showLimitPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🍲</div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Lifetime Limit Reached</h2>
+              <p className="text-slate-600 mb-6">
+                You've reached your lifetime recipe limit of 3 recipes! Upgrade to ViralCarrot Pro for unlimited recipes and premium tools.
+              </p>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setShowLimitPopup(false)}
+                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  Maybe Later
+                </button>
+                <Link
+                  href="/premium"
+                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-center"
+                >
+                  Go Premium
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
                 onSwitchToLogin={() => setAuthMode('login')}
               />
             )}

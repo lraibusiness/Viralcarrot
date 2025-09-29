@@ -308,6 +308,22 @@ const CUISINE_MODIFIERS = {
 };
 
 export async function POST(request: NextRequest) {
+    // Check daily usage limits
+    const user = await AuthService.verifySession(request);
+    if (user) {
+      const usage = await AuthService.checkTotalUsage(user.user.id);
+      if (!usage.canGenerate) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "Daily limit reached",
+            limitReached: true,
+            remaining: usage.remaining
+          },
+          { status: 429 }
+        );
+      }
+    }
   try {
     console.log('🍳 Recipe Generator API: Starting enhanced recipe generation');
     
@@ -407,6 +423,10 @@ export async function POST(request: NextRequest) {
     const startIndex = (page - 1) * 6;
     const endIndex = startIndex + 6;
     const paginatedRecipes = rankedRecipes.slice(startIndex, endIndex);
+    // Increment daily usage for authenticated users
+    if (user) {
+      await AuthService.incrementTotalUsage(user.user.id);
+    }
 
     const result = {
       success: true,
