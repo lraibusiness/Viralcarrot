@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const recipeData = await request.json();
-    const recipe = await AuthService.addUserRecipe(user.id, recipeData);
+    const recipe = await AuthService.addUserRecipe({ ...recipeData, createdBy: user.id });
 
     return NextResponse.json({
       success: true,

@@ -885,12 +885,6 @@ export default function Home() {
           </div>
         </div>
       )}
-                onSwitchToLogin={() => setAuthMode('login')}
-              />
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Recipe Modal */}
       {selectedRecipe && (

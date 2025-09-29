@@ -383,7 +383,7 @@ export async function POST(request: NextRequest) {
         seoDescription: `${recipe.title} - A community-submitted recipe featuring ${mainFood}.`,
         ingredientMatch: calculateIngredientMatch(recipe.ingredients, ingredients, mainFood),
         isExternal: false,
-        sourceUrl: recipe.sourceUrl
+        sourceUrl: ''
       }));
       console.log(`👥 User Recipes: Found ${userRecipes.length} approved community recipes`);
     } catch (error) {
