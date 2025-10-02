@@ -79,9 +79,10 @@
     "name": "r@r",
     "role": "user",
     "createdAt": "2025-09-29T02:58:07.846Z",
-    "updatedAt": "2025-09-29T02:58:07.846Z",
+    "updatedAt": "2025-10-02T13:21:39.827Z",
     "password": "cnI=",
-    "token": "2hmt08b5kyymg4jgs4m"
+    "token": "2hmt08b5kyymg4jgs4m",
+    "totalRecipesGenerated": 3
   },
   {
     "id": "gxthtgm9k",
@@ -91,5 +92,14 @@
     "totalRecipesGenerated": 0,
     "createdAt": "2025-09-29T06:52:53.375Z",
     "updatedAt": "2025-09-29T11:24:17.220Z"
+  },
+  {
+    "id": "xhmzh0jqj",
+    "email": "saji@1",
+    "name": "Saji",
+    "role": "user",
+    "totalRecipesGenerated": 0,
+    "createdAt": "2025-10-02T16:43:14.126Z",
+    "updatedAt": "2025-10-02T16:43:14.126Z"
   }
 ]

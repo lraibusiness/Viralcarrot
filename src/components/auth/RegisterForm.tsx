@@ -71,7 +71,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
             placeholder="Enter your full name"
             required
           />
@@ -85,7 +85,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
             placeholder="Enter your email"
             required
           />
@@ -99,7 +99,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
             placeholder="Create a password"
             required
           />
@@ -113,7 +113,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
             placeholder="Confirm your password"
             required
           />

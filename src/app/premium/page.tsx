@@ -80,7 +80,7 @@ export default function PremiumPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto mb-12">
           {/* Monthly Plan */}
           <div className="bg-white rounded-2xl shadow-xl border border-amber-100 p-8 relative">
             <div className="text-center">
@@ -91,19 +91,19 @@ export default function PremiumPage() {
               <ul className="text-left space-y-3 mb-8">
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Unlimited recipe generations</span>
+                  <span className="text-slate-800">Unlimited recipe generations</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Premium blog posting</span>
+                  <span className="text-slate-800">Premium blog posting</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Advanced recipe tools</span>
+                  <span className="text-slate-800">Advanced recipe tools</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Priority support</span>
+                  <span className="text-slate-800">Priority support</span>
                 </li>
               </ul>
               
@@ -131,23 +131,23 @@ export default function PremiumPage() {
               <ul className="text-left space-y-3 mb-8">
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Unlimited recipe generations</span>
+                  <span className="text-slate-800">Unlimited recipe generations</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Premium blog posting</span>
+                  <span className="text-slate-800">Premium blog posting</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Advanced recipe tools</span>
+                  <span className="text-slate-800">Advanced recipe tools</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Priority support</span>
+                  <span className="text-slate-800">Priority support</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Exclusive premium recipes</span>
+                  <span className="text-slate-800">Exclusive premium recipes</span>
                 </li>
               </ul>
               
@@ -164,50 +164,50 @@ export default function PremiumPage() {
         {/* Features Comparison */}
         <div className="bg-white rounded-2xl shadow-xl border border-amber-100 p-8">
           <h2 className="text-2xl font-bold text-slate-800 text-center mb-8">Free vs Premium Features</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">Free Plan</h3>
+              <h3 className="text-base md:text-lg font-semibold text-slate-800 mb-4">Free Plan</h3>
               <ul className="space-y-2">
                 <li className="flex items-center">
                   <span className="text-green-500 mr-3">✓</span>
-                  <span>3 recipes total</span>
+                  <span className="text-slate-800">3 recipes total</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-3">✓</span>
-                  <span>Basic recipe generation</span>
+                  <span className="text-slate-800">Basic recipe generation</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-3">✓</span>
-                  <span>Read blog posts</span>
+                  <span className="text-slate-800">Read blog posts</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-3">✓</span>
-                  <span>Community recipes</span>
+                  <span className="text-slate-800">Community recipes</span>
                 </li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">Premium Plan</h3>
+              <h3 className="text-base md:text-lg font-semibold text-slate-800 mb-4">Premium Plan</h3>
               <ul className="space-y-2">
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Unlimited recipes</span>
+                  <span className="text-slate-800">Unlimited recipes</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Advanced recipe tools</span>
+                  <span className="text-slate-800">Advanced recipe tools</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Write blog posts</span>
+                  <span className="text-slate-800">Write blog posts</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Premium recipes</span>
+                  <span className="text-slate-800">Premium recipes</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-amber-500 mr-3">✓</span>
-                  <span>Priority support</span>
+                  <span className="text-slate-800">Priority support</span>
                 </li>
               </ul>
             </div>
@@ -217,7 +217,7 @@ export default function PremiumPage() {
         {/* FAQ Section */}
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-slate-800 text-center mb-8">Frequently Asked Questions</h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="bg-white rounded-xl p-6 shadow-lg">
               <h3 className="font-semibold text-slate-800 mb-2">Can I cancel unknowntime?</h3>
               <p className="text-slate-600">Yes, you can cancel your subscription at unknown time. You'll continue to have access until the end of your billing period.</p>

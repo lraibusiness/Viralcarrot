@@ -154,7 +154,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 placeholder="Enter recipe title"
               />
             </div>
@@ -166,7 +166,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 rows={3}
                 placeholder="Enter recipe description"
               />
@@ -179,7 +179,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
               <textarea
                 value={formData.ingredients}
                 onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
-                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 rows={6}
                 placeholder="Enter ingredients, one per line"
               />
@@ -192,7 +192,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
               <textarea
                 value={formData.steps}
                 onChange={(e) => setFormData({ ...formData, steps: e.target.value })}
-                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 rows={8}
                 placeholder="Enter cooking instructions, one per line"
               />
@@ -229,7 +229,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
                     type="url"
                     value={formData.image}
                     onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
@@ -245,7 +245,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
                   type="number"
                   value={formData.cookingTime}
                   onChange={(e) => setFormData({ ...formData, cookingTime: parseInt(e.target.value) || 0 })}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                   min="1"
                 />
               </div>
@@ -257,7 +257,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 >
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -274,7 +274,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
                 <select
                   value={formData.cuisine}
                   onChange={(e) => setFormData({ ...formData, cuisine: e.target.value })}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 >
                   <option value="">Select Cuisine</option>
                   <option value="Italian">Italian</option>
@@ -295,7 +295,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
                 <select
                   value={formData.mealType}
                   onChange={(e) => setFormData({ ...formData, mealType: e.target.value })}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 >
                   <option value="">Select Type</option>
                   <option value="Breakfast">Breakfast</option>
@@ -313,7 +313,7 @@ export default function RecipeEditor({ recipe, onSave, onCancel }: RecipeEditorP
                 <select
                   value={formData.dietaryStyle}
                   onChange={(e) => setFormData({ ...formData, dietaryStyle: e.target.value })}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
                 >
                   <option value="">Select Diet</option>
                   <option value="Regular">Regular</option>

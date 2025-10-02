@@ -149,35 +149,47 @@ export default function BlogPostPage() {
           <p className="text-xs text-gray-400">Google AdSense compatible</p>
         </div>
 
-        {/* Article Header */}
-        <article className="bg-white rounded-2xl shadow-lg border border-amber-100 overflow-hidden">
-          <div className="relative h-64 md:h-80 w-full">
-            <Image
-              src={post.coverImage}
-              alt={post.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
-            />
-          </div>
-          
-          <div className="p-8">
-            {/* Article Meta */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <span className="text-slate-600">By {post.authorName}</span>
-                <span className="text-slate-400">•</span>
-                <span className="text-slate-600">{formatDate(post.createdAt)}</span>
-                <span className="text-slate-400">•</span>
-                <span className="text-slate-600">{post.readTime || '5 min read'}</span>
-              </div>
+        {/* Article Header with Structured Data */}
+        <article className="bg-white rounded-2xl shadow-lg border border-amber-100 overflow-hidden" itemScope itemType="https://schema.org/Article">
+          <header>
+            <div className="relative h-64 md:h-80 w-full">
+              <Image
+                src={post.coverImage}
+                alt={post.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                itemProp="image"
+              />
             </div>
+            
+            <div className="p-8">
+              {/* Article Meta */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <span className="text-slate-600">By <span itemProp="author" itemScope itemType="https://schema.org/Person"><span itemProp="name">{post.authorName}</span></span></span>
+                  <span className="text-slate-400">•</span>
+                  <time className="text-slate-600" dateTime={post.createdAt} itemProp="datePublished">{formatDate(post.createdAt)}</time>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-600" itemProp="timeRequired">{post.readTime || '5 min read'}</span>
+                </div>
+              </div>
 
-            {/* Article Title */}
-            <h1 className="text-4xl font-bold text-slate-800 mb-6 leading-tight">
-              {post.title}
-            </h1>
+              {/* Article Title */}
+              <h1 className="text-4xl font-bold text-slate-800 mb-6 leading-tight" itemProp="headline">
+                {post.title}
+              </h1>
 
+                             {/* Article Description/Summary */}
+               <div className="mb-6 p-4 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+                 <p className="text-slate-700 text-lg leading-relaxed" itemProp="description">
+                   {post.seoDescription || 'Discover insights and tips in this comprehensive article about food, cooking, and culinary adventures.'}
+                 </p>
+               </div>
+             </div>
+           </header>
+
+           <div className="p-8 pt-0">
             {/* Tags */}
             <div className="flex flex-wrap gap-2 mb-8">
               {post.tags.map((tag) => (
@@ -226,8 +238,9 @@ export default function BlogPostPage() {
             </div>
 
             {/* Article Content */}
-            <div 
-              className="prose prose-lg max-w-none text-slate-700 leading-relaxed"
+            <section 
+              className="prose prose-lg max-w-none text-slate-700 leading-relaxed prose-headings:text-slate-800 prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:mb-4 prose-ul:mb-4 prose-ol:mb-4 prose-li:mb-2 prose-strong:text-slate-800 prose-a:text-amber-600 prose-a:no-underline hover:prose-a:underline"
+              itemProp="articleBody"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
@@ -236,6 +249,90 @@ export default function BlogPostPage() {
               <p className="text-gray-500 text-sm">Advertisement Space</p>
               <p className="text-xs text-gray-400">Google AdSense compatible</p>
             </div>
+
+            {/* Comments Section */}
+            <section className="mt-12 pt-8 border-t border-slate-200">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">Comments</h2>
+              
+              {/* Comment Form */}
+              <div className="bg-slate-50 rounded-lg p-6 mb-8">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">Leave a Comment</h3>
+                <form className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
+                      <input
+                        type="text"
+                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
+                        placeholder="Your name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                      <input
+                        type="email"
+                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
+                        placeholder="Your email (won't be published)"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Comment</label>
+                    <textarea
+                      rows={4}
+                      className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
+                      placeholder="Share your thoughts..."
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    Post Comment
+                  </button>
+                </form>
+              </div>
+
+              {/* Sample Comments */}
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg p-6 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold text-sm">JD</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800">John Doe</p>
+                        <p className="text-sm text-slate-500">2 hours ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-slate-700 leading-relaxed">
+                    Great article! I really enjoyed reading about this topic. The tips you shared are very practical and easy to implement.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-lg p-6 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold text-sm">SM</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800">Sarah Miller</p>
+                        <p className="text-sm text-slate-500">1 day ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-slate-700 leading-relaxed">
+                    Thanks for sharing this! I've been looking for information like this for a while. Your writing style makes it easy to understand.
+                  </p>
+                </div>
+              </div>
+            </section>
           </div>
         </article>
 

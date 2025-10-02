@@ -63,7 +63,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
             placeholder="Enter your email"
             required
           />
@@ -77,7 +77,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-slate-800"
             placeholder="Enter your password"
             required
           />

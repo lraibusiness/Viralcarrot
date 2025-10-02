@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import BlogEditor from './BlogEditor';
 
 interface BlogPost {
   id: string;
@@ -85,6 +86,34 @@ export default function BlogManagement() {
     }
   };
 
+  const handleSaveEdit = async (updatedPost: BlogPost) => {
+    try {
+      const response = await fetch(`/api/admin/blog/${updatedPost.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedPost)
+      });
+
+      if (response.ok) {
+        setBlogPosts(prev => prev.map(post => 
+          post.id === updatedPost.id ? updatedPost : post
+        ));
+        setEditingPost(null);
+      } else {
+        alert('Failed to update blog post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating blog post:', error);
+      alert('Failed to update blog post. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPost(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -164,6 +193,15 @@ export default function BlogManagement() {
           </div>
         )}
       </div>
+
+      {/* Blog Editor Modal */}
+      {editingPost && (
+        <BlogEditor
+          post={editingPost}
+          onSave={handleSaveEdit}
+          onCancel={handleCancelEdit}
+        />
+      )}
     </div>
   );
 }

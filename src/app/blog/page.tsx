@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import MobileNav from '@/components/MobileNav';
 
 interface BlogPost {
   id: string;
@@ -20,6 +21,7 @@ export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [user, setUser] = useState<{ id: string; email: string; name: string; role: string; subscription?: string } | null>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -93,28 +95,38 @@ export default function BlogPage() {
               </div>
               <h1 className="text-2xl font-bold text-slate-800">ViralCarrot</h1>
             </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/" className="text-slate-600 hover:text-amber-600 transition-colors">Home</Link>
-              <Link href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</Link>
-              <Link href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</Link>
-              <Link href="/blog" className="text-amber-600 font-semibold transition-colors">Blog</Link>
-            </nav>
+            <div className="flex items-center space-x-2 md:space-x-4">
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex items-center space-x-6">
+                <Link href="/" className="text-slate-600 hover:text-amber-600 transition-colors">Home</Link>
+                <Link href="/about" className="text-slate-600 hover:text-amber-600 transition-colors">About</Link>
+                <Link href="/contact" className="text-slate-600 hover:text-amber-600 transition-colors">Contact</Link>
+                <Link href="/blog" className="text-amber-600 font-semibold transition-colors">Blog</Link>
+              </nav>
+
+              {/* Mobile Navigation */}
+              <MobileNav 
+                user={user}
+                onLogin={() => {/* Add login handler if needed */}}
+                onLogout={() => {/* Add logout handler if needed */}}
+              />
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-extrabold text-slate-800 mb-4">Food Thoughts</h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-8">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-slate-800 mb-3 md:mb-4">Food Thoughts</h1>
+          <p className="text-sm md:text-xl text-slate-600 max-w-2xl mx-auto mb-6 md:mb-8 px-4">
             Discover culinary insights, cooking techniques, and food stories from our passionate community of chefs and food enthusiasts.
           </p>
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">Cooking Tips</span>
-            <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm">Nutrition</span>
-            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Healthy Living</span>
-            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Food Science</span>
+          <div className="flex flex-wrap justify-center gap-2 mb-6 md:mb-8">
+            <span className="bg-amber-100 text-amber-800 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm">Cooking Tips</span>
+            <span className="bg-orange-100 text-orange-800 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm">Nutrition</span>
+            <span className="bg-green-100 text-green-800 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm">Healthy Living</span>
+            <span className="bg-blue-100 text-blue-800 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm">Food Science</span>
           </div>
         </div>
 
@@ -125,49 +137,48 @@ export default function BlogPage() {
         </div>
 
         {/* Blog Posts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 mb-12">
           {posts.map((post, index) => (
             <React.Fragment key={post.id}>
-              <article className="bg-white rounded-2xl shadow-lg border border-amber-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="relative h-48 w-full">
-                  <Image
-                    src={post.coverImage}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-slate-500">{post.authorName}</span>
-                    <span className="text-sm text-slate-500">{formatDate(post.createdAt)}</span>
+              <Link href={`/blog/${post.id}`} className="block">
+                <article className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-amber-100 overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105">
+                  <div className="relative h-40 md:h-48 w-full">
+                    <Image
+                      src={post.coverImage}
+                      alt={post.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
                   </div>
-                  <h2 className="text-xl font-bold text-slate-800 mb-3 line-clamp-2">{post.title}</h2>
-                  <p className="text-slate-600 mb-4 line-clamp-3">
-                    {post.seoDescription || 'Discover more about this fascinating topic...'}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-1">
-                      {post.tags.slice(0, 2).map((tag) => (
-                        <span key={tag} className="bg-amber-50 text-amber-700 px-2 py-1 rounded text-xs">
-                          {tag}
-                        </span>
-                      ))}
+                  <div className="p-4 md:p-6">
+                    <div className="flex items-center justify-between mb-2 md:mb-3">
+                      <span className="text-xs md:text-sm text-slate-500">{post.authorName}</span>
+                      <span className="text-xs md:text-sm text-slate-500">{formatDate(post.createdAt)}</span>
                     </div>
-                    <span className="text-xs text-slate-400">{post.readTime || '5 min read'}</span>
+                    <h2 className="text-lg md:text-xl font-bold text-slate-800 mb-2 md:mb-3 line-clamp-2 hover:text-amber-600 transition-colors">{post.title}</h2>
+                    <p className="text-slate-600 mb-4 line-clamp-3">
+                      {post.seoDescription || 'Discover more about this fascinating topic...'}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap gap-1">
+                        {post.tags.slice(0, 2).map((tag) => (
+                          <span key={tag} className="bg-amber-50 text-amber-700 px-2 py-1 rounded text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-xs text-slate-400">{post.readTime || '5 min read'}</span>
+                    </div>
+                    <div className="mt-4 inline-flex items-center text-amber-600 font-semibold">
+                      Read More
+                      <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </div>
                   </div>
-                  <Link 
-                    href={`/blog/${post.id}`} 
-                    className="mt-4 inline-flex items-center text-amber-600 hover:text-amber-700 font-semibold transition-colors"
-                  >
-                    Read More
-                    <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                  </Link>
-                </div>
-              </article>
+                </article>
+              </Link>
               
               {/* AdSense Ad Placeholder - Every 3rd article */}
               {(index + 1) % 3 === 0 && (

@@ -550,32 +550,42 @@ async function generateEnhancedRecipe(
   };
 }
 
-// Calculate ingredient match percentage (FIXED: Handle empty ingredients)
+// Calculate ingredient match percentage (FIXED: Properly include main ingredient in calculation)
 function calculateIngredientMatch(recipeIngredients: string[], userIngredients: string[], mainFood: string): {
   availableIngredients: string[];
   missingIngredients: string[];
   matchPercentage: number;
 } {
-  // If no user ingredients provided, show high match for main food
-  if (userIngredients.length === 0) {
-    const mainFoodMatch = recipeIngredients.some(ing => 
-      ing.toLowerCase().includes(mainFood.toLowerCase()) || 
-      mainFood.toLowerCase().includes(ing.toLowerCase())
-    );
-    
-    return {
-      availableIngredients: mainFoodMatch ? [mainFood] : [],
-      missingIngredients: [],
-      matchPercentage: mainFoodMatch ? 85 : 0
-    };
-  }
-
   const availableIngredients: string[] = [];
   const missingIngredients: string[] = [];
+
+  // Always check if main food is in the recipe ingredients
+  const mainFoodMatch = recipeIngredients.some(ing => 
+    ing.toLowerCase().includes(mainFood.toLowerCase()) || 
+    mainFood.toLowerCase().includes(ing.toLowerCase())
+  );
+
+  // Main ingredient is ALWAYS considered available since the recipe is generated based on it
+  availableIngredients.push(mainFood);
+
+  // If no user ingredients provided, main ingredient gives 100% match since recipe is built around it
+  if (userIngredients.length === 0) {
+    return {
+      availableIngredients,
+      missingIngredients: [],
+      matchPercentage: 100 // Main ingredient always matches for generated recipes
+    };
+  }
 
   // Check each user ingredient against recipe ingredients
   userIngredients.forEach(userIng => {
     const normalizedUserIng = userIng.toLowerCase().trim();
+    
+    // Skip if this ingredient is the same as main food (already counted)
+    if (normalizedUserIng === mainFood.toLowerCase().trim()) {
+      return;
+    }
+    
     const found = recipeIngredients.some(recipeIng => {
       const normalizedRecipeIng = recipeIng.toLowerCase().trim();
       return normalizedRecipeIng.includes(normalizedUserIng) || 
@@ -591,12 +601,14 @@ function calculateIngredientMatch(recipeIngredients: string[], userIngredients: 
     }
   });
 
-  const matchPercentage = Math.round((availableIngredients.length / userIngredients.length) * 100);
+  // Calculate match percentage: main ingredient (always available) + matched user ingredients
+  const totalIngredients = userIngredients.length + 1; // +1 for main food
+  const matchPercentage = Math.round((availableIngredients.length / totalIngredients) * 100);
 
   return {
     availableIngredients,
     missingIngredients,
-    matchPercentage
+    matchPercentage // Main ingredient is always counted as available
   };
 }
 
