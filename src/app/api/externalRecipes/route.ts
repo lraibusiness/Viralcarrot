@@ -461,22 +461,40 @@ function generateMockRecipe(sourceName: string, searchQuery: string, mainFood: s
   };
 }
 
-// Generate proper external recipe titles
+// Generate proper external recipe titles - FIXED: Better matching logic
 function generateProperExternalTitle(mainFood: string, sourceName: string, index: number): string {
   const normalizedFood = mainFood.toLowerCase().trim();
   
-  // Get base templates for the main food
-  const baseTemplates = EXTERNAL_TITLE_TEMPLATES[normalizedFood as keyof typeof EXTERNAL_TITLE_TEMPLATES] || 
-    EXTERNAL_TITLE_TEMPLATES[Object.keys(EXTERNAL_TITLE_TEMPLATES).find(key => 
-      normalizedFood.includes(key) || key.includes(normalizedFood)
-    ) as keyof typeof EXTERNAL_TITLE_TEMPLATES] || 
-    [
-      `Best ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
-      `Easy ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} from ${sourceName}`,
-      `Popular ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Dish`,
-      `Classic ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
-      `Award-Winning ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`
-    ];
+  // Get base templates for the main food - FIXED: Better matching logic
+  let baseTemplates;
+  
+  // First, try exact match
+  if (EXTERNAL_TITLE_TEMPLATES[normalizedFood as keyof typeof EXTERNAL_TITLE_TEMPLATES]) {
+    baseTemplates = EXTERNAL_TITLE_TEMPLATES[normalizedFood as keyof typeof EXTERNAL_TITLE_TEMPLATES];
+  } else {
+    // Find the best matching key - prioritize exact matches and avoid wrong matches
+    const matchingKey = Object.keys(EXTERNAL_TITLE_TEMPLATES).find(key => {
+      const keyLower = key.toLowerCase();
+      const foodLower = normalizedFood.toLowerCase();
+      
+      // Only match if the main food contains the key or vice versa, but be more strict
+      return (foodLower.includes(keyLower) && keyLower.length > 3) || 
+             (keyLower.includes(foodLower) && foodLower.length > 3);
+    });
+    
+    if (matchingKey) {
+      baseTemplates = EXTERNAL_TITLE_TEMPLATES[matchingKey as keyof typeof EXTERNAL_TITLE_TEMPLATES];
+    } else {
+      // Fallback to generic templates that include the main food
+      baseTemplates = [
+        `Best ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
+        `Easy ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} from ${sourceName}`,
+        `Popular ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Dish`,
+        `Classic ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
+        `Award-Winning ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)}`
+      ];
+    }
+  }
 
   // Select a base template
   const baseTemplate = baseTemplates[index % baseTemplates.length];

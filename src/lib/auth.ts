@@ -301,9 +301,41 @@ export class AuthService {
 
   static async searchRecipesByIngredients(ingredients: string[]): Promise<UserRecipe[]> {
     const recipes = await loadRecipes();
+    const mainIngredient = ingredients[0]?.toLowerCase(); // First ingredient is the main one
+    
     return recipes.filter(r => {
       const recipeIngredients = r.ingredients.map(ing => ing.toLowerCase());
-      return ingredients.some(ing => recipeIngredients.some(ri => ri.includes(ing.toLowerCase())));
+      const recipeTitle = r.title.toLowerCase();
+      const recipeDescription = r.description.toLowerCase();
+      
+      // STRICT MATCHING: Only return recipes that actually contain the main ingredient
+      // Check for exact word matches, not partial matches
+      const titleMatch = recipeTitle.includes(mainIngredient);
+      const descMatch = recipeDescription.includes(mainIngredient);
+      const ingredientMatch = recipeIngredients.some(ri => {
+        // Very strict matching - only exact word matches or very close matches
+        const words = ri.split(/\s+/);
+        return words.some(word => {
+          // Exact match
+          if (word === mainIngredient) return true;
+          // Very close match (like "salmon" matching "salmon fillet") but not "fish sauce" matching "fish"
+          if (word.startsWith(mainIngredient) && word.length <= mainIngredient.length + 3) return true;
+          return false;
+        });
+      });
+      
+      const hasMainIngredient = mainIngredient && (titleMatch || descMatch || ingredientMatch);
+      
+      // Only return recipes that have the main ingredient
+      return hasMainIngredient;
+    }).sort((a, b) => {
+      // Sort to prioritize recipes with main ingredient in title
+      const aTitleHasMain = mainIngredient && a.title.toLowerCase().includes(mainIngredient);
+      const bTitleHasMain = mainIngredient && b.title.toLowerCase().includes(mainIngredient);
+      
+      if (aTitleHasMain && !bTitleHasMain) return -1;
+      if (!aTitleHasMain && bTitleHasMain) return 1;
+      return 0;
     });
   }
 

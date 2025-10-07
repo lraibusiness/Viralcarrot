@@ -381,12 +381,20 @@ export default function HomePage() {
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => setShowAuth(true)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors text-sm"
-                  >
-                    Login
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowAuth(true)}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors text-sm"
+                    >
+                      Login
+                    </button>
+                    <Link
+                      href="/premium"
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-xl transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl"
+                    >
+                      Go Premium
+                    </Link>
+                  </div>
                 )}
               </div>
 

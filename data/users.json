@@ -60,7 +60,8 @@
       }
     },
     "createdAt": "2025-09-28T15:22:40.195Z",
-    "updatedAt": "2025-09-29T03:59:39.278Z"
+    "updatedAt": "2025-10-07T07:48:28.842Z",
+    "totalRecipesGenerated": 1
   },
   {
     "id": "9ztv6ersp2dmg3zipet",
@@ -101,5 +102,23 @@
     "totalRecipesGenerated": 0,
     "createdAt": "2025-10-02T16:43:14.126Z",
     "updatedAt": "2025-10-02T16:43:14.126Z"
+  },
+  {
+    "id": "qqzdhet3a",
+    "email": "e@e",
+    "name": "e@e",
+    "role": "user",
+    "totalRecipesGenerated": 0,
+    "createdAt": "2025-10-07T07:42:50.865Z",
+    "updatedAt": "2025-10-07T07:42:50.865Z"
+  },
+  {
+    "id": "0xji37yn3",
+    "email": "a@a",
+    "name": "a",
+    "role": "user",
+    "totalRecipesGenerated": 0,
+    "createdAt": "2025-10-07T07:54:35.110Z",
+    "updatedAt": "2025-10-07T07:54:35.110Z"
   }
 ]

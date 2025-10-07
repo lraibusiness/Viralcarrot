@@ -619,16 +619,34 @@ function generateProperRecipeTitle(mainFood: string, filters: RecipeFilters, ind
   // Get cuisine-specific modifiers
   const cuisineModifiers = filters.cuisine ? CUISINE_MODIFIERS[filters.cuisine as keyof typeof CUISINE_MODIFIERS] || [] : [];
   
-  // Get base templates for the main food
-  const baseTemplates = RECIPE_TITLE_TEMPLATES[normalizedFood as keyof typeof RECIPE_TITLE_TEMPLATES] || 
-    RECIPE_TITLE_TEMPLATES[Object.keys(RECIPE_TITLE_TEMPLATES).find(key => 
-      normalizedFood.includes(key) || key.includes(normalizedFood)
-    ) as keyof typeof RECIPE_TITLE_TEMPLATES] || 
-    [
-      `Delicious ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
-      `Perfect ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Dish`,
-      `Amazing ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Creation`
-    ];
+  // Get base templates for the main food - FIXED: Better matching logic
+  let baseTemplates;
+  
+  // First, try exact match
+  if (RECIPE_TITLE_TEMPLATES[normalizedFood as keyof typeof RECIPE_TITLE_TEMPLATES]) {
+    baseTemplates = RECIPE_TITLE_TEMPLATES[normalizedFood as keyof typeof RECIPE_TITLE_TEMPLATES];
+  } else {
+    // Find the best matching key - prioritize exact matches and avoid wrong matches
+    const matchingKey = Object.keys(RECIPE_TITLE_TEMPLATES).find(key => {
+      const keyLower = key.toLowerCase();
+      const foodLower = normalizedFood.toLowerCase();
+      
+      // Only match if the main food contains the key or vice versa, but be more strict
+      return (foodLower.includes(keyLower) && keyLower.length > 3) || 
+             (keyLower.includes(foodLower) && foodLower.length > 3);
+    });
+    
+    if (matchingKey) {
+      baseTemplates = RECIPE_TITLE_TEMPLATES[matchingKey as keyof typeof RECIPE_TITLE_TEMPLATES];
+    } else {
+      // Fallback to generic templates that include the main food
+      baseTemplates = [
+        `Delicious ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Recipe`,
+        `Perfect ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Dish`,
+        `Amazing ${mainFood.charAt(0).toUpperCase() + mainFood.slice(1)} Creation`
+      ];
+    }
+  }
 
   // Select a base template
   const baseTemplate = baseTemplates[index % baseTemplates.length];
@@ -661,7 +679,7 @@ function generateContextualIngredients(mainFood: string, userIngredients: string
   const baseIngredients = [mainFood];
   const contextualIngredients: string[] = [];
   
-  // Add common ingredients based on main food
+  // Add common ingredients based on main food - FIXED: Better matching logic
   const commonIngredients = {
     chicken: ['olive oil', 'salt', 'black pepper', 'garlic', 'onion'],
     beef: ['olive oil', 'salt', 'black pepper', 'garlic', 'onion', 'beef broth'],
@@ -682,9 +700,15 @@ function generateContextualIngredients(mainFood: string, userIngredients: string
     bread: ['flour', 'yeast', 'salt', 'water', 'olive oil']
   };
   
-  const foodKey = Object.keys(commonIngredients).find(key => 
-    mainFood.toLowerCase().includes(key) || key.includes(mainFood.toLowerCase())
-  ) as keyof typeof commonIngredients;
+  // FIXED: More precise matching to avoid wrong ingredient assignments
+  const foodKey = Object.keys(commonIngredients).find(key => {
+    const keyLower = key.toLowerCase();
+    const foodLower = mainFood.toLowerCase();
+    
+    // Only match if there's a clear relationship and avoid false positives
+    return (foodLower.includes(keyLower) && keyLower.length > 3) || 
+           (keyLower.includes(foodLower) && foodLower.length > 3);
+  }) as keyof typeof commonIngredients;
   
   if (foodKey && commonIngredients[foodKey]) {
     contextualIngredients.push(...commonIngredients[foodKey]);
@@ -714,19 +738,21 @@ function generateContextualIngredients(mainFood: string, userIngredients: string
   return [...new Set(contextualIngredients)].slice(0, 12);
 }
 
-// Generate cooking steps based on main food and ingredients
+// Generate cooking steps based on main food and ingredients - FIXED: Always prioritize main ingredient
 function generateCookingSteps(mainFood: string, ingredients: string[], filters: RecipeFilters, index: number): string[] {
   const steps: string[] = [];
   
-  // Preparation step
+  // Preparation step - Always start with main ingredient
   steps.push(`Prepare the ${mainFood} by washing and cutting as needed.`);
   
-  // Seasoning step
+  // Seasoning step - Focus on main ingredient
   if (ingredients.includes('salt') && ingredients.includes('black pepper')) {
     steps.push(`Season the ${mainFood} with salt and black pepper to taste.`);
+  } else {
+    steps.push(`Season the ${mainFood} with your preferred seasonings.`);
   }
   
-  // Cooking method based on filters
+  // Cooking method based on filters - Always about main ingredient
   if (filters.cookingTime === '15') {
     steps.push(`Heat a pan over medium-high heat and cook the ${mainFood} for 3-4 minutes per side.`);
   } else if (filters.cookingTime === '30') {
@@ -735,21 +761,21 @@ function generateCookingSteps(mainFood: string, ingredients: string[], filters: 
     steps.push(`Preheat oven to 400°F (200°C). Place the ${mainFood} in a baking dish and cook for 20-25 minutes.`);
   }
   
-  // Add vegetables if present
+  // Add vegetables if present - Support the main ingredient
   const vegetables = ingredients.filter(ing => 
     ['onion', 'garlic', 'bell pepper', 'tomato', 'mushroom', 'carrot', 'celery'].includes(ing.toLowerCase())
   );
   if (vegetables.length > 0) {
-    steps.push(`Add ${vegetables.join(', ')} to the pan and cook for an additional 5-7 minutes.`);
+    steps.push(`Add ${vegetables.join(', ')} to complement the ${mainFood} and cook for an additional 5-7 minutes.`);
   }
   
-  // Finishing step
+  // Finishing step - Main ingredient as star
   if (ingredients.includes('lemon')) {
     steps.push(`Squeeze fresh lemon juice over the ${mainFood} before serving.`);
   } else if (ingredients.includes('herbs')) {
-    steps.push(`Garnish with fresh herbs and serve immediately.`);
+    steps.push(`Garnish the ${mainFood} with fresh herbs and serve immediately.`);
   } else {
-    steps.push(`Taste and adjust seasoning as needed. Serve hot.`);
+    steps.push(`Taste the ${mainFood} and adjust seasoning as needed. Serve hot.`);
   }
   
   return steps;
